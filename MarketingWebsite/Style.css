@@ -1,0 +1,19 @@
+/* Globle CSS */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Rethink Sans", sans-serif;
+  background-color: #050505;
+  color: #9ca3af;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
