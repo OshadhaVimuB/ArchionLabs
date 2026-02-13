@@ -1,7 +1,38 @@
 "Use client";
 import Link from "next/link";
+import {useState,useEffect} from "react";
 
-export default function TemplateCard({ id, title, author, image, download }) {
+export default function TemplateCard({ id, title, author, image, download,createdAt }) {
+    const [timeAgo, setTimeAgo] = useState("");
+
+function calculateTimeAgo(dateString) {
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffInSeconds = Math.floor((now - past) / 1000);
+
+  const minutes = Math.floor(diffInSeconds / 60);
+  const hours = Math.floor(diffInSeconds / 3600);
+  const days = Math.floor(diffInSeconds / 86400);
+
+  if (minutes < 60) return `${minutes} min ago`;
+  if (hours < 24) return `${hours} hours ago`;
+  if (days < 7) return `${days} days ago`;
+
+  const weeks = Math.floor(days / 7);
+  return `${weeks} weeks ago`;
+}
+useEffect(() => {
+  function updateTime() {
+    setTimeAgo(calculateTimeAgo(createdAt));
+  }
+
+  updateTime(); // run immediately
+
+  const interval = setInterval(updateTime, 60000); // update every minute
+
+  return () => clearInterval(interval);
+}, [createdAt]);
+
   return (
     <div className="perspective-1000">
       <div className="bg-zinc-800 rounded-lg overflow-hidden transition-transform duration-300 transform hover:rotate-1 hover:scale-105 hover:shadow-2xl">
@@ -23,6 +54,9 @@ export default function TemplateCard({ id, title, author, image, download }) {
 
             <p className="text-zinc-400 text-xs mt-1">
               {author}
+            </p>
+            <p className="text-zinc-500 text-xs mt-1">
+              {timeAgo}
             </p>
           </div>
         </Link>

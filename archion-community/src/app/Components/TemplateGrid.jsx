@@ -9,6 +9,7 @@ export default function TemplateGrid() {
     author: "MysticalChimp",
     image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511",
     download: "/template1.zip",
+    createdAt: "2024-02-18T10:00:00"
   },
   {
     id: 2,
@@ -16,6 +17,7 @@ export default function TemplateGrid() {
     author: "TechUser",
     image: "https://images.unsplash.com/photo-1607746882042-944635dfe10e",
     download: "/template1.zip",
+    createdAt: "2024-02-18T10:00:00"
   },
   {
     id: 3,
@@ -23,6 +25,7 @@ export default function TemplateGrid() {
     author: "ArchionDev",
     image: "https://images.unsplash.com/photo-1581091870627-3b5de8d2f76c",
     download: "/template1.zip",
+    createdAt: "2024-02-18T10:00:00"
   },
   {
     id: 4,
@@ -30,6 +33,7 @@ export default function TemplateGrid() {
     author: "DesignerPro",
     image: "https://images.unsplash.com/photo-1492724441997-5dc865305da7",
     download: "/template1.zip",
+    createdAt: "2024-02-18T10:00:00"
   },
 ];
 
@@ -46,6 +50,7 @@ export default function TemplateGrid() {
             author={template.author}
             image={template.image}
             download={template.download}
+            createdAt={template.createdAt}
           />
         ))}
       </div>
