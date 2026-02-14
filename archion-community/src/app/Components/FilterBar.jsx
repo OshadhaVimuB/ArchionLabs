@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 
-export default function FilterBar() {
+export default function FilterBar({ searchTerm, setSearchTerm }) {
   const [active, setActive] = useState("Trending");
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -86,9 +86,16 @@ export default function FilterBar() {
       <div>
         <input
           type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search"
           className="px-3 py-1 rounded bg-zinc-800 text-white"
         />
+        <button onClick={() => console.log("Searching:", searchTerm)}
+    className="px-4 py-1 bg-green-600 rounded hover:bg-green-500 transition">
+  
+    Search
+  </button>
       </div>
 
     </div>

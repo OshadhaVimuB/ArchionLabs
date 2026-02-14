@@ -1,7 +1,7 @@
 "use client";
 import TemplateCard from "./TemplateCard";
 
-export default function TemplateGrid() {
+export default function TemplateGrid({ searchTerm }) {
   const templates = [
   {
     id: 1,
@@ -36,13 +36,16 @@ export default function TemplateGrid() {
     createdAt: "2024-02-18T10:00:00"
   },
 ];
+const filteredTemplates = templates.filter((template) =>
+  template.title.toLowerCase().includes(searchTerm.toLowerCase())
+);
 
 
 
   return (
     <div className="bg-zinc-900 min-h-screen px-8 py-6">
       <div className="grid grid-cols-4 gap-6">
-        {templates.map((template) => (
+        {filteredTemplates.map((template) => (
           <TemplateCard
             key={template.id}
             id={template.id}
