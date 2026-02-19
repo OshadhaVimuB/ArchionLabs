@@ -26,8 +26,8 @@ export default function Home() {
   const [templates, setTemplates] = useState(initialTemplates);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
-const [selectedIds, setSelectedIds] = useState([]);
-  
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
   return(
   <>
    
@@ -63,6 +63,7 @@ const [selectedIds, setSelectedIds] = useState([]);
    deleteMode={deleteMode}
    selectedIds={selectedIds}
    setSelectedIds={setSelectedIds}
+   selectedDate={selectedDate}
     />
   <h1>Community Library</h1>
 

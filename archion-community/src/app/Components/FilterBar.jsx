@@ -1,9 +1,10 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 
-export default function FilterBar({ searchTerm, setSearchTerm }) {
+export default function FilterBar({ searchTerm, setSearchTerm, setSelectedDate}) {
   const [active, setActive] = useState("Trending");
   const [open, setOpen] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +25,18 @@ export default function FilterBar({ searchTerm, setSearchTerm }) {
 
       {/* LEFT SIDE */}
       <div className="flex items-center gap-4 relative">
+        {showCalendar && (
+          <div className="absolute mt-2 bg-zinc-800 p-3 rounded shadow-lg">
+            <input
+             type="date"
+            onChange={(e) => {
+              setSelectedDate(new Date(e.target.value));
+              setShowCalendar(false);
+            }}
+      className="bg-zinc-700 text-white p-2 rounded"
+    />
+  </div>
+)}
 
         {/* Filters Button */}
         <div ref={dropdownRef}>
@@ -39,9 +52,11 @@ export default function FilterBar({ searchTerm, setSearchTerm }) {
               <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                 Category
               </div>
-              <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                Date
-              </div>
+              <button
+                 onClick={() => setShowCalendar(!showCalendar)}
+                 className ="hover:text-gray-300">
+                  Date
+              </button>
             </div>
           )}
         </div>
