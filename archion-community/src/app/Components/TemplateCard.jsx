@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {useState,useEffect} from "react";
 
-export default function TemplateCard({ id, title, author, image, download,createdAt }) {
+export default function TemplateCard({ id, title, author, image, deleteMode,selectedIds,handleSelect, download,createdAt }) {
     const [timeAgo, setTimeAgo] = useState("");
 
 function calculateTimeAgo(dateString) {
@@ -34,9 +34,23 @@ useEffect(() => {
 }, [createdAt]);
 
   return (
-    <div className="perspective-1000">
-      <div className="bg-zinc-800 rounded-lg overflow-hidden transition-transform duration-300 transform hover:rotate-1 hover:scale-105 hover:shadow-2xl">
+    <div className="relative">
+      {deleteMode && (
+  <input
+    type="checkbox"
+    className="absolute top-3 right-3 w-5 h-5 accent-red-500 z-10"
+    checked={selectedIds.includes(id)}
+    onChange={() => {
+      if (selectedIds.includes(id)) {
+        setSelectedIds(selectedIds.filter(item => item !== id));
+      } else {
+        setSelectedIds([...selectedIds, id]);
+      }
+    }}
+  />
+)}
 
+      <div className="relative bg-zinc-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 cursor-pointer">
         {/* Clickable Image + Title Section */}
         <Link href={`/templates/${id}`} className="block cursor-pointer">
           <div className="h-48 bg-zinc-700 overflow-hidden">
