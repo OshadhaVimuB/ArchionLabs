@@ -2,8 +2,9 @@
 import Link from "next/link";
 import {useState,useEffect} from "react";
 
-export default function TemplateCard({ id, title, author, image, deleteMode,selectedIds,handleSelect, download,createdAt }) {
+export default function TemplateCard({ id, title, author, image, deleteMode,selectedIds,handleSelect,setSelectedIds, download,createdAt }) {
     const [timeAgo, setTimeAgo] = useState("");
+    console.log(setSelectedIds);
 
 function calculateTimeAgo(dateString) {
   const now = new Date();
@@ -47,6 +48,7 @@ useEffect(() => {
         setSelectedIds([...selectedIds, id]);
       }
     }}
+   
   />
 )}
 

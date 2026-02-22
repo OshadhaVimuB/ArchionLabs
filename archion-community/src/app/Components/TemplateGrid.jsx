@@ -31,6 +31,7 @@ function handleSelect(id) {
             deleteMode={deleteMode}
             selectedIds={selectedIds}
             handleSelect={handleSelect}
+            setSelectedIds={setSelectedIds}
 
           />
         ))}

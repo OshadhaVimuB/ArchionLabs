@@ -3,31 +3,24 @@ import Navbar from "./Components/Navbar.jsx";
 import FilterBar from "./Components/FilterBar";
 import UploadTemplate from "./Components/UploadTemplate";
 import TemplateGrid from "./Components/TemplateGrid.jsx";
+import DeleteTemplate from "./Components/DeleteTemplate.jsx"
 import { useState } from "react";
-const initialTemplates = [
-  {
-    id: 1,
-    title: "Modern Apartment Interior",
-    author: "MysticalChimp",
-    image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511",
-    createdAt: new Date("2024-01-01"),
-  },
-  {
-    id: 2,
-    title: "uiuiuiui",
-    author: "TechUser",
-    image: "https://images.unsplash.com/photo-1607746882042-944635dfe10e",
-    createdAt: new Date("2024-01-03"),
-  }
-];
-import DeleteTemplate from "./Components/DeleteTemplate.jsx";
+import { useEffect } from "react";
+
+
 
 export default function Home() {
-  const [templates, setTemplates] = useState(initialTemplates);
+  const [templates, setTemplates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  useEffect(() => {
+  fetch("http://localhost:5000/templates")
+    .then(res => res.json())
+    .then(data => setTemplates(data))
+    .catch(err => console.error(err));
+}, []);
   return(
   <>
    
@@ -41,17 +34,27 @@ export default function Home() {
   <div className="flex justify-between items-center px-8 mt-6">
      <UploadTemplate />
      <button
-  onClick={() => {
-    if (deleteMode) {
-      setTemplates(
-        templates.filter(t => !selectedIds.includes(t.id))
-      );
-      setSelectedIds([]);
-      setDeleteMode(false);
-    } else {
-      setDeleteMode(true);
+     onClick={async () => {
+  if (deleteMode) {
+
+    for (let id of selectedIds) {
+      await fetch(`http://localhost:5000/templates/${id}`, {
+        method: "DELETE"
+      });
     }
-  }}
+
+    setSelectedIds([]);
+    setDeleteMode(false);
+
+    // Reload templates from backend
+    const res = await fetch("http://localhost:5000/templates");
+    const data = await res.json();
+    setTemplates(data);
+
+  } else {
+    setDeleteMode(true);
+  }
+}}
   className="px-4 py-2 bg-red-600 rounded hover:bg-red-700 text-white"
 >
   {deleteMode ? "Confirm Delete" : "Delete Template"}

@@ -32,9 +32,19 @@ app.delete("/templates/:id", (req, res) => {
 
 // POST new template
 app.post("/templates", (req, res) => {
-  const newTemplate = req.body;
+  const newTemplate = {
+    id: templates.length ? templates[templates.length - 1].id + 1 : 1,
+    title: req.body.title,
+    author: req.body.author,
+    description: req.body.description,
+    category: req.body.category,
+    createdAt: req.body.createdAt
+    
+  };
+
   templates.push(newTemplate);
-  res.json(newTemplate);
+
+  res.status(201).json(newTemplate);
 });
 
 app.listen(5000, () => {

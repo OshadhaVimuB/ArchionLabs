@@ -9,10 +9,35 @@ export default function UploadTemplate() {
   const [category, setCategory] = useState("");
   const [designer, setDesigner] = useState("");
   const [file, setFile] = useState(null);
-
+  const [author, setAuthor] = useState("");
   function handleFileChange(e) {
     setFile(e.target.files[0]);
   }
+  const handleUpload = async () => {
+  const response = await fetch("http://localhost:5000/templates", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title,
+      author: designer,   // use designer as author
+      description,
+      category,
+      createdAt: new Date()
+    })
+  });
+
+  if (response.ok) {
+    alert("Template uploaded!");
+    setTitle("");
+    setDescription("");
+    setCategory("");
+    setDesigner("");
+  } else {
+    alert("Upload failed");
+  }
+};
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white px-10 py-12">
@@ -105,7 +130,7 @@ export default function UploadTemplate() {
               Cancel
             </button>
 
-            <button className="px-6 py-2 bg-green-600 rounded hover:bg-green-500">
+            <button onClick = {handleUpload} className="px-6 py-2 bg-green-600 rounded hover:bg-green-500">
               Upload Template
             </button>
           </div>
