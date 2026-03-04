@@ -81,6 +81,12 @@ coverage/
 htmlcov/
 
 # ========================
+# Archion Build
+# ========================
+archion-build/start.ps1
+archion-build/prompt.md
+
+# ========================
 # Misc
 # ========================
 *.local
