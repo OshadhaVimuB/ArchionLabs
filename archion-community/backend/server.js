@@ -5,11 +5,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "../archion-community/public/models");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
+
+
 let templates = [
   {
     id: 1,
     title: "Modern Apartment Interior",
-    author: "MysticalChimp"
+    author: "MysticalChimp",
+    model: "/models/test.glb"
   },
   {
     id: 2,
@@ -31,20 +47,18 @@ app.delete("/templates/:id", (req, res) => {
 });
 
 // POST new template
-app.post("/templates", (req, res) => {
+app.post("/upload-model", upload.single("model"), (req, res) => {
+
   const newTemplate = {
-    id: templates.length ? templates[templates.length - 1].id + 1 : 1,
+    id: Date.now(),
     title: req.body.title,
     author: req.body.author,
-    description: req.body.description,
-    category: req.body.category,
-    createdAt: req.body.createdAt
-    
+    modelUrl: "/models/" + req.file.filename
   };
 
   templates.push(newTemplate);
 
-  res.status(201).json(newTemplate);
+  res.json(newTemplate);
 });
 
 app.listen(5000, () => {

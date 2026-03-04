@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 
 
+
 export default function Home() {
   const [templates, setTemplates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,6 +24,7 @@ export default function Home() {
 }, []);
   return(
   <>
+  
    
    
   <h1>Community Library</h1>
