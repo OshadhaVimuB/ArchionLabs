@@ -85,6 +85,7 @@ htmlcov/
 # ========================
 archion-build/start.ps1
 archion-build/prompt.md
+archion-build/backend/archion.db
 
 # ========================
 # Misc
