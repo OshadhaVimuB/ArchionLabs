@@ -13,6 +13,7 @@ from app.config import (
     PROJECT_DESCRIPTION,
 )
 from app.database import engine, Base
+from app.routers import generate
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(generate.router, prefix=API_V1_PREFIX)
 
 
 @app.get("/")
