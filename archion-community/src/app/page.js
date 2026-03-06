@@ -34,7 +34,6 @@ export default function Home() {
   setSearchTerm={setSearchTerm}
 />
   <div className="flex justify-between items-center px-8 mt-6">
-     <UploadTemplate />
      <button
      onClick={async () => {
   if (deleteMode) {

@@ -7,14 +7,38 @@ export default function ModelPage() {
 
   const params = useParams();
 
-  const modelUrl = "/models/test.glb"; // later this will come from backend
+  const modelUrl = "/models/test.glb"; // later from backend
 
   return (
-    <div className="w-full h-screen bg-black flex items-center justify-center">
 
-      <div className="w-full h-full">
+    <div className="w-full min-h-screen bg-black text-white">
 
-        <ModelViewer modelUrl={modelUrl} />
+      {/* Back Button */}
+      <div className="p-6">
+        <button
+          onClick={() => window.location.href = "/"}
+          className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+        >
+          ← Back to Library
+        </button>
+      </div>
+
+      {/* Viewer Section */}
+      <div className="flex flex-col items-center">
+
+        {/* Model Viewer Box */}
+        <div className="w-[600px] h-[600px] bg-zinc-900 rounded-xl shadow-xl">
+          <ModelViewer modelUrl={modelUrl} />
+        </div>
+
+        {/* Download Button */}
+        <a
+          href={modelUrl}
+          download
+          className="mt-6 px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-500 transition"
+        >
+          Download Model
+        </a>
 
       </div>
 

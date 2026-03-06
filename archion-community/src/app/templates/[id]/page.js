@@ -3,10 +3,12 @@
 import { useParams } from "next/navigation";
 import ModelViewer from "../../Components/ModelViewer";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export default function TemplatePreview() {
   const params = useParams();
   const { id } = params;
+  const router = useRouter();
 
   // Temporary mock data (later this comes from backend)
   const templates = [
@@ -46,6 +48,12 @@ export default function TemplatePreview() {
 
     <div className="w-full h-96">
       <ModelViewer modelUrl="/models/test.glb" />
+      <button onClick={()=>router.push("/")} className="px-4 py-2 bg-zinc-700 rounded text-white">
+        Back to Library
+      </button>
+      <a href= "/models/test.glb" download className="px-4 py-2 bg-zinc-700 rounded">
+        Download Model
+      </a>
     </div>
 
     <div className="p-6">
@@ -59,7 +67,7 @@ export default function TemplatePreview() {
       <div className="mt-6 flex gap-4">
 
         <a
-          href={template.download}
+          href="/models/test.glb"
           download
           className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500"
         >
