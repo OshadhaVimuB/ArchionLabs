@@ -1,5 +1,6 @@
 "use client";
 import Navbar from "./Components/Navbar.jsx";
+import Link from "next/link";
 import FilterBar from "./Components/FilterBar";
 import UploadTemplate from "./Components/UploadTemplate";
 import TemplateGrid from "./Components/TemplateGrid.jsx";
@@ -61,6 +62,16 @@ export default function Home() {
   {deleteMode ? "Confirm Delete" : "Delete Template"}
 </button>
    </div>
+  <div className="flex justify-between items-center w-full mb-6">
+
+  <Link href="/upload">
+    <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-white">
+      + Upload Template
+    </button>
+  </Link>
+
+</div>
+
 
   <TemplateGrid searchTerm={searchTerm}
    templates={templates}
