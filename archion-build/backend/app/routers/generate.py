@@ -17,6 +17,8 @@ from app.database import get_db
 from app.models.db_models import Project, ChatHistory
 from app.services.geometry import LayoutSolver
 from app.services.groq_intent import IntentParser
+from app.services.model3d import generate_threejs_json, generate_cadquery_script
+from app.models.floorplan import FloorPlan
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +47,25 @@ class GenerateResponse(BaseModel):
     message: str = Field(..., description="Summary message for the chat assistant")
 
 
+class ModelRequest(BaseModel):
+    """Request body for 3D model / script generation."""
+    project_id: str = Field(..., description="ID of the project to generate from")
+
+
+class ThreeJSResponse(BaseModel):
+    """Response body containing Three.js mesh JSON."""
+    project_id: str
+    data: dict = Field(..., description="Three.js mesh description JSON")
+
+
+class CadQueryResponse(BaseModel):
+    """Response body containing CadQuery Python script."""
+    project_id: str
+    script: str = Field(..., description="CadQuery Python script text")
+
+
 # ---------------------------------------------------------------------------
-# Endpoint
+# Endpoint — Floor Plan Generation
 # ---------------------------------------------------------------------------
 
 
@@ -123,4 +142,66 @@ async def generate_floorplan(
         raise HTTPException(
             status_code=500,
             detail=f"Floor plan generation failed: {str(e)}",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Endpoint — Three.js JSON
+# ---------------------------------------------------------------------------
+
+
+@router.post("/threejs", response_model=ThreeJSResponse)
+async def generate_threejs(
+    request: ModelRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a Three.js JSON mesh description from a persisted project.
+
+    Public endpoint (no authentication required).
+    """
+    project = db.query(Project).filter(Project.id == request.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        plan = FloorPlan(**project.floorplan_data)
+        data = generate_threejs_json(plan)
+        return ThreeJSResponse(project_id=request.project_id, data=data)
+    except Exception as e:
+        logger.error(f"Three.js generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Three.js generation failed: {str(e)}",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Endpoint — CadQuery Script
+# ---------------------------------------------------------------------------
+
+
+@router.post("/cadquery", response_model=CadQueryResponse)
+async def generate_cadquery(
+    request: ModelRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a CadQuery Python script from a persisted project.
+
+    Public endpoint (no authentication required).
+    """
+    project = db.query(Project).filter(Project.id == request.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        plan = FloorPlan(**project.floorplan_data)
+        script = generate_cadquery_script(plan)
+        return CadQueryResponse(project_id=request.project_id, script=script)
+    except Exception as e:
+        logger.error(f"CadQuery generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"CadQuery generation failed: {str(e)}",
         )
