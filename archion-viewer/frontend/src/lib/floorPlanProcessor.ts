@@ -143,7 +143,7 @@ function analyzeFloorPlanImage(img: HTMLImageElement, fileName: string): FloorPl
     texts: [],
   };
 
-  const totalArea = level.rooms.reduce((sum, room) => sum + (room.area || 0), 0);
+  const totalArea = level.rooms.reduce((sum: number, room: Room) => sum + (room.area || 0), 0);
 
   return {
     name: fileName.replace(/\.[^/.]+$/, ""),
