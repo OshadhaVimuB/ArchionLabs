@@ -1,23 +1,24 @@
 const express = require("express");
 const cors = require("cors");
+const multer = require("multer");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 
-const multer = require("multer");
+const path = require("path");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "../archion-community/public/models");
+    cb(null, path.join(__dirname, "../public/models"));
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + "-" + file.originalname);
   }
 });
-
 const upload = multer({ storage: storage });
+
 
 
 let templates = [

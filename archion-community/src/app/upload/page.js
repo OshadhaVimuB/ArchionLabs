@@ -29,42 +29,40 @@ export default function UploadTemplate() {
   const input = document.getElementById("fileInput");
   if (input) input.value = "";
 }
+const handleUpload = async () => {
 
+  if (!file) {
+    alert("Please select a 3D model file first");
+    return;
+  }
 
-  const handleUpload = async () => {
+  const formData = new FormData();
 
-    if (!title || !designer || !category) {
-      alert("Please fill all required fields");
-      return;
-    }
+  formData.append("title", title);
+  formData.append("author", designer);
+  formData.append("model", file);
 
-    const response = await fetch("http://localhost:5000/templates", {
+  try {
+    const response = await fetch("http://localhost:5000/upload-model", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        title,
-        author: designer,
-        description,
-        category,
-        createdAt: new Date()
-      })
+      body: formData
     });
 
     if (response.ok) {
       alert("Template uploaded!");
-
-      setTitle("");
-      setDescription("");
-      setCategory("");
-      setDesigner("");
-      setFile(null);
-
+      window.location.href = "/";
     } else {
       alert("Upload failed");
     }
-  };
+
+  } catch (error) {
+    console.error(error);
+    alert("Server connection failed");
+  }
+};
+
+ 
+    
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white px-10 py-12">
