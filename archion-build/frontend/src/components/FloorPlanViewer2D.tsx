@@ -1,390 +1,771 @@
-"use client";
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { useFloorPlanStore } from '../store/useFloorPlanStore';
+import { useEditorStore } from '../store/useEditorStore';
+import { ROOM_COLORS } from '../types/floorplan';
+import type { Point2D, Wall, FloorPlan, Door, Window as FloorPlanWindow } from '../types/floorplan';
+import {
+  drawGrid,
+  drawRoomFill,
+  drawRoomLabel,
+  drawWall,
+  drawDoor,
+  drawSlidingDoor,
+  drawWindow,
+  drawStaircase,
+  drawDimensionLine,
+  drawSelectionRect,
+  drawText,
+} from './architectural-symbols';
 
-/**
- * FloorPlanViewer2D – Interactive 2D SVG rendering of a generated floor plan.
- *
- * Subscribes to the Zustand store. When a floor plan exists it renders rooms,
- * walls, doors, windows, a grid background, and text labels inside an SVG
- * that scales to fit its container. When no plan exists a friendly empty-state
- * placeholder is shown instead.
- */
+// ── Helpers ──────────────────────────────────────────────────────────────
 
-import React from "react";
-import { useFloorPlanStore } from "@/store/useFloorPlanStore";
-import type {
-  FloorPlan,
-  Level,
-  Room,
-  Wall,
-  Door,
-  Window as FPWindow,
-  RoomType,
-} from "@/types/floorplan";
-import "./FloorPlanViewer2D.css";
+function screenToWorld(
+  sx: number, sy: number,
+  canvas: HTMLCanvasElement,
+  zoom: number, panX: number, panY: number,
+): Point2D {
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  return {
+    x: (sx - rect.left - cx - panX) / zoom,
+    y: (sy - rect.top - cy - panY) / zoom,
+  };
+}
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+function snapToGridVal(val: number, gridSize: number): number {
+  return Math.round(val / gridSize) * gridSize;
+}
 
-/** Pixels per metre – controls SVG scale. */
-const SCALE = 50;
+function snapPoint(p: Point2D, gridSize: number): Point2D {
+  return {
+    x: snapToGridVal(p.x, gridSize),
+    y: snapToGridVal(p.y, gridSize),
+  };
+}
 
-/** Extra padding (px) around the rendered floor plan. */
-const PADDING = 40;
+function hitTestWall(
+  wx: Point2D, wy: Point2D, p: Point2D, threshold: number,
+): boolean {
+  const dx = wy.x - wx.x;
+  const dy = wy.y - wx.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return false;
+  let t = ((p.x - wx.x) * dx + (p.y - wx.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const closest = { x: wx.x + t * dx, y: wx.y + t * dy };
+  const dist = Math.sqrt((p.x - closest.x) ** 2 + (p.y - closest.y) ** 2);
+  return dist < threshold;
+}
 
-/** Room-type → fill colour map (curated, harmonious). */
-const ROOM_COLORS: Record<RoomType, string> = {
-  living_room: "#3b82f6",   // vivid blue
-  bedroom:     "#8b5cf6",   // lavender purple
-  bathroom:    "#06b6d4",   // cyan
-  kitchen:     "#f59e0b",   // warm amber
-  dining_room: "#10b981",   // emerald
-  garage:      "#6b7280",   // slate
-  hallway:     "#a78bfa",   // soft violet
-  closet:      "#78716c",   // stone
-  laundry:     "#14b8a6",   // teal
-  office:      "#6366f1",   // indigo
-  balcony:     "#22d3ee",   // light cyan
-  entrance:    "#f97316",   // orange
-  storage:     "#9ca3af",   // cool grey
-  other:       "#64748b",   // grey-blue
-};
+function hitTestRect(
+  minX: number, minY: number, maxX: number, maxY: number,
+  p: Point2D,
+): boolean {
+  return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+}
 
-/** Wall colours & stroke widths. */
-const EXTERIOR_WALL_WIDTH = 4;
-const INTERIOR_WALL_WIDTH = 2;
-const WALL_COLOR = "#e2e8f0";
+function hitTestCircle(
+  cx: number, cy: number, r: number, p: Point2D,
+): boolean {
+  return (p.x - cx) ** 2 + (p.y - cy) ** 2 <= r * r;
+}
 
-/** Door / window visual constants. */
-const DOOR_COLOR = "#facc15";      // gold
-const WINDOW_COLOR = "#38bdf8";    // sky-blue
-const DOOR_RENDER_WIDTH = 3;
-const WINDOW_RENDER_WIDTH = 3;
+function getWallAngle(wall: Wall): number {
+  return Math.atan2(wall.end.y - wall.start.y, wall.end.x - wall.start.x);
+}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+function projectOntoWall(wall: Wall, p: Point2D): Point2D {
+  const dx = wall.end.x - wall.start.x;
+  const dy = wall.end.y - wall.start.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return wall.start;
+  let t = ((p.x - wall.start.x) * dx + (p.y - wall.start.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return { x: wall.start.x + t * dx, y: wall.start.y + t * dy };
+}
 
-/** Convert a metre value to an SVG-pixel value. */
-const m = (v: number) => v * SCALE;
+function isNearPoint(a: Point2D, b: Point2D, threshold: number): boolean {
+  return Math.abs(a.x - b.x) < threshold && Math.abs(a.y - b.y) < threshold;
+}
 
-/** Format an area value nicely. */
-const fmtArea = (area: number | null, bb?: Room["bounding_box"]) => {
-  if (area !== null && area !== undefined) return `${area.toFixed(1)} m²`;
-  if (bb) {
-    const w = bb.max_point.x - bb.min_point.x;
-    const h = bb.max_point.y - bb.min_point.y;
-    return `${(w * h).toFixed(1)} m²`;
-  }
-  return "";
-};
+// ── Component ────────────────────────────────────────────────────────────
 
-/** Unique room types present in a level (for the legend). */
-const uniqueRoomTypes = (rooms: Room[]): RoomType[] => {
-  const seen = new Set<RoomType>();
-  rooms.forEach((r) => seen.add(r.room_type));
-  return Array.from(seen);
-};
+export default function FloorPlanViewer2D() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
+  const animRef = useRef<number>(0);
+  const isPanning = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStartWorld = useRef<Point2D>({ x: 0, y: 0 });
+  const mouseWorldRef = useRef<Point2D>({ x: 0, y: 0 });
 
-/** 1-metre grid pattern rendered via SVG <pattern>. */
-const GridPattern: React.FC = () => (
-  <defs>
-    <pattern
-      id="grid-pattern"
-      width={SCALE}
-      height={SCALE}
-      patternUnits="userSpaceOnUse"
-    >
-      <path
-        d={`M ${SCALE} 0 L 0 0 0 ${SCALE}`}
-        fill="none"
-        stroke="rgba(255,255,255,0.06)"
-        strokeWidth="1"
-      />
-    </pattern>
-  </defs>
-);
+  const { floorPlan, setFloorPlan } = useFloorPlanStore();
+  const {
+    activeTool,
+    transform,
+    setTransform,
+    showGrid,
+    snapToGrid,
+    gridSize,
+    selectedIds,
+    setSelectedIds,
+    wallDrawPoints,
+    addWallDrawPoint,
+    clearWallDraw,
+    pushHistory,
+    addWall,
+    addDoor,
+    addWindow,
+    addRoom,
+    addText,
+    removeElement,
+    moveElement,
+    roomDrawStart,
+    setRoomDrawStart,
+    setActiveTool,
+  } = useEditorStore();
 
-/** SVG rendering of a single Room rectangle + labels. */
-const RoomRect: React.FC<{ room: Room }> = ({ room }) => {
-  const { bounding_box: bb, room_type, name, area } = room;
-  const x = m(bb.min_point.x);
-  const y = m(bb.min_point.y);
-  const w = m(bb.max_point.x - bb.min_point.x);
-  const h = m(bb.max_point.y - bb.min_point.y);
-  const cx = x + w / 2;
-  const cy = y + h / 2;
-  const fill = ROOM_COLORS[room_type] ?? ROOM_COLORS.other;
+  const level = floorPlan?.levels?.[0];
 
-  // Dynamic font size based on room dimensions
-  const fontSize = Math.max(10, Math.min(14, Math.min(w, h) / 6));
+  // ── Resize observer ──
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const observer = new ResizeObserver(() => {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = container.clientWidth * dpr;
+      canvas.height = container.clientHeight * dpr;
+      canvas.style.width = `${container.clientWidth}px`;
+      canvas.style.height = `${container.clientHeight}px`;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // ── Render loop ──
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width;
+    const h = canvas.height;
+    const { zoom, panX, panY } = transform;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+
+    const currentLevel = floorPlan?.levels?.[0];
+
+    // Transform: center of canvas is origin, then pan/zoom
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    const cw = w / dpr;
+    const ch = h / dpr;
+    ctx.translate(cw / 2 + panX, ch / 2 + panY);
+    ctx.scale(zoom, zoom);
+
+    // Visible world bounds
+    const viewMinX = (-cw / 2 - panX) / zoom;
+    const viewMinY = (-ch / 2 - panY) / zoom;
+    const viewMaxX = (cw / 2 - panX) / zoom;
+    const viewMaxY = (ch / 2 - panY) / zoom;
+
+    // 1. Grid
+    if (showGrid) {
+      drawGrid(ctx, viewMinX, viewMinY, viewMaxX, viewMaxY, zoom);
+    }
+
+    if (currentLevel) {
+      // 2. Room fills
+      currentLevel.rooms.forEach((room) => {
+        const roomColor = ROOM_COLORS[room.room_type] || '#95a5a6';
+        const rw = room.bounding_box.max_point.x - room.bounding_box.min_point.x;
+        const rh = room.bounding_box.max_point.y - room.bounding_box.min_point.y;
+        const isSelected = selectedIds.includes(room.id);
+        drawRoomFill(
+          ctx,
+          room.bounding_box.min_point.x, room.bounding_box.min_point.y,
+          rw, rh,
+          roomColor + '18',
+          roomColor,
+          isSelected,
+        );
+      });
+
+      // 3. Walls
+      currentLevel.walls.forEach((wall) => {
+        const isSelected = selectedIds.includes(wall.id);
+        drawWall(
+          ctx,
+          wall.start.x, wall.start.y,
+          wall.end.x, wall.end.y,
+          wall.is_exterior ? 0.15 : 0.10,
+          wall.is_exterior,
+          isSelected ? '#3b82f6' : (wall.is_exterior ? '#e2e8f0' : '#94a3b8'),
+        );
+      });
+
+      // 4. Doors – compute rotation from parent wall
+      const findWallById = (id: string) => currentLevel.walls.find(w => w.id === id);
+
+      // Helper to find nearest wall directly here since it uses currentLevel
+      const findNearestWallLocal = (p: Point2D): Wall | null => {
+        let best: Wall | null = null;
+        let bestDist = Infinity;
+        for (const wall of currentLevel.walls) {
+          const proj = projectOntoWall(wall, p);
+          const dist = Math.sqrt((p.x - proj.x) ** 2 + (p.y - proj.y) ** 2);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = wall;
+          }
+        }
+        return best;
+      };
+
+      currentLevel.doors.forEach((door) => {
+        const isSelected = selectedIds.includes(door.id);
+        // archion doors don't have wall_id by default, we match by proximity if missing, 
+        // but actually archion Door has wall_start/end. We can calculate rotation from that!
+        const rotation = Math.atan2(door.wall_end.y - door.wall_start.y, door.wall_end.x - door.wall_start.x);
+
+        drawDoor(ctx, door.position.x, door.position.y, door.width, rotation, '#10b981', isSelected);
+      });
+
+      // 5. Windows
+      currentLevel.windows.forEach((win) => {
+        const isSelected = selectedIds.includes(win.id);
+        const rotation = Math.atan2(win.wall_end.y - win.wall_start.y, win.wall_end.x - win.wall_start.x);
+
+        drawWindow(ctx, win.position.x, win.position.y, win.width, rotation, '#38bdf8', isSelected);
+      });
+
+      // 7. Room labels (on top)
+      currentLevel.rooms.forEach((room) => {
+        const roomColor = ROOM_COLORS[room.room_type] || '#95a5a6';
+        const rw = room.bounding_box.max_point.x - room.bounding_box.min_point.x;
+        const rh = room.bounding_box.max_point.y - room.bounding_box.min_point.y;
+        const cx = (room.bounding_box.min_point.x + room.bounding_box.max_point.x) / 2;
+        const cy = (room.bounding_box.min_point.y + room.bounding_box.max_point.y) / 2;
+        drawRoomLabel(ctx, cx, cy, room.name, room.area || (rw * rh), roomColor, Math.min(rw, rh));
+      });
+
+      // Texts
+      if (currentLevel.texts) {
+        currentLevel.texts.forEach((text) => {
+          const isSelected = selectedIds.includes(text.id);
+          drawText(ctx, text.position.x, text.position.y, text.text, text.fontSize, text.color, text.rotation, isSelected);
+        });
+      }
+
+      // 8. Dimension lines on selected walls
+      currentLevel.walls
+        .filter((w) => selectedIds.includes(w.id))
+        .forEach((wall) => {
+          drawDimensionLine(
+            ctx,
+            wall.start.x, wall.start.y,
+            wall.end.x, wall.end.y,
+            0.4,
+            '#3b82f6',
+          );
+        });
+
+      // 9. Selection highlights on rooms
+      currentLevel.rooms
+        .filter((r) => selectedIds.includes(r.id))
+        .forEach((room) => {
+          const rw = room.bounding_box.max_point.x - room.bounding_box.min_point.x;
+          const rh = room.bounding_box.max_point.y - room.bounding_box.min_point.y;
+          drawSelectionRect(ctx, room.bounding_box.min_point.x, room.bounding_box.min_point.y, rw, rh);
+        });
+    }
+
+    // 10. In-progress wall drawing
+    if (wallDrawPoints.length > 0) {
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 0.1;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([0.1, 0.08]);
+
+      ctx.beginPath();
+      ctx.moveTo(wallDrawPoints[0].x, wallDrawPoints[0].y);
+      for (let i = 1; i < wallDrawPoints.length; i++) {
+        ctx.lineTo(wallDrawPoints[i].x, wallDrawPoints[i].y);
+      }
+      // Line to cursor
+      const mouse = mouseWorldRef.current;
+      ctx.lineTo(mouse.x, mouse.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw points
+      ctx.fillStyle = '#3b82f6';
+      wallDrawPoints.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Close indicator: if cursor is near first point, show snap ring
+      if (wallDrawPoints.length >= 3) {
+        const first = wallDrawPoints[0];
+        if (isNearPoint(mouse, first, 0.3)) {
+          ctx.strokeStyle = '#22c55e';
+          ctx.lineWidth = 0.04;
+          ctx.beginPath();
+          ctx.arc(first.x, first.y, 0.15, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Tool cursor preview
+    if (activeTool === 'wall' && wallDrawPoints.length === 0) {
+      const mouse = mouseWorldRef.current;
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (activeTool === 'room' && roomDrawStart) {
+      const mouse = mouseWorldRef.current;
+      const minX = Math.min(roomDrawStart.x, mouse.x);
+      const minY = Math.min(roomDrawStart.y, mouse.y);
+      const maxX = Math.max(roomDrawStart.x, mouse.x);
+      const maxY = Math.max(roomDrawStart.y, mouse.y);
+
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 0.05;
+      ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+      ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    ctx.restore();
+
+    // ── Help text ──
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    const helpTexts: Record<string, string[]> = {
+      select: ['Click  Select & drag elements', 'Shift + Drag  Pan canvas'],
+      wall: ['Click  Place wall point', 'Click first point  Close & finish wall', 'Right-click  Finish open wall', 'Esc  Cancel'],
+      room: ['Drag  Draw rectangular room'],
+      door: ['Click on wall  Place door'],
+      window: ['Click on wall  Place window'],
+      text: ['Click  Place text'],
+      eraser: ['Click  Delete element'],
+    };
+    const lines = helpTexts[activeTool] || [];
+    lines.forEach((line, i) => {
+      ctx.fillText(line, cw - 16, ch - 16 - (lines.length - 1 - i) * 16);
+    });
+    ctx.restore();
+
+    animRef.current = requestAnimationFrame(render);
+  }, [floorPlan, transform, showGrid, selectedIds, wallDrawPoints, activeTool]);
+
+  useEffect(() => {
+    animRef.current = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [render]);
+
+  // ── Find element hit detection ──
+  const findNearestWall = useCallback((p: Point2D): Wall | null => {
+    const lvl = floorPlan?.levels?.[0];
+    if (!lvl) return null;
+    let best: Wall | null = null;
+    let bestDist = Infinity;
+    for (const wall of lvl.walls) {
+      const proj = projectOntoWall(wall, p);
+      const dist = Math.sqrt((p.x - proj.x) ** 2 + (p.y - proj.y) ** 2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = wall;
+      }
+    }
+    return best;
+  }, [floorPlan]);
+
+  const findElementAt = useCallback((wp: Point2D): string | null => {
+    const lvl = floorPlan?.levels?.[0];
+    if (!lvl) return null;
+
+    // Check doors/windows first (small targets)
+    for (const door of lvl.doors) {
+      if (hitTestCircle(door.position.x, door.position.y, 0.5, wp)) return door.id;
+    }
+    for (const win of lvl.windows) {
+      if (hitTestRect(win.position.x - win.width / 2, win.position.y - 0.2, win.position.x + win.width / 2, win.position.y + 0.2, wp)) return win.id;
+    }
+    // Texts
+    if (lvl.texts) {
+      for (const text of lvl.texts) {
+        // Very rough hit test, assuming fontSize is height and width is proportional
+        const halfW = (text.text.length * text.fontSize * 0.6) / 2;
+        const halfH = text.fontSize / 2;
+        if (hitTestRect(text.position.x - halfW, text.position.y - halfH, text.position.x + halfW, text.position.y + halfH, wp)) return text.id;
+      }
+    }
+    // Walls
+    for (const wall of lvl.walls) {
+      if (hitTestWall(wall.start, wall.end, wp, 0.2)) return wall.id;
+    }
+    // Rooms
+    for (const room of lvl.rooms) {
+      if (hitTestRect(room.bounding_box.min_point.x, room.bounding_box.min_point.y, room.bounding_box.max_point.x, room.bounding_box.max_point.y, wp)) return room.id;
+    }
+    return null;
+  }, [floorPlan]);
+
+  const findWallAt = useCallback((wp: Point2D): Wall | null => {
+    const lvl = floorPlan?.levels?.[0];
+    if (!lvl) return null;
+    for (const wall of lvl.walls) {
+      if (hitTestWall(wall.start, wall.end, wp, 0.3)) return wall;
+    }
+    return null;
+  }, [floorPlan]);
+
+  // ── Helpers inside Component ──
+  const getOrCreatePlan = useCallback((): FloorPlan => {
+    if (floorPlan) return floorPlan;
+    return {
+      name: "Untitled Plan",
+      total_area: 0,
+      width: null,
+      height: null,
+      metadata: {},
+      levels: [{ level_number: 0, name: 'Ground Floor', height: 2.8, rooms: [], walls: [], doors: [], windows: [], texts: [] }],
+    };
+  }, [floorPlan]);
+
+  // ── Finalize wall drawing ──
+  const finalizeWalls = useCallback((points: Point2D[]) => {
+    if (points.length < 2) return;
+
+    const currentPlan = getOrCreatePlan();
+
+    pushHistory(currentPlan, 'Draw walls');
+    let updated = currentPlan;
+    for (let i = 0; i < points.length - 1; i++) {
+      const newWall: Wall = {
+        id: `wall_${Date.now()}_${i}`,
+        start: points[i],
+        end: points[i + 1],
+        thickness: 0.15,
+        is_exterior: false,
+      };
+      updated = addWall(updated, newWall);
+    }
+    setFloorPlan(updated);
+    clearWallDraw();
+  }, [getOrCreatePlan, pushHistory, addWall, setFloorPlan, clearWallDraw]);
+
+  // ── Mouse handlers ──
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!hasInteracted) setHasInteracted(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Focus the container so it can receive keyboard events like Delete/Backspace
+    containerRef.current?.focus();
+
+    const { zoom, panX, panY } = useEditorStore.getState().transform;
+    const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
+
+    if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+      isPanning.current = true;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+      return;
+    }
+
+    if (e.button === 2 && activeTool === 'wall') {
+      const currentPoints = useEditorStore.getState().wallDrawPoints;
+      if (currentPoints.length >= 2) {
+        finalizeWalls(currentPoints);
+      } else {
+        clearWallDraw();
+      }
+      return;
+    }
+
+    if (e.button !== 0) return;
+
+    if (activeTool === 'select') {
+      const hitId = findElementAt(wp);
+      if (hitId) {
+        if (e.ctrlKey) {
+          const ids = selectedIds.includes(hitId)
+            ? selectedIds.filter((id) => id !== hitId)
+            : [...selectedIds, hitId];
+          setSelectedIds(ids);
+        } else {
+          setSelectedIds([hitId]);
+        }
+        isDragging.current = true;
+        dragStartWorld.current = wp;
+      } else {
+        setSelectedIds([]);
+      }
+    } else if (activeTool === 'wall') {
+      const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
+      const currentPoints = useEditorStore.getState().wallDrawPoints;
+
+      if (currentPoints.length >= 3 && isNearPoint(sp, currentPoints[0], 0.3)) {
+        const closedPoints = [...currentPoints, currentPoints[0]];
+        finalizeWalls(closedPoints);
+        return;
+      }
+
+      if (currentPoints.length >= 2) {
+        const lastPt = currentPoints[currentPoints.length - 1];
+        if (isNearPoint(sp, lastPt, 0.15)) {
+          finalizeWalls(currentPoints);
+          return;
+        }
+      }
+
+      const hitWall = findWallAt(wp);
+      if (hitWall && currentPoints.length > 0) {
+        const projected = projectOntoWall(hitWall, wp);
+        addWallDrawPoint(projected);
+        finalizeWalls([...currentPoints, projected]);
+        return;
+      }
+
+      addWallDrawPoint(sp);
+    } else if (activeTool === 'door' && floorPlan) {
+      const wall = findWallAt(wp);
+      if (wall) {
+        pushHistory(floorPlan, 'Add door');
+        const projected = projectOntoWall(wall, wp);
+        const newDoor: Door = {
+          id: `door_${Date.now()}`,
+          position: projected,
+          width: 0.9,
+          wall_start: wall.start,
+          wall_end: wall.end,
+          is_exterior: false,
+        };
+        setFloorPlan(addDoor(floorPlan, newDoor));
+      }
+    } else if (activeTool === 'window' && floorPlan) {
+      const wall = findWallAt(wp);
+      if (wall) {
+        pushHistory(floorPlan, 'Add window');
+        const projected = projectOntoWall(wall, wp);
+        const newWin: FloorPlanWindow = {
+          id: `win_${Date.now()}`,
+          position: projected,
+          width: 1.2,
+          wall_start: wall.start,
+          wall_end: wall.end,
+        };
+        setFloorPlan(addWindow(floorPlan, newWin));
+      }
+    } else if (activeTool === 'eraser' && floorPlan) {
+      const hitId = findElementAt(wp);
+      if (hitId) {
+        pushHistory(floorPlan, 'Delete element');
+        setFloorPlan(removeElement(floorPlan, hitId));
+      }
+    } else if (activeTool === 'room') {
+      const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
+      setRoomDrawStart(sp);
+    } else if (activeTool === 'text') {
+      const currentPlan = getOrCreatePlan();
+      pushHistory(currentPlan, 'Add text');
+      const newText = {
+        id: `text_${Date.now()}`,
+        text: 'Text',
+        position: wp,
+        fontSize: 0.8,
+        color: '#ffffff',
+        rotation: 0,
+      };
+      setFloorPlan(addText(currentPlan, newText));
+      // Auto-select the new text
+      setSelectedIds([newText.id]);
+      setActiveTool('select');
+    }
+  }, [activeTool, floorPlan, selectedIds, snapToGrid, gridSize, findElementAt, findWallAt, setFloorPlan, setSelectedIds, addWallDrawPoint, pushHistory, addDoor, addWindow, addText, removeElement, clearWallDraw, finalizeWalls, setRoomDrawStart, setActiveTool, getOrCreatePlan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (isPanning.current) {
+      const dx = e.clientX - lastMouse.current.x;
+      const dy = e.clientY - lastMouse.current.y;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+      const { panX, panY } = useEditorStore.getState().transform;
+      setTransform({ panX: panX + dx, panY: panY + dy });
+      return;
+    }
+
+    const { zoom, panX, panY } = useEditorStore.getState().transform;
+    const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
+    const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
+    mouseWorldRef.current = sp;
+
+    if (isDragging.current && floorPlan && selectedIds.length > 0) {
+      const dx = sp.x - dragStartWorld.current.x;
+      const dy = sp.y - dragStartWorld.current.y;
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+        let updated = floorPlan;
+        for (const id of selectedIds) {
+          updated = moveElement(updated, id, { x: dx, y: dy });
+        }
+        setFloorPlan(updated);
+        dragStartWorld.current = sp;
+      }
+    }
+  }, [floorPlan, selectedIds, snapToGrid, gridSize, setTransform, setFloorPlan, moveElement]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isPanning.current) {
+      isPanning.current = false;
+    }
+    if (isDragging.current) {
+      isDragging.current = false;
+      if (floorPlan) {
+        pushHistory(floorPlan, 'Move element');
+      }
+    }
+
+    if (activeTool === 'room' && roomDrawStart) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { zoom, panX, panY } = useEditorStore.getState().transform;
+      const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
+      const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
+
+      if (Math.abs(sp.x - roomDrawStart.x) > 0.1 && Math.abs(sp.y - roomDrawStart.y) > 0.1) {
+        const currentPlan = getOrCreatePlan();
+        pushHistory(currentPlan, 'Add room');
+
+        const minX = Math.min(roomDrawStart.x, sp.x);
+        const minY = Math.min(roomDrawStart.y, sp.y);
+        const maxX = Math.max(roomDrawStart.x, sp.x);
+        const maxY = Math.max(roomDrawStart.y, sp.y);
+
+        const newRoom = {
+          id: `room_${Date.now()}`,
+          name: 'Room',
+          room_type: 'other' as const,
+          bounding_box: {
+            min_point: { x: minX, y: minY },
+            max_point: { x: maxX, y: maxY },
+          },
+          area: (maxX - minX) * (maxY - minY),
+          vertices: null,
+        };
+        setFloorPlan(addRoom(currentPlan, newRoom));
+        setSelectedIds([newRoom.id]);
+        setActiveTool('select');
+      }
+      setRoomDrawStart(null);
+    }
+  }, [floorPlan, pushHistory, activeTool, roomDrawStart, snapToGrid, gridSize, setFloorPlan, addRoom, setSelectedIds, setActiveTool, setRoomDrawStart, getOrCreatePlan]);
+
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const { zoom } = useEditorStore.getState().transform;
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newZoom = Math.max(3, Math.min(200, zoom * factor));
+    setTransform({ zoom: newZoom });
+  }, [setTransform]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      const currentPoints = useEditorStore.getState().wallDrawPoints;
+      if (currentPoints.length > 0) {
+        clearWallDraw();
+      } else {
+        setRoomDrawStart(null);
+        setSelectedIds([]);
+      }
+    }
+    if (e.key === 'Enter') {
+      const currentPoints = useEditorStore.getState().wallDrawPoints;
+      if (activeTool === 'wall' && currentPoints.length >= 2) {
+        finalizeWalls(currentPoints);
+      }
+    }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0 && floorPlan) {
+      // Prevent browser "back" navigation on Backspace
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+      }
+      pushHistory(floorPlan, 'Delete elements');
+      let updated = floorPlan;
+      for (const id of selectedIds) {
+        updated = removeElement(updated, id);
+      }
+      setFloorPlan(updated);
+      setSelectedIds([]);
+    }
+  }, [clearWallDraw, setSelectedIds, selectedIds, floorPlan, pushHistory, removeElement, setFloorPlan, activeTool, finalizeWalls]);
+
+  const cursorMap: Record<string, string> = {
+    select: 'default',
+    wall: 'crosshair',
+    room: 'crosshair',
+    door: 'copy',
+    window: 'copy',
+    text: 'text',
+    eraser: 'not-allowed',
+  };
 
   return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={w}
-        height={h}
-        fill={fill}
-        fillOpacity={0.35}
-        stroke={fill}
-        strokeWidth={1.5}
-        rx={3}
-        ry={3}
-      />
-      <text className="viewer2d-room-name" x={cx} y={cy - 8} fontSize={fontSize}>
-        {name}
-      </text>
-      <text className="viewer2d-room-area" x={cx} y={cy + 10}>
-        {fmtArea(area, bb)}
-      </text>
-    </g>
-  );
-};
-
-/** SVG rendering of a Wall line. */
-const WallLine: React.FC<{ wall: Wall }> = ({ wall }) => (
-  <line
-    x1={m(wall.start.x)}
-    y1={m(wall.start.y)}
-    x2={m(wall.end.x)}
-    y2={m(wall.end.y)}
-    stroke={WALL_COLOR}
-    strokeWidth={wall.is_exterior ? EXTERIOR_WALL_WIDTH : INTERIOR_WALL_WIDTH}
-    strokeLinecap="round"
-  />
-);
-
-/** SVG rendering of a Door indicator. */
-const DoorMark: React.FC<{ door: Door }> = ({ door }) => {
-  const px = m(door.position.x);
-  const py = m(door.position.y);
-  const halfW = m(door.width) / 2;
-
-  // Determine orientation from wall_start / wall_end
-  const isHorizontal =
-    Math.abs(door.wall_start.y - door.wall_end.y) < 0.01;
-
-  // Door gap line
-  const x1 = isHorizontal ? px - halfW : px;
-  const y1 = isHorizontal ? py : py - halfW;
-  const x2 = isHorizontal ? px + halfW : px;
-  const y2 = isHorizontal ? py : py + halfW;
-
-  // Small arc to indicate swing direction
-  const arcRadius = halfW * 0.7;
-  const arcPath = isHorizontal
-    ? `M ${px - halfW} ${py} A ${arcRadius} ${arcRadius} 0 0 1 ${px + halfW} ${py}`
-    : `M ${px} ${py - halfW} A ${arcRadius} ${arcRadius} 0 0 1 ${px} ${py + halfW}`;
-
-  return (
-    <g>
-      {/* Background "gap" to cover the wall underneath */}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="var(--surface, #141414)"
-        strokeWidth={EXTERIOR_WALL_WIDTH + 2}
-        strokeLinecap="butt"
-      />
-      {/* Door indicator line */}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={DOOR_COLOR}
-        strokeWidth={DOOR_RENDER_WIDTH}
-        strokeLinecap="round"
-      />
-      {/* Swing arc */}
-      <path
-        d={arcPath}
-        fill="none"
-        stroke={DOOR_COLOR}
-        strokeWidth={1}
-        strokeDasharray="3 3"
-        opacity={0.6}
-      />
-    </g>
-  );
-};
-
-/** SVG rendering of a Window indicator. */
-const WindowMark: React.FC<{ window: FPWindow }> = ({ window: win }) => {
-  const px = m(win.position.x);
-  const py = m(win.position.y);
-  const halfW = m(win.width) / 2;
-
-  const isHorizontal =
-    Math.abs(win.wall_start.y - win.wall_end.y) < 0.01;
-
-  const x1 = isHorizontal ? px - halfW : px;
-  const y1 = isHorizontal ? py : py - halfW;
-  const x2 = isHorizontal ? px + halfW : px;
-  const y2 = isHorizontal ? py : py + halfW;
-
-  return (
-    <g>
-      {/* Background gap */}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="var(--surface, #141414)"
-        strokeWidth={EXTERIOR_WALL_WIDTH + 2}
-        strokeLinecap="butt"
-      />
-      {/* Window indicator – double stroke */}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={WINDOW_COLOR}
-        strokeWidth={WINDOW_RENDER_WIDTH}
-        strokeLinecap="round"
-      />
-      {/* Thin inner line for "glass" effect */}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="#ffffff"
-        strokeWidth={1}
-        strokeLinecap="round"
-        opacity={0.35}
-      />
-    </g>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Empty State
-// ---------------------------------------------------------------------------
-
-const EmptyState: React.FC = () => (
-  <div className="viewer2d-empty">
-    <svg
-      className="viewer2d-empty-icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="3" y1="9" x2="21" y2="9" />
-      <line x1="9" y1="9" x2="9" y2="21" />
-    </svg>
-    <h2>No Floor Plan Yet</h2>
-    <p>Generate a floor plan to see it rendered here as an interactive 2D blueprint.</p>
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// Legend
-// ---------------------------------------------------------------------------
-
-const Legend: React.FC<{ roomTypes: RoomType[] }> = ({ roomTypes }) => (
-  <div className="viewer2d-legend">
-    {roomTypes.map((rt) => (
-      <span key={rt} className="viewer2d-legend-item">
-        <span
-          className="viewer2d-legend-swatch"
-          style={{ backgroundColor: ROOM_COLORS[rt] ?? ROOM_COLORS.other }}
-        />
-        {rt.replace(/_/g, " ")}
-      </span>
-    ))}
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
-
-const FloorPlanViewer2D: React.FC = () => {
-  const floorPlan = useFloorPlanStore((s) => s.floorPlan);
-
-  if (!floorPlan) {
-    return (
-      <div className="viewer2d-container">
-        <EmptyState />
-      </div>
-    );
-  }
-
-  // Use the first level only for now
-  const level: Level | undefined = floorPlan.levels[0];
-  if (!level) {
-    return (
-      <div className="viewer2d-container">
-        <EmptyState />
-      </div>
-    );
-  }
-
-  const { rooms, walls, doors, windows } = level;
-
-  // Compute SVG viewBox from floor plan dimensions
-  const planW = floorPlan.width ?? 20;
-  const planH = floorPlan.height ?? 15;
-  const svgW = m(planW) + PADDING * 2;
-  const svgH = m(planH) + PADDING * 2;
-
-  const legendTypes = uniqueRoomTypes(rooms);
-
-  return (
-    <div className="viewer2d-container">
-      <svg
-        className="viewer2d-svg"
-        viewBox={`${-PADDING} ${-PADDING} ${svgW} ${svgH}`}
-        preserveAspectRatio="xMidYMid meet"
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {(!hasInteracted && (!floorPlan || !level || (level.rooms.length === 0 && level.walls.length === 0 && level.doors.length === 0 && level.windows.length === 0)) && wallDrawPoints.length === 0) && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+          <div className="text-muted-foreground opacity-50 text-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 3v18" />
+            </svg>
+            <h3 className="text-lg font-medium mb-1">Canvas Ready</h3>
+            <p className="text-sm">Generate a floor plan or use the tools above to draw.</p>
+          </div>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="w-full h-full outline-none"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        style={{ backgroundColor: '#0a0a0a' }}
       >
-        {/* Grid */}
-        <GridPattern />
-        <rect
-          x={-PADDING}
-          y={-PADDING}
-          width={svgW}
-          height={svgH}
-          fill="url(#grid-pattern)"
+        <canvas
+          ref={canvasRef}
+          style={{ cursor: cursorMap[activeTool] || 'default', touchAction: 'none' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          onContextMenu={(e) => e.preventDefault()}
         />
-
-        {/* Rooms */}
-        {rooms.map((room, i) => (
-          <RoomRect key={`room-${i}`} room={room} />
-        ))}
-
-        {/* Walls */}
-        {walls.map((wall, i) => (
-          <WallLine key={`wall-${i}`} wall={wall} />
-        ))}
-
-        {/* Doors (rendered above walls to overlay) */}
-        {doors.map((door, i) => (
-          <DoorMark key={`door-${i}`} door={door} />
-        ))}
-
-        {/* Windows (rendered above walls to overlay) */}
-        {windows.map((win, i) => (
-          <WindowMark key={`win-${i}`} window={win} />
-        ))}
-      </svg>
-
-      {/* Floating legend */}
-      {legendTypes.length > 0 && <Legend roomTypes={legendTypes} />}
+      </div>
     </div>
   );
-};
-
-export default FloorPlanViewer2D;
+}

@@ -38,6 +38,14 @@ class GenerateRequest(BaseModel):
         description="Natural language description of the desired floor plan",
         examples=["I need a house with 3 bedrooms, 2 bathrooms, a kitchen, and a living room"],
     )
+    model: str | None = Field(
+        None,
+        description="The groq model to use for generation",
+    )
+    current_floorplan: dict | None = Field(
+        None,
+        description="The existing floor plan to modify (optional)",
+    )
 
 
 class GenerateResponse(BaseModel):
@@ -86,23 +94,31 @@ async def generate_floorplan(
     4. Return the floor plan with metadata.
     """
     try:
-        # 1. Parse intent
-        parser = IntentParser(api_key=GROQ_API_KEY, model=GROQ_MODEL)
-        room_requirements = parser.parse(request.prompt)
-        logger.info(f"Parsed {len(room_requirements)} rooms from prompt")
+        model_to_use = request.model if request.model else GROQ_MODEL
+        parser = IntentParser(api_key=GROQ_API_KEY, model=model_to_use)
 
-        # 2. Generate floor plan
-        solver = LayoutSolver()
-        floorplan = solver.solve(room_requirements)
-        floorplan_dict = floorplan.model_dump()
+        if request.current_floorplan:
+            # Modify existing plan
+            logger.info("Modifying existing floor plan based on prompt")
+            floorplan_dict = parser.modify_floorplan(request.current_floorplan, request.prompt)
+            floorplan = FloorPlan(**floorplan_dict)
+            room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []
+            summary = "Updated floor plan based on your request."
+        else:
+            # Generate from scratch
+            room_requirements = parser.parse(request.prompt)
+            logger.info(f"Parsed {len(room_requirements)} rooms from prompt")
 
-        # Build a human-readable summary
-        room_names = [r["name"] for r in room_requirements]
-        summary = (
-            f"Generated a floor plan with {len(room_requirements)} rooms: "
-            f"{', '.join(room_names)}. "
-            f"Total area: {floorplan.total_area:.1f} m²."
-        )
+            solver = LayoutSolver()
+            floorplan = solver.solve(room_requirements)
+            floorplan_dict = floorplan.model_dump()
+
+            room_names = [r["name"] for r in room_requirements]
+            summary = (
+                f"Generated a floor plan with {len(room_requirements)} rooms: "
+                f"{', '.join(room_names)}. "
+                f"Total area: {floorplan.total_area:.1f} m²."
+            )
 
         # 3. Persist project
         project = Project(

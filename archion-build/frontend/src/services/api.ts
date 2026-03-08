@@ -66,8 +66,10 @@ async function fetchApi<T>(
  */
 export async function generateFloorPlan(
     prompt: string,
+    model?: string,
+    current_floorplan?: any,
 ): Promise<GenerateResponse> {
-    const body: GenerateRequest = { prompt };
+    const body: GenerateRequest = { prompt, model, current_floorplan };
 
     return fetchApi<GenerateResponse>("/generate/floorplan", {
         method: "POST",
