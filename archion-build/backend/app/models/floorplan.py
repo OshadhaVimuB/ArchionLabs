@@ -8,6 +8,7 @@ elements used throughout the application.
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
+import uuid
 
 
 class RoomType(str, Enum):
@@ -54,6 +55,7 @@ class BoundingBox(BaseModel):
 
 class Wall(BaseModel):
     """A wall segment between two points."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
     start: Point2D = Field(..., description="Wall start point")
     end: Point2D = Field(..., description="Wall end point")
     thickness: float = Field(default=0.15, description="Wall thickness in meters")
@@ -62,6 +64,7 @@ class Wall(BaseModel):
 
 class Door(BaseModel):
     """A door placed on a wall."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
     position: Point2D = Field(..., description="Door center position")
     width: float = Field(default=0.9, description="Door width in meters")
     wall_start: Point2D = Field(..., description="Start point of the host wall")
@@ -71,6 +74,7 @@ class Door(BaseModel):
 
 class Window(BaseModel):
     """A window placed on an exterior wall."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
     position: Point2D = Field(..., description="Window center position")
     width: float = Field(default=1.2, description="Window width in meters")
     wall_start: Point2D = Field(..., description="Start point of the host wall")
@@ -79,6 +83,7 @@ class Window(BaseModel):
 
 class Room(BaseModel):
     """A room defined by its bounding box and metadata."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
     name: str = Field(..., description="Room display name")
     room_type: RoomType = Field(..., description="Type of room")
     bounding_box: BoundingBox = Field(..., description="Room boundary")

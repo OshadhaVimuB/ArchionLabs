@@ -128,6 +128,59 @@ class IntentParser:
         result = self._parse_with_regex(prompt)
         return result if result else DEFAULT_ROOMS.copy()
 
+    def modify_floorplan(self, current_floorplan: dict, prompt: str) -> dict:
+        """
+        Use the LLM to directly modify the existing floor plan JSON based on the user's prompt.
+        """
+        client = self._get_groq_client()
+        if client is None:
+            logger.warning("No API key available for modify_floorplan. Returning unchanged.")
+            return current_floorplan
+            
+        system_prompt = f"""You are an expert architectural AI assistant.
+The user wants to modify their existing floor plan. 
+Below is the CURRENT state of the floor plan in JSON format. Use spatial reasoning to fulfill the user's request.
+Modify this JSON to apply the request. 
+You can add, remove, or modify objects inside the `rooms`, `walls`, `doors`, `windows`, and `texts` arrays.
+
+Current Floor Plan JSON:
+{json.dumps(current_floorplan)}
+
+CRITICAL RULES:
+- Return ONLY the finalized, modified valid JSON object of the floor plan.
+- Do NOT output markdown code blocks (```json).
+- Do NOT output any explanations or conversational text. Start with {{ and end with }}.
+- If the user asks to add something, make sure its geometry makes sense and doesn't completely overlap existing bounds.
+"""
+
+        try:
+            logger.info("Calling LLM to modify floorplan...")
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                model=self.model,
+                temperature=0.3,
+                max_tokens=4096,
+            )
+
+            response_text = chat_completion.choices[0].message.content.strip()
+            
+            # Clean up potential markdown formatting despite instructions
+            if response_text.startswith("```"):
+                matches = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", response_text)
+                if matches:
+                    response_text = matches.group(1).strip()
+                
+            parsed = json.loads(response_text)
+            logger.info("Successfully modified floor plan with LLM")
+            return parsed
+
+        except Exception as e:
+            logger.error(f"Failed to modify floor plan with LLM: {e}")
+            return current_floorplan
+
     # ------------------------------------------------------------------
     # LLM-based parsing (Groq)
     # ------------------------------------------------------------------

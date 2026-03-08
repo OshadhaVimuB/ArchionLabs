@@ -36,15 +36,19 @@ export interface FloorPlanState {
 
 export interface FloorPlanActions {
     /** Send a prompt to the backend, generate a floor plan, and update state. */
-    generatePlan: (prompt: string) => Promise<void>;
+    generatePlan: (prompt: string, model?: string) => Promise<void>;
     /** Switch the top-level view mode. */
     setViewMode: (mode: ViewMode) => void;
     /** Switch the viewer tab (2D / 3D). */
     setViewerTab: (tab: ViewerTab) => void;
     /** Clear the current error. */
     clearError: () => void;
+    /** Update the entire floor plan (used by Editor). */
+    setFloorPlan: (fp: FloorPlan) => void;
     /** Reset the entire store to its initial state. */
     reset: () => void;
+    /** Clear the current chat history. */
+    clearChat: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,12 +70,12 @@ const initialState: FloorPlanState = {
 // ---------------------------------------------------------------------------
 
 export const useFloorPlanStore = create<FloorPlanState & FloorPlanActions>()(
-    (set) => ({
+    (set, get) => ({
         ...initialState,
 
         // -- Actions -----------------------------------------------------------
 
-        generatePlan: async (prompt: string) => {
+        generatePlan: async (prompt: string, model?: string) => {
             // Append user message
             const userMessage: ChatMessage = {
                 role: "user",
@@ -86,7 +90,8 @@ export const useFloorPlanStore = create<FloorPlanState & FloorPlanActions>()(
             }));
 
             try {
-                const response = await generateFloorPlan(prompt);
+                const currentFloorPlan = get().floorPlan;
+                const response = await generateFloorPlan(prompt, model, currentFloorPlan || undefined);
 
                 const assistantMessage: ChatMessage = {
                     role: "assistant",
@@ -123,8 +128,12 @@ export const useFloorPlanStore = create<FloorPlanState & FloorPlanActions>()(
 
         setViewerTab: (tab) => set({ viewerTab: tab }),
 
+        setFloorPlan: (fp) => set({ floorPlan: fp }),
+
         clearError: () => set({ error: null }),
 
         reset: () => set({ ...initialState }),
+
+        clearChat: () => set({ messages: [], error: null }),
     }),
 );
