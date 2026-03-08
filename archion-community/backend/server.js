@@ -54,7 +54,8 @@ app.post("/upload-model", upload.single("model"), (req, res) => {
     id: Date.now(),
     title: req.body.title,
     author: req.body.author,
-    modelUrl: "/models/" + req.file.filename
+    modelUrl: "/models/" + req.file.filename,
+    createdAt: new Date().toISOString()
   };
 
   templates.push(newTemplate);
