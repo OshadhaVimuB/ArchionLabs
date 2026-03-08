@@ -46,18 +46,15 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
   }, [template.createdAt]);
 
   // ❤️ Like button logic
-  function handleLike(e) {
+  function handleLike(e){
     e.stopPropagation();
-
-    if (liked) {
-      setLikes(likes - 1);
-    } else {
-      setLikes(likes + 1);
+    if(liked){
+      setLikes(likes-1);
+    }else{
+      setLikes(likes+1);
     }
-
     setLiked(!liked);
   }
-
   return (
     <div className="relative">
 
