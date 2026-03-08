@@ -140,13 +140,7 @@ export default function UploadTemplate() {
                     Change File
                   </button>
 
-                  <button
-                    onClick={removeFile}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded"
-                  >
-                    Remove File
-                  </button>
-
+                  <button onClick={removeFile} className="px-4 py-2 bg-red-600 hover:bg-red-500-rounded">Remove FIle</button>
                 </div>
 
               </div>
