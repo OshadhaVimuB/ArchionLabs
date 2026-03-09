@@ -103,18 +103,12 @@ export default function FloorPlanUploader({
         </p>
 
         <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-          Supported formats include JSON, PNG, JPG, WebP, DXF.
+          Supported 3D formats: FBX, OBJ, STL, glTF (.gltf, .glb).
         </p>
-      </div>
 
-      <div className="mt-6 p-4 rounded-xl bg-muted/30 border border-border text-xs text-muted-foreground">
-        <p className="font-semibold text-foreground mb-1">JSON Expected Schema:</p>
-        <code className="block mt-2 font-mono bg-background text-foreground p-3 rounded-md border border-border text-[10px] overflow-x-auto whitespace-pre">
-          {`{
-  "name": "Project Name",
-  "levels": [{ "rooms": [], "walls": [] }]
-}`}
-        </code>
+        <p className="text-xs text-muted-foreground/70 mt-1">
+          For OBJ files, select .obj + .mtl + texture files together for correct colors.
+        </p>
       </div>
     </div>
   );
