@@ -95,6 +95,7 @@ export default function FloorPlanViewer2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [forceRender, setForceRender] = useState({});
 
   const animRef = useRef<number>(0);
   const isPanning = useRef(false);
@@ -350,6 +351,7 @@ export default function FloorPlanViewer2D() {
       ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
       ctx.strokeStyle = '#3b82f6';
       ctx.lineWidth = 0.05;
+      ctx.beginPath();
       ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
       ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
     }
@@ -378,7 +380,7 @@ export default function FloorPlanViewer2D() {
     ctx.restore();
 
     animRef.current = requestAnimationFrame(render);
-  }, [floorPlan, transform, showGrid, selectedIds, wallDrawPoints, activeTool]);
+  }, [floorPlan, transform, showGrid, selectedIds, wallDrawPoints, activeTool, roomDrawStart, isDragging, forceRender]);
 
   useEffect(() => {
     animRef.current = requestAnimationFrame(render);
@@ -589,6 +591,7 @@ export default function FloorPlanViewer2D() {
     } else if (activeTool === 'room') {
       const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
       setRoomDrawStart(sp);
+      isDragging.current = true;
     } else if (activeTool === 'text') {
       const currentPlan = getOrCreatePlan();
       pushHistory(currentPlan, 'Add text');
@@ -625,7 +628,7 @@ export default function FloorPlanViewer2D() {
     const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
     mouseWorldRef.current = sp;
 
-    if (isDragging.current && floorPlan && selectedIds.length > 0) {
+    if (isDragging.current && floorPlan && selectedIds.length > 0 && activeTool === 'select') {
       const dx = sp.x - dragStartWorld.current.x;
       const dy = sp.y - dragStartWorld.current.y;
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
@@ -636,8 +639,11 @@ export default function FloorPlanViewer2D() {
         setFloorPlan(updated);
         dragStartWorld.current = sp;
       }
+    } else if (activeTool === 'room' && isDragging.current) {
+      // Force a re-render so the draw rectangle updates interactively
+      setForceRender({});
     }
-  }, [floorPlan, selectedIds, snapToGrid, gridSize, setTransform, setFloorPlan, moveElement]);
+  }, [floorPlan, selectedIds, snapToGrid, gridSize, setTransform, setFloorPlan, moveElement, activeTool]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning.current) {
@@ -645,7 +651,7 @@ export default function FloorPlanViewer2D() {
     }
     if (isDragging.current) {
       isDragging.current = false;
-      if (floorPlan) {
+      if (floorPlan && activeTool === 'select') {
         pushHistory(floorPlan, 'Move element');
       }
     }
@@ -682,6 +688,7 @@ export default function FloorPlanViewer2D() {
         setActiveTool('select');
       }
       setRoomDrawStart(null);
+      isDragging.current = false;
     }
   }, [floorPlan, pushHistory, activeTool, roomDrawStart, snapToGrid, gridSize, setFloorPlan, addRoom, setSelectedIds, setActiveTool, setRoomDrawStart, getOrCreatePlan]);
 
