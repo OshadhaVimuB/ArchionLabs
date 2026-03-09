@@ -59,7 +59,7 @@ export default function Navbar() {
             </div>
           )}
         </div>
-
+        {/*Home*/}
         <Link href="#" className="hover:text-gray-300">
           How it works
         </Link>

@@ -1,7 +1,7 @@
 "use client";
 import TemplateCard from "./TemplateCard";
 
-export default function TemplateGrid({ templates, deleteMode, selectedIds, setSelectedIds ,searchTerm }) {
+export default function TemplateGrid({ templates, deleteMode, selectedIds, setSelectedIds ,searchTerm,createdAt }) {
   
 const filteredTemplates = templates.filter((template) =>
   template.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -29,6 +29,7 @@ function handleSelect(id) {
             download={template.download}
             createdAt={template.createdAt}
             deleteMode={deleteMode}
+            template={template}
             selectedIds={selectedIds}
             handleSelect={handleSelect}
             setSelectedIds={setSelectedIds}
