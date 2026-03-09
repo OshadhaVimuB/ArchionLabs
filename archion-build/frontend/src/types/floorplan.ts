@@ -26,6 +26,33 @@ export type RoomType =
   | "storage"
   | "other";
 
+export const ROOM_COLORS: Record<RoomType, string> = {
+  living_room: "#FFDDC1",
+  bedroom: "#C1E1C1",
+  bathroom: "#C1D4FF",
+  kitchen: "#FFE5B4",
+  dining_room: "#FFD1DC",
+  garage: "#D3D3D3",
+  hallway: "#F0E68C",
+  closet: "#E6E6FA",
+  laundry: "#E0FFFF",
+  office: "#F5DEB3",
+  balcony: "#FFF0F5",
+  entrance: "#FAF0E6",
+  storage: "#DCDCDC",
+  other: "#F5F5F5",
+};
+
+export type PropertyType = "apartment" | "house" | "office" | "commercial";
+
+export type EditorTool = 'select' | 'wall' | 'room' | 'door' | 'window' | 'text' | 'eraser';
+
+export interface CanvasTransform {
+  zoom: number;
+  panX: number;
+  panY: number;
+}
+
 // ---------------------------------------------------------------------------
 // Geometry Primitives
 // ---------------------------------------------------------------------------
@@ -45,6 +72,7 @@ export interface BoundingBox {
 // ---------------------------------------------------------------------------
 
 export interface Wall {
+  id: string;
   start: Point2D;
   end: Point2D;
   thickness: number;
@@ -52,6 +80,7 @@ export interface Wall {
 }
 
 export interface Door {
+  id: string;
   position: Point2D;
   width: number;
   wall_start: Point2D;
@@ -60,6 +89,7 @@ export interface Door {
 }
 
 export interface Window {
+  id: string;
   position: Point2D;
   width: number;
   wall_start: Point2D;
@@ -67,11 +97,21 @@ export interface Window {
 }
 
 export interface Room {
+  id: string;
   name: string;
   room_type: RoomType;
   bounding_box: BoundingBox;
   area: number | null;
   vertices: Point2D[] | null;
+}
+
+export interface TextElement {
+  id: string;
+  text: string;
+  position: Point2D;
+  fontSize: number;
+  color: string;
+  rotation: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +126,7 @@ export interface Level {
   walls: Wall[];
   doors: Door[];
   windows: Window[];
+  texts?: TextElement[];
 }
 
 export interface FloorPlan {
@@ -103,6 +144,8 @@ export interface FloorPlan {
 
 export interface GenerateRequest {
   prompt: string;
+  model?: string;
+  current_floorplan?: FloorPlan;
 }
 
 export interface GenerateResponse {
