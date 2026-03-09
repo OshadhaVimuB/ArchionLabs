@@ -10,8 +10,8 @@
  * Subscribes to the Zustand store for floor plan data.
  */
 
-import React, { useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
+import React, { useMemo, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
@@ -222,26 +222,7 @@ const WallMesh: React.FC<{ wall: Wall, level: Level }> = ({ wall, level }) => {
     );
 };
 
-/** A door indicator – a small coloured panel at reduced height. */
-const DoorMesh: React.FC<{ door: Door }> = ({ door }) => {
-    const dx = door.wall_end.x - door.wall_start.x;
-    const dy = door.wall_end.y - door.wall_start.y;
-    const angle = Math.atan2(dy, dx);
 
-    return (
-        <mesh
-            position={[door.position.x, DOOR_HEIGHT / 2, door.position.y]}
-            rotation={[0, -angle, 0]}
-        >
-            <boxGeometry args={[door.width, DOOR_HEIGHT, 0.08]} />
-            <meshStandardMaterial
-                color={DOOR_COLOR}
-                opacity={0.5}
-                transparent
-            />
-        </mesh>
-    );
-};
 
 /** A translucent window panel. */
 const WindowMesh: React.FC<{ win: FPWindow }> = ({ win }) => {
@@ -349,10 +330,7 @@ const FloorPlanScene: React.FC<{ floorPlan: FloorPlan }> = ({ floorPlan }) => {
                 <WallMesh key={`wall-${i}`} wall={wall} level={level} />
             ))}
 
-            {/* Doors */}
-            {level.doors.map((door, i) => (
-                <DoorMesh key={`door-${i}`} door={door} />
-            ))}
+
 
             {/* Windows */}
             {level.windows.map((win, i) => (
@@ -395,6 +373,50 @@ const EmptyState: React.FC = () => (
 );
 
 // ---------------------------------------------------------------------------
+// Export Handler
+// ---------------------------------------------------------------------------
+
+const ExportHandler: React.FC = () => {
+    const { scene } = useThree();
+    const floorPlan = useFloorPlanStore((s) => s.floorPlan);
+
+    useEffect(() => {
+        const handleExport = () => {
+            import("three-stdlib").then(({ GLTFExporter }) => {
+                const exporter = new GLTFExporter();
+                exporter.parse(
+                    scene,
+                    (gltf) => {
+                        const output = gltf as ArrayBuffer;
+                        const blob = new Blob([output], { type: "application/octet-stream" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.style.display = "none";
+                        a.href = url;
+                        // Use the floor plan name or a default
+                        const fileName = floorPlan?.name ? `${floorPlan.name.replace(/\s+/g, "_")}.glb` : "Archion_FloorPlan.glb";
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    },
+                    (error) => {
+                        console.error("An error happened during GLTF parsing", error);
+                    },
+                    { binary: true } // Export as GLB
+                );
+            });
+        };
+
+        window.addEventListener("export3d", handleExport);
+        return () => window.removeEventListener("export3d", handleExport);
+    }, [scene, floorPlan?.name]);
+
+    return null;
+};
+
+// ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
@@ -427,9 +449,10 @@ const Viewer3D: React.FC = () => {
                     near: 0.1,
                     far: Math.max(200, camDist * 3),
                 }}
-                gl={{ antialias: true }}
+                gl={{ antialias: true, preserveDrawingBuffer: true }}
             >
                 <FloorPlanScene floorPlan={floorPlan} />
+                <ExportHandler />
             </Canvas>
 
             <div className="viewer3d-controls-hint">

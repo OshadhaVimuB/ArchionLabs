@@ -12,7 +12,7 @@ import {
     Box, Code2, Download, Layers,
     MousePointer2, Minus, Plus, Maximize, Grid3x3,
     Undo2, Redo2, Trash2, PenLine, DoorOpen, SquareStack,
-    Image as ImageIcon, FileText, Square, Type
+    Image as ImageIcon, FileText, Square, Type, Play, Globe
 } from "lucide-react";
 import type { EditorTool } from "@/types/floorplan";
 
@@ -145,6 +145,21 @@ export default function EditorToolbar() {
         pdf.save(`${floorPlan?.name || "FloorPlan"}.pdf`);
     };
 
+    const handleDownload3D = () => {
+        setIsExportMenuOpen(false);
+        window.dispatchEvent(new Event("export3d"));
+    };
+
+    const handleExportToSim = () => {
+        setIsExportMenuOpen(false);
+        alert("Export to Sim feature coming soon!");
+    };
+
+    const handleExportToViewer = () => {
+        setIsExportMenuOpen(false);
+        alert("Export to Viewer feature coming soon!");
+    };
+
     const computedTotalArea = floorPlan?.levels?.[0]?.rooms?.reduce((acc, room) => acc + (room.area || 0), 0) || 0;
     const displayArea = computedTotalArea > 0 ? computedTotalArea : (floorPlan?.total_area || 0);
 
@@ -198,28 +213,56 @@ export default function EditorToolbar() {
                             variant="outline"
                             size="sm"
                             className="h-8"
-                            disabled={!floorPlan || viewerTab !== "2d"}
+                            disabled={!floorPlan}
                             onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
                         >
                             <Download className="h-3.5 w-3.5 mr-1.5" /> Export
                         </Button>
 
                         {isExportMenuOpen && (
-                            <div className="absolute top-10 right-0 w-40 bg-popover border border-border shadow-md rounded-md overflow-hidden z-50 flex flex-col p-1">
-                                <button
-                                    className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
-                                    onClick={handleExportPNG}
-                                >
-                                    <ImageIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    Export as PNG
-                                </button>
-                                <button
-                                    className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
-                                    onClick={handleExportPDF}
-                                >
-                                    <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    Export as PDF
-                                </button>
+                            <div className="absolute top-10 right-0 w-48 bg-popover border border-border shadow-md rounded-md overflow-hidden z-50 flex flex-col p-1">
+                                {viewerTab === "2d" ? (
+                                    <>
+                                        <button
+                                            className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                                            onClick={handleExportPNG}
+                                        >
+                                            <ImageIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            Export as PNG
+                                        </button>
+                                        <button
+                                            className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                                            onClick={handleExportPDF}
+                                        >
+                                            <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            Export as PDF
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                                            onClick={handleDownload3D}
+                                        >
+                                            <Download className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            Download (GLB)
+                                        </button>
+                                        <button
+                                            className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                                            onClick={handleExportToSim}
+                                        >
+                                            <Play className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            Export to Sim
+                                        </button>
+                                        <button
+                                            className="flex items-center w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
+                                            onClick={handleExportToViewer}
+                                        >
+                                            <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            Export to Viewer
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
