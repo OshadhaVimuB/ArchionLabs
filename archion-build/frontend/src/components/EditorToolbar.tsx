@@ -40,7 +40,8 @@ export default function EditorToolbar() {
         activeTool, setActiveTool,
         transform, setTransform, resetTransform,
         showGrid, toggleGrid,
-        undoStack, redoStack, undo, redo
+        undoStack, redoStack, undo, redo,
+        setSelectedIds
     } = useEditorStore();
 
     const zoomPercent = Math.round(transform.zoom * 2.5);
@@ -103,12 +104,27 @@ export default function EditorToolbar() {
             if (key === 't') setActiveTool('text');
             if (key === 'e') setActiveTool('eraser');
             if (key === 'g') toggleGrid();
+            if ((e.ctrlKey || e.metaKey) && key === 'a') {
+                e.preventDefault();
+                if (floorPlan?.levels?.[0]) {
+                    const level = floorPlan.levels[0];
+                    const allIds = [
+                        ...level.walls.map(w => w.id),
+                        ...level.rooms.map(r => r.id),
+                        ...level.doors.map(d => d.id),
+                        ...level.windows.map(w => w.id),
+                        ...(level.texts || []).map(t => t.id)
+                    ];
+                    setSelectedIds(allIds);
+                    setActiveTool('select');
+                }
+            }
             if (e.ctrlKey && key === 'z') { e.preventDefault(); handleUndo(); }
             if (e.ctrlKey && key === 'y') { e.preventDefault(); handleRedo(); }
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [activeTool, setActiveTool, toggleGrid, undo, redo, viewerTab, floorPlan]);
+    }, [activeTool, setActiveTool, toggleGrid, undo, redo, viewerTab, floorPlan, setSelectedIds]);
 
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const exportMenuRef = useRef<HTMLDivElement>(null);
