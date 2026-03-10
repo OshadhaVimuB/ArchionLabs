@@ -261,6 +261,7 @@ const GroundPlane: React.FC<{ cx: number; cy: number; width: number; depth: numb
         rotation={[-Math.PI / 2, 0, 0]}
         position={[cx, -0.01, cy]}
         receiveShadow
+        userData={{ excludeFromExport: true }}
     >
         <planeGeometry args={[width, depth]} />
         <meshStandardMaterial
@@ -318,6 +319,7 @@ const FloorPlanScene: React.FC<{ floorPlan: FloorPlan }> = ({ floorPlan }) => {
             <gridHelper
                 args={[Math.max(planW, planD) + 10, Math.max(planW, planD) + 10, 0x444444, 0x444444]}
                 position={[cx, 0.01, cy]}
+                userData={{ excludeFromExport: true }}
             />
 
             {/* Floor tiles */}
@@ -382,11 +384,20 @@ const ExportHandler: React.FC = () => {
 
     useEffect(() => {
         const handleExport = () => {
+            const hiddenObjects: THREE.Object3D[] = [];
+            scene.traverse((child) => {
+                if (child.userData?.excludeFromExport && child.visible) {
+                    child.visible = false;
+                    hiddenObjects.push(child);
+                }
+            });
+
             import("three-stdlib").then(({ GLTFExporter }) => {
                 const exporter = new GLTFExporter();
                 exporter.parse(
                     scene,
                     (gltf) => {
+                        hiddenObjects.forEach((obj) => { obj.visible = true; });
                         const output = gltf as ArrayBuffer;
                         const blob = new Blob([output], { type: "application/octet-stream" });
                         const url = URL.createObjectURL(blob);
@@ -402,6 +413,7 @@ const ExportHandler: React.FC = () => {
                         URL.revokeObjectURL(url);
                     },
                     (error) => {
+                        hiddenObjects.forEach((obj) => { obj.visible = true; });
                         console.error("An error happened during GLTF parsing", error);
                     },
                     { binary: true } // Export as GLB

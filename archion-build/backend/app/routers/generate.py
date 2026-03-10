@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+import base64
+import io
 
 from app.config import GROQ_API_KEY, GROQ_MODEL
 from app.database import get_db
@@ -53,6 +55,13 @@ class GenerateResponse(BaseModel):
     project_id: str = Field(..., description="ID of the persisted project")
     floorplan: dict = Field(..., description="The generated FloorPlan object")
     message: str = Field(..., description="Summary message for the chat assistant")
+
+
+class ExtractRequest(BaseModel):
+    """Request body for extracting floor plans from uploaded files."""
+    file_name: str = Field(..., description="Original file name")
+    mime_type: str = Field(..., description="MIME type of the file")
+    file_data: str = Field(..., description="Base64 encoded file data")
 
 
 class ModelRequest(BaseModel):
@@ -158,6 +167,119 @@ async def generate_floorplan(
         raise HTTPException(
             status_code=500,
             detail=f"Floor plan generation failed: {str(e)}",
+        )
+
+
+@router.post("/extract-floorplan", response_model=GenerateResponse)
+async def extract_floorplan(
+    request: ExtractRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Extract a floor plan from an uploaded file (Image/PDF/DXF).
+    """
+    try:
+        parser = IntentParser(api_key=GROQ_API_KEY, model=GROQ_MODEL)
+
+        base64_img = None
+
+        if request.mime_type in ["image/png", "image/jpeg", "image/jpg"]:
+            base64_img = request.file_data
+        elif request.mime_type == "application/pdf":
+            import fitz # PyMuPDF
+            file_bytes = base64.b64decode(request.file_data)
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            if len(doc) == 0:
+                raise ValueError("PDF is empty")
+            page = doc.load_page(0)
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) # 2x zoom for better resolution
+            base64_img = base64.b64encode(pix.tobytes("png")).decode("utf-8")
+        elif request.mime_type == "application/dxf" or request.file_name.lower().endswith(".dxf"):
+            import ezdxf
+            import ezdxf.addons.drawing as drawing
+            import ezdxf.addons.drawing.matplotlib as matplotlib_backend
+            import matplotlib.pyplot as plt
+            
+            file_bytes = base64.b64decode(request.file_data)
+            
+            # Write to a temp file because ezdxf prefers file paths or text streams for some operations
+            import tempfile
+            import os
+            
+            fd, path = tempfile.mkstemp(suffix=".dxf")
+            try:
+                with os.fdopen(fd, 'wb') as f:
+                    f.write(file_bytes)
+                    
+                doc = ezdxf.readfile(path)
+                msp = doc.modelspace()
+                
+                # Render to PNG
+                fig = plt.figure()
+                ax = fig.add_axes([0, 0, 1, 1])
+                ctx = drawing.RenderContext(doc)
+                out = matplotlib_backend.MatplotlibBackend(ax)
+                drawing.Frontend(ctx, out).draw_layout(msp, finalize=True)
+                
+                buf = io.BytesIO()
+                fig.savefig(buf, format="png", dpi=300)
+                plt.close(fig)
+                base64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
+                
+            finally:
+                os.remove(path)
+                
+        else:
+             raise HTTPException(status_code=400, detail=f"Unsupported file type: {request.mime_type}")
+
+        if not base64_img:
+             raise HTTPException(status_code=400, detail="Failed to extract image from file")
+
+        # Use vision model to extract floorplan
+        floorplan_dict = parser.extract_from_image(base64_img)
+        floorplan = FloorPlan(**floorplan_dict)
+
+        room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []
+        summary = f"Extracted floor plan from {request.file_name}."
+
+        # 3. Persist project
+        project = Project(
+            name=f"Extracted Plan — {request.file_name}",
+            description=f"Extracted from {request.file_name}",
+            floorplan_data=floorplan_dict,
+        )
+        db.add(project)
+        db.flush()  # Get the generated ID
+
+        # 4. Persist chat history
+        user_message = ChatHistory(
+            project_id=project.id,
+            role="user",
+            content=f"Upload file {request.file_name}",
+        )
+        assistant_message = ChatHistory(
+            project_id=project.id,
+            role="assistant",
+            content=summary,
+        )
+        db.add(user_message)
+        db.add(assistant_message)
+        db.commit()
+
+        logger.info(f"Project {project.id} created successfully from extract")
+
+        return GenerateResponse(
+            project_id=project.id,
+            floorplan=floorplan_dict,
+            message=summary,
+        )
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Floor plan extraction failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Floor plan extraction failed: {str(e)}",
         )
 
 

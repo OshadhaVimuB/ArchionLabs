@@ -76,3 +76,19 @@ export async function generateFloorPlan(
         body: JSON.stringify(body),
     });
 }
+
+/**
+ * Extract a floor plan from an uploaded file (Image, PDF, DXF).
+ *
+ * POST /api/v1/generate/extract-floorplan
+ */
+export async function extractFloorPlan(
+    file_name: string,
+    mime_type: string,
+    file_data: string,
+): Promise<GenerateResponse> {
+    return fetchApi<GenerateResponse>("/generate/extract-floorplan", {
+        method: "POST",
+        body: JSON.stringify({ file_name, mime_type, file_data }),
+    });
+}

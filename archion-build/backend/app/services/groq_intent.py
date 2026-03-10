@@ -181,6 +181,163 @@ CRITICAL RULES:
             logger.error(f"Failed to modify floor plan with LLM: {e}")
             return current_floorplan
 
+    def extract_from_image(self, base64_image: str) -> dict:
+        """
+        Use the Groq Vision model to extract a floor plan from a base64 encoded image.
+        """
+        client = self._get_groq_client()
+        if client is None:
+            raise ValueError("No API key available for vision extraction.")
+
+        system_prompt = """You are an expert architectural AI assistant and computer vision specialist.
+The user has uploaded an image of a floor plan.
+Analyze the image and thoroughly extract ALL architectural elements into the following JSON format.
+You must accurately identify every room, wall, door, and window visible in the image.
+
+CRITICAL INSTRUCTIONS FOR COORDINATES AND GEOMETRY:
+1. Coordinate Grid: Imagine a grid overlaid on the floor plan where the top-left is (0,0) and the bottom-right is (100, 100).
+2. ALL `x` and `y` coordinates MUST be numbers between 0 and 100. DO NOT output any coordinate outside this range.
+3. Orthogonal Walls: All walls MUST be perfectly horizontal (start.y == end.y) or perfectly vertical (start.x == end.x). DO NOT output diagonal walls.
+4. Connected Geometry: Walls must connect at their endpoints to form closed rectangular rooms. The `min_point` and `max_point` of a room's `bounding_box` MUST perfectly align with its surrounding walls.
+5. Doors & Windows: Every door and window MUST lie precisely ON a wall. Provide its center `position` and calculate `wall_start` and `wall_end` to match the exact start and end coordinates of the wall segment it overlaps.
+
+Return ONLY a valid JSON object with this exact structure, representing the extracted floor plan:
+{
+  "name": "Extracted Plan",
+  "total_area": 100,
+  "width": null,
+  "height": null,
+  "metadata": {},
+  "levels": [
+    {
+      "level_number": 0,
+      "name": "Ground Floor",
+      "height": 2.8,
+      "rooms": [
+        {
+          "id": "room_1",
+          "name": "Living Room",
+          "room_type": "living_room",
+          "bounding_box": { "min_point": { "x": 0, "y": 0 }, "max_point": { "x": 5, "y": 5 } },
+          "area": 25,
+          "vertices": null
+        }
+      ],
+      "walls": [
+        {
+          "id": "wall_1",
+          "start": { "x": 0, "y": 0 },
+          "end": { "x": 5, "y": 0 },
+          "thickness": 0.15,
+          "is_exterior": true
+        }
+      ],
+      "doors": [
+        {
+          "id": "door_1",
+          "position": { "x": 2.5, "y": 0 },
+          "width": 0.9,
+          "wall_start": { "x": 0, "y": 0 },
+          "wall_end": { "x": 5, "y": 0 },
+          "is_exterior": false
+        }
+      ],
+      "windows": [],
+      "texts": []
+    }
+  ]
+}
+
+CRITICAL RULES:
+- `room_type` MUST BE EXACTLY ONE OF: 'living_room', 'bedroom', 'bathroom', 'kitchen', 'dining_room', 'garage', 'hallway', 'closet', 'laundry', 'office', 'balcony', 'entrance', 'storage', 'other'. Do NOT use 'laundry_room' or 'bed_room'.
+- All doors and windows MUST have `position`, `wall_start`, and `wall_end` coordinates pointing exactly to the start and end of the wall they belong to.
+- Ensure all coordinate values are on the 0 to 100 grid.
+- Return ONLY the finalized, valid JSON object of the floor plan.
+- Do NOT output markdown code blocks (```json).
+- Do NOT output any explanations or conversational text. Start with { and end with }.
+"""
+
+        try:
+            logger.info("Calling Vision LLM to extract floorplan...")
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": system_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                temperature=0.1,
+                max_tokens=4096,
+            )
+
+            response_text = chat_completion.choices[0].message.content.strip()
+            
+            # Clean up potential markdown formatting despite instructions
+            if response_text.startswith("```"):
+                matches = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", response_text)
+                if matches:
+                    response_text = matches.group(1).strip()
+                
+            parsed = json.loads(response_text)
+            
+            # Scale coordinates from 0-100 grid down to realistic meters (e.g. 100 units = 20 meters -> multiplier = 0.2)
+            SCALE_FACTOR = 0.2
+            
+            if "levels" in parsed:
+                for level in parsed["levels"]:
+                    for room in level.get("rooms", []):
+                        if "bounding_box" in room:
+                            box = room["bounding_box"]
+                            box["min_point"]["x"] *= SCALE_FACTOR
+                            box["min_point"]["y"] *= SCALE_FACTOR
+                            box["max_point"]["x"] *= SCALE_FACTOR
+                            box["max_point"]["y"] *= SCALE_FACTOR
+                            room["area"] = abs(box["max_point"]["x"] - box["min_point"]["x"]) * abs(box["max_point"]["y"] - box["min_point"]["y"])
+                    
+                    for wall in level.get("walls", []):
+                        wall["start"]["x"] *= SCALE_FACTOR
+                        wall["start"]["y"] *= SCALE_FACTOR
+                        wall["end"]["x"] *= SCALE_FACTOR
+                        wall["end"]["y"] *= SCALE_FACTOR
+                    
+                    for door in level.get("doors", []):
+                        if "position" in door:
+                            door["position"]["x"] *= SCALE_FACTOR
+                            door["position"]["y"] *= SCALE_FACTOR
+                        if "wall_start" in door:
+                            door["wall_start"]["x"] *= SCALE_FACTOR
+                            door["wall_start"]["y"] *= SCALE_FACTOR
+                        if "wall_end" in door:
+                            door["wall_end"]["x"] *= SCALE_FACTOR
+                            door["wall_end"]["y"] *= SCALE_FACTOR
+                            
+                    for window in level.get("windows", []):
+                        if "position" in window:
+                            window["position"]["x"] *= SCALE_FACTOR
+                            window["position"]["y"] *= SCALE_FACTOR
+                        if "wall_start" in window:
+                            window["wall_start"]["x"] *= SCALE_FACTOR
+                            window["wall_start"]["y"] *= SCALE_FACTOR
+                        if "wall_end" in window:
+                            window["wall_end"]["x"] *= SCALE_FACTOR
+                            window["wall_end"]["y"] *= SCALE_FACTOR
+
+            logger.info("Successfully extracted and scaled floor plan with Vision LLM")
+            return parsed
+
+        except Exception as e:
+            logger.error(f"Failed to extract floor plan with Vision LLM: {e}")
+            raise e
+
     # ------------------------------------------------------------------
     # LLM-based parsing (Groq)
     # ------------------------------------------------------------------
