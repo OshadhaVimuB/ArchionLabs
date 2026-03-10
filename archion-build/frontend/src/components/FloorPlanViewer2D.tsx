@@ -95,12 +95,14 @@ export default function FloorPlanViewer2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [forceRender, setForceRender] = useState({});
 
   const animRef = useRef<number>(0);
   const isPanning = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStartWorld = useRef<Point2D>({ x: 0, y: 0 });
+  const dragSelectStart = useRef<Point2D | null>(null);
   const mouseWorldRef = useRef<Point2D>({ x: 0, y: 0 });
 
   const { floorPlan, setFloorPlan } = useFloorPlanStore();
@@ -350,6 +352,23 @@ export default function FloorPlanViewer2D() {
       ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
       ctx.strokeStyle = '#3b82f6';
       ctx.lineWidth = 0.05;
+      ctx.beginPath();
+      ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+      ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    if (activeTool === 'select' && dragSelectStart.current) {
+      const mouse = mouseWorldRef.current;
+      const start = dragSelectStart.current;
+      const minX = Math.min(start.x, mouse.x);
+      const minY = Math.min(start.y, mouse.y);
+      const maxX = Math.max(start.x, mouse.x);
+      const maxY = Math.max(start.y, mouse.y);
+
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+      ctx.lineWidth = 0.05 / zoom;
+      ctx.beginPath();
       ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
       ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
     }
@@ -378,7 +397,7 @@ export default function FloorPlanViewer2D() {
     ctx.restore();
 
     animRef.current = requestAnimationFrame(render);
-  }, [floorPlan, transform, showGrid, selectedIds, wallDrawPoints, activeTool]);
+  }, [floorPlan, transform, showGrid, selectedIds, wallDrawPoints, activeTool, roomDrawStart, isDragging, forceRender]);
 
   useEffect(() => {
     animRef.current = requestAnimationFrame(render);
@@ -517,12 +536,18 @@ export default function FloorPlanViewer2D() {
             : [...selectedIds, hitId];
           setSelectedIds(ids);
         } else {
-          setSelectedIds([hitId]);
+          // If clicking an already selected item, don't clear selection so we can drag the whole group
+          if (!selectedIds.includes(hitId)) {
+            setSelectedIds([hitId]);
+          }
         }
         isDragging.current = true;
         dragStartWorld.current = wp;
       } else {
         setSelectedIds([]);
+        // Start drag select
+        dragSelectStart.current = wp;
+        isDragging.current = true;
       }
     } else if (activeTool === 'wall') {
       const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
@@ -589,6 +614,7 @@ export default function FloorPlanViewer2D() {
     } else if (activeTool === 'room') {
       const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
       setRoomDrawStart(sp);
+      isDragging.current = true;
     } else if (activeTool === 'text') {
       const currentPlan = getOrCreatePlan();
       pushHistory(currentPlan, 'Add text');
@@ -625,7 +651,7 @@ export default function FloorPlanViewer2D() {
     const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
     mouseWorldRef.current = sp;
 
-    if (isDragging.current && floorPlan && selectedIds.length > 0) {
+    if (isDragging.current && floorPlan && selectedIds.length > 0 && activeTool === 'select' && !dragSelectStart.current) {
       const dx = sp.x - dragStartWorld.current.x;
       const dy = sp.y - dragStartWorld.current.y;
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
@@ -636,8 +662,14 @@ export default function FloorPlanViewer2D() {
         setFloorPlan(updated);
         dragStartWorld.current = sp;
       }
+    } else if (activeTool === 'room' && isDragging.current) {
+      // Force a re-render so the draw rectangle updates interactively
+      setForceRender({});
+    } else if (activeTool === 'select' && dragSelectStart.current && isDragging.current) {
+      // Force a re-render so the drag selection rectangle updates interactively
+      setForceRender({});
     }
-  }, [floorPlan, selectedIds, snapToGrid, gridSize, setTransform, setFloorPlan, moveElement]);
+  }, [floorPlan, selectedIds, snapToGrid, gridSize, setTransform, setFloorPlan, moveElement, activeTool]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning.current) {
@@ -645,9 +677,77 @@ export default function FloorPlanViewer2D() {
     }
     if (isDragging.current) {
       isDragging.current = false;
-      if (floorPlan) {
+      if (floorPlan && activeTool === 'select' && !dragSelectStart.current) {
         pushHistory(floorPlan, 'Move element');
       }
+    }
+
+    if (activeTool === 'select' && dragSelectStart.current && floorPlan?.levels?.[0]) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const { zoom, panX, panY } = useEditorStore.getState().transform;
+        const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
+        const start = dragSelectStart.current;
+
+        const minX = Math.min(start.x, wp.x);
+        const minY = Math.min(start.y, wp.y);
+        const maxX = Math.max(start.x, wp.x);
+        const maxY = Math.max(start.y, wp.y);
+
+        // Only select if there was an actual drag (not just a click)
+        if (maxX - minX > 0.1 || maxY - minY > 0.1) {
+          const level = floorPlan.levels[0];
+          const newSelectedIds: string[] = [];
+
+          // Helper to check if a point is inside the rect
+          const isPointInRect = (p: Point2D) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+
+          // Check walls (if either start or end is in rect)
+          level.walls.forEach(w => {
+            if (isPointInRect(w.start) || isPointInRect(w.end)) {
+              newSelectedIds.push(w.id);
+            }
+          });
+
+          // Check rooms (if their bounding box intersects our select rect)
+          level.rooms.forEach(r => {
+            const rMinX = r.bounding_box.min_point.x;
+            const rMinY = r.bounding_box.min_point.y;
+            const rMaxX = r.bounding_box.max_point.x;
+            const rMaxY = r.bounding_box.max_point.y;
+            // AABB intersection check:  not (A is completely left of B, or right, or above, or below)
+            if (!(rMaxX < minX || rMinX > maxX || rMaxY < minY || rMinY > maxY)) {
+              newSelectedIds.push(r.id);
+            }
+          });
+
+          // Check doors
+          level.doors.forEach(d => {
+            if (isPointInRect(d.position)) newSelectedIds.push(d.id);
+          });
+
+          // Check windows
+          level.windows.forEach(w => {
+            if (isPointInRect(w.position)) newSelectedIds.push(w.id);
+          });
+
+          // Check texts
+          if (level.texts) {
+            level.texts.forEach(t => {
+              if (isPointInRect(t.position)) newSelectedIds.push(t.id);
+            });
+          }
+
+          if (e.ctrlKey) {
+            // Merge with existing selection if Ctrl is held
+            const merged = new Set([...selectedIds, ...newSelectedIds]);
+            setSelectedIds(Array.from(merged));
+          } else {
+            setSelectedIds(newSelectedIds);
+          }
+        }
+      }
+      dragSelectStart.current = null;
     }
 
     if (activeTool === 'room' && roomDrawStart) {
@@ -682,6 +782,7 @@ export default function FloorPlanViewer2D() {
         setActiveTool('select');
       }
       setRoomDrawStart(null);
+      isDragging.current = false;
     }
   }, [floorPlan, pushHistory, activeTool, roomDrawStart, snapToGrid, gridSize, setFloorPlan, addRoom, setSelectedIds, setActiveTool, setRoomDrawStart, getOrCreatePlan]);
 

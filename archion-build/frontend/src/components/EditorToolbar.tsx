@@ -3,13 +3,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
 import { useEditorStore } from "@/store/useEditorStore";
+import { extractFloorPlan } from "@/services/api";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { jsPDF } from "jspdf";
 import {
-    Box, Code2, Download, Layers,
+    Box, Code2, Download, Layers, Upload, Loader2,
     MousePointer2, Minus, Plus, Maximize, Grid3x3,
     Undo2, Redo2, Trash2, PenLine, DoorOpen, SquareStack,
     Image as ImageIcon, FileText, Square, Type, Play, Globe
@@ -39,7 +40,8 @@ export default function EditorToolbar() {
         activeTool, setActiveTool,
         transform, setTransform, resetTransform,
         showGrid, toggleGrid,
-        undoStack, redoStack, undo, redo
+        undoStack, redoStack, undo, redo,
+        setSelectedIds
     } = useEditorStore();
 
     const zoomPercent = Math.round(transform.zoom * 2.5);
@@ -52,6 +54,8 @@ export default function EditorToolbar() {
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [nameInput, setNameInput] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleNameClick = () => {
         if (!floorPlan) return;
@@ -100,12 +104,27 @@ export default function EditorToolbar() {
             if (key === 't') setActiveTool('text');
             if (key === 'e') setActiveTool('eraser');
             if (key === 'g') toggleGrid();
+            if ((e.ctrlKey || e.metaKey) && key === 'a') {
+                e.preventDefault();
+                if (floorPlan?.levels?.[0]) {
+                    const level = floorPlan.levels[0];
+                    const allIds = [
+                        ...level.walls.map(w => w.id),
+                        ...level.rooms.map(r => r.id),
+                        ...level.doors.map(d => d.id),
+                        ...level.windows.map(w => w.id),
+                        ...(level.texts || []).map(t => t.id)
+                    ];
+                    setSelectedIds(allIds);
+                    setActiveTool('select');
+                }
+            }
             if (e.ctrlKey && key === 'z') { e.preventDefault(); handleUndo(); }
             if (e.ctrlKey && key === 'y') { e.preventDefault(); handleRedo(); }
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [activeTool, setActiveTool, toggleGrid, undo, redo, viewerTab, floorPlan]);
+    }, [activeTool, setActiveTool, toggleGrid, undo, redo, viewerTab, floorPlan, setSelectedIds]);
 
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -160,6 +179,60 @@ export default function EditorToolbar() {
         alert("Export to Viewer feature coming soon!");
     };
 
+    const handleUploadClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // check format
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf', 'application/dxf'];
+        const isDxf = file.name.toLowerCase().endsWith('.dxf');
+        if (!validTypes.includes(file.type) && !isDxf) {
+            alert("Unsupported file type. Please upload PNG, JPG, PDF or DXF.");
+            return;
+        }
+
+        setIsUploading(true);
+
+        try {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64Data = (event.target?.result as string).split(',')[1];
+                if (!base64Data) {
+                    setIsUploading(false);
+                    return;
+                }
+
+                try {
+                    const response = await extractFloorPlan(
+                        file.name,
+                        file.type || (isDxf ? 'application/dxf' : 'application/octet-stream'),
+                        base64Data
+                    );
+
+                    setFloorPlan(response.floorplan);
+                } catch (error: any) {
+                    console.error("Extraction error:", error);
+                    alert(`Failed to extract floor plan: ${error.message}`);
+                } finally {
+                    setIsUploading(false);
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        } catch (err) {
+            console.error(err);
+            setIsUploading(false);
+        }
+    };
+
     const computedTotalArea = floorPlan?.levels?.[0]?.rooms?.reduce((acc, room) => acc + (room.area || 0), 0) || 0;
     const displayArea = computedTotalArea > 0 ? computedTotalArea : (floorPlan?.total_area || 0);
 
@@ -208,12 +281,34 @@ export default function EditorToolbar() {
                 </Tabs>
 
                 <div className="flex items-center gap-2 pr-2" ref={exportMenuRef}>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".png,.jpg,.jpeg,.pdf,.dxf"
+                        onChange={handleFileChange}
+                    />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={handleUploadClick}
+                        disabled={isUploading}
+                    >
+                        {isUploading ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                            <Upload className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        {isUploading ? "Extracting..." : "Upload"}
+                    </Button>
+
                     <div className="relative">
                         <Button
                             variant="outline"
                             size="sm"
                             className="h-8"
-                            disabled={!floorPlan}
+                            disabled={!floorPlan || isUploading}
                             onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
                         >
                             <Download className="h-3.5 w-3.5 mr-1.5" /> Export

@@ -280,18 +280,19 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                 windows: level.windows.map((w) =>
                     w.id === id ? { ...w, position: movePoint(w.position), wall_start: movePoint(w.wall_start), wall_end: movePoint(w.wall_end) } : w
                 ),
-                rooms: level.rooms.map((r) =>
-                    r.id === id
-                        ? {
+                rooms: level.rooms.map((r) => {
+                    if (r.id === id) {
+                        const minP = movePoint(r.bounding_box.min_point);
+                        const maxP = movePoint(r.bounding_box.max_point);
+                        return {
                             ...r,
-                            bounding_box: {
-                                min_point: movePoint(r.bounding_box.min_point),
-                                max_point: movePoint(r.bounding_box.max_point),
-                            },
+                            bounding_box: { min_point: minP, max_point: maxP },
+                            area: (maxP.x - minP.x) * (maxP.y - minP.y),
                             vertices: r.vertices ? r.vertices.map(movePoint) : null,
-                        }
-                        : r
-                ),
+                        };
+                    }
+                    return r;
+                }),
                 texts: (level.texts || []).map((t) =>
                     t.id === id ? { ...t, position: movePoint(t.position) } : t
                 ),

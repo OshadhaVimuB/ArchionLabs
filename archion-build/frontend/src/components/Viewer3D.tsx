@@ -250,25 +250,52 @@ const WindowMesh: React.FC<{ win: FPWindow }> = ({ win }) => {
     );
 };
 
-/** Ground plane for receiving shadows. */
-const GroundPlane: React.FC<{ cx: number; cy: number; width: number; depth: number }> = ({
-    cx,
-    cy,
-    width,
-    depth,
-}) => (
-    <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[cx, -0.01, cy]}
-        receiveShadow
-    >
-        <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial
-            color="#1a1a2e"
-            side={THREE.DoubleSide}
-        />
-    </mesh>
-);
+/** Dynamic ground planes matching rooms and walls. */
+const GroundPlane: React.FC<{ level: Level }> = ({ level }) => {
+    return (
+        <group>
+            {level.rooms.map((room, i) => {
+                const bb = room.bounding_box;
+                const w = bb.max_point.x - bb.min_point.x + WALL_THICKNESS_EXT;
+                const d = bb.max_point.y - bb.min_point.y + WALL_THICKNESS_EXT;
+                const cx = bb.min_point.x + (bb.max_point.x - bb.min_point.x) / 2;
+                const cz = bb.min_point.y + (bb.max_point.y - bb.min_point.y) / 2;
+
+                return (
+                    <mesh
+                        key={`ground-room-${i}`}
+                        rotation={[-Math.PI / 2, 0, 0]}
+                        position={[cx, -0.01 - i * 0.0001, cz]}
+                        receiveShadow
+                    >
+                        <planeGeometry args={[w, d]} />
+                        <meshStandardMaterial color="#1a1a2e" side={THREE.DoubleSide} />
+                    </mesh>
+                );
+            })}
+            {level.walls.map((wall, i) => {
+                const dx = wall.end.x - wall.start.x;
+                const dy = wall.end.y - wall.start.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                if (length < 0.01) return null;
+                const angle = Math.atan2(dy, dx);
+                const thickness = wall.is_exterior ? WALL_THICKNESS_EXT : WALL_THICKNESS_INT;
+                return (
+                    <group key={`ground-wall-${i}`} position={[wall.start.x, 0, wall.start.y]} rotation={[0, -angle, 0]}>
+                        <mesh
+                            position={[length / 2, -0.015, -thickness / 2]}
+                            rotation={[-Math.PI / 2, 0, 0]}
+                            receiveShadow
+                        >
+                            <planeGeometry args={[length, thickness]} />
+                            <meshStandardMaterial color="#1a1a2e" side={THREE.DoubleSide} />
+                        </mesh>
+                    </group>
+                );
+            })}
+        </group>
+    );
+};
 
 // ---------------------------------------------------------------------------
 // Scene
@@ -282,6 +309,8 @@ const FloorPlanScene: React.FC<{ floorPlan: FloorPlan }> = ({ floorPlan }) => {
     const cy = (bounds.minY + bounds.maxY) / 2;
     const planW = bounds.maxX - bounds.minX;
     const planD = bounds.maxY - bounds.minY;
+    const exactW = Math.max(0, planW - 4);
+    const exactD = Math.max(0, planD - 4);
 
     // Camera target — centre of the plan
     const target = useMemo<[number, number, number]>(
@@ -312,12 +341,13 @@ const FloorPlanScene: React.FC<{ floorPlan: FloorPlan }> = ({ floorPlan }) => {
             />
 
             {/* Ground & Grid */}
-            <GroundPlane cx={cx} cy={cy} width={planW} depth={planD} />
+            <GroundPlane level={level} />
 
             {/* Grid overlay */}
             <gridHelper
-                args={[Math.max(planW, planD) + 10, Math.max(planW, planD) + 10, 0x444444, 0x444444]}
+                args={[200, 200, 0x444444, 0x444444]}
                 position={[cx, 0.01, cy]}
+                userData={{ excludeFromExport: true }}
             />
 
             {/* Floor tiles */}
@@ -382,11 +412,20 @@ const ExportHandler: React.FC = () => {
 
     useEffect(() => {
         const handleExport = () => {
+            const hiddenObjects: THREE.Object3D[] = [];
+            scene.traverse((child) => {
+                if (child.userData?.excludeFromExport && child.visible) {
+                    child.visible = false;
+                    hiddenObjects.push(child);
+                }
+            });
+
             import("three-stdlib").then(({ GLTFExporter }) => {
                 const exporter = new GLTFExporter();
                 exporter.parse(
                     scene,
                     (gltf) => {
+                        hiddenObjects.forEach((obj) => { obj.visible = true; });
                         const output = gltf as ArrayBuffer;
                         const blob = new Blob([output], { type: "application/octet-stream" });
                         const url = URL.createObjectURL(blob);
@@ -402,6 +441,7 @@ const ExportHandler: React.FC = () => {
                         URL.revokeObjectURL(url);
                     },
                     (error) => {
+                        hiddenObjects.forEach((obj) => { obj.visible = true; });
                         console.error("An error happened during GLTF parsing", error);
                     },
                     { binary: true } // Export as GLB
