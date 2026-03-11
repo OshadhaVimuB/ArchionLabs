@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import ModelViewer from "./ModelViewer";
 import { useState, useEffect } from "react";
+import ModelViewer from "./ModelViewer";
 
 export default function TemplateCard({ template, deleteMode, selectedIds, setSelectedIds }) {
 
@@ -12,7 +12,10 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
   const [likes, setLikes] = useState(template.likes || 42);
   const [liked, setLiked] = useState(false);
 
-  const modelUrl = "/models/test.glb";
+  // correct download URL
+  const modelUrl = template.modelUrl
+    ? `http://localhost:5000${template.modelUrl}`
+    : null;
 
   function calculateTimeAgo(dateString) {
     const now = new Date();
@@ -45,16 +48,16 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     return () => clearInterval(interval);
   }, [template.createdAt]);
 
-  // ❤️ Like button logic
   function handleLike(e){
     e.stopPropagation();
     if(liked){
-      setLikes(likes-1);
+      setLikes(likes - 1);
     }else{
-      setLikes(likes+1);
+      setLikes(likes + 1);
     }
     setLiked(!liked);
   }
+
   return (
     <div className="relative">
 
@@ -76,9 +79,12 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
 
         <Link href={`/model/${template.id}`} className="block">
 
-          <div className="h-48 bg-zinc-700 overflow-hidden">
-            <ModelViewer modelUrl={"/models/test.glb"} />
-          </div>
+  <div
+    className="h-48 bg-zinc-700 overflow-hidden"
+    onClick={(e) => e.preventDefault()}
+  >
+    <ModelViewer modelUrl={`http://localhost:5000${template.modelUrl}`} />
+  </div>
 
           <div className="p-3">
             <h3 className="font-semibold text-white text-sm">
