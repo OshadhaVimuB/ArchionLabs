@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useFloorPlanStore } from '../store/useFloorPlanStore';
 import { useEditorStore } from '../store/useEditorStore';
-import { ROOM_COLORS } from '../types/floorplan';
-import type { Point2D, Wall, FloorPlan, Door, Window as FloorPlanWindow } from '../types/floorplan';
+import { ROOM_COLORS, FURNITURE_DEFAULTS } from '../types/floorplan';
+import type { Point2D, Wall, FloorPlan, Door, Window as FloorPlanWindow, FurnitureElement } from '../types/floorplan';
 import {
   drawGrid,
   drawRoomFill,
@@ -15,6 +15,10 @@ import {
   drawDimensionLine,
   drawSelectionRect,
   drawText,
+  drawTable,
+  drawChair,
+  drawBed,
+  drawCupboard,
 } from './architectural-symbols';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -129,6 +133,9 @@ export default function FloorPlanViewer2D() {
     roomDrawStart,
     setRoomDrawStart,
     setActiveTool,
+    placingFurnitureType,
+    setPlacingFurnitureType,
+    addFurniture,
   } = useEditorStore();
 
   const level = floorPlan?.levels?.[0];
@@ -263,6 +270,19 @@ export default function FloorPlanViewer2D() {
         drawRoomLabel(ctx, cx, cy, room.name, room.area || (rw * rh), roomColor, Math.min(rw, rh));
       });
 
+      // Furniture elements
+      if (currentLevel.furniture) {
+        currentLevel.furniture.forEach((f) => {
+          const isSelected = selectedIds.includes(f.id);
+          switch (f.type) {
+            case 'table':    drawTable(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'chair':    drawChair(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'bed':      drawBed(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'cupboard': drawCupboard(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+          }
+        });
+      }
+
       // Texts
       if (currentLevel.texts) {
         currentLevel.texts.forEach((text) => {
@@ -386,6 +406,7 @@ export default function FloorPlanViewer2D() {
       wall: ['Click  Place wall point', 'Click first point  Close & finish wall', 'Right-click  Finish open wall', 'Esc  Cancel'],
       room: ['Drag  Draw rectangular room'],
       door: ['Click on wall  Place door'],
+      furniture: ['Click  Place furniture element'],
       window: ['Click on wall  Place window'],
       text: ['Click  Place text'],
       eraser: ['Click  Delete element'],
@@ -425,6 +446,12 @@ export default function FloorPlanViewer2D() {
     const lvl = floorPlan?.levels?.[0];
     if (!lvl) return null;
 
+    // Check furniture first (small, on-top targets)
+    if (lvl.furniture) {
+      for (const f of lvl.furniture) {
+        if (hitTestRect(f.position.x - f.width / 2, f.position.y - f.depth / 2, f.position.x + f.width / 2, f.position.y + f.depth / 2, wp)) return f.id;
+      }
+    }
     // Check doors/windows first (small targets)
     for (const door of lvl.doors) {
       if (hitTestCircle(door.position.x, door.position.y, 0.5, wp)) return door.id;
@@ -435,7 +462,6 @@ export default function FloorPlanViewer2D() {
     // Texts
     if (lvl.texts) {
       for (const text of lvl.texts) {
-        // Very rough hit test, assuming fontSize is height and width is proportional
         const halfW = (text.text.length * text.fontSize * 0.6) / 2;
         const halfH = text.fontSize / 2;
         if (hitTestRect(text.position.x - halfW, text.position.y - halfH, text.position.x + halfW, text.position.y + halfH, wp)) return text.id;
@@ -627,11 +653,26 @@ export default function FloorPlanViewer2D() {
         rotation: 0,
       };
       setFloorPlan(addText(currentPlan, newText));
-      // Auto-select the new text
       setSelectedIds([newText.id]);
       setActiveTool('select');
+    } else if (activeTool === 'furniture' && placingFurnitureType) {
+      const currentPlan = getOrCreatePlan();
+      const defaults = FURNITURE_DEFAULTS[placingFurnitureType];
+      pushHistory(currentPlan, `Add ${defaults.label}`);
+      const sp = snapToGrid ? snapPoint(wp, gridSize) : wp;
+      const newFurniture: FurnitureElement = {
+        id: `furn_${Date.now()}`,
+        type: placingFurnitureType,
+        category: defaults.category,
+        position: sp,
+        rotation: 0,
+        width: defaults.width,
+        depth: defaults.depth,
+      };
+      setFloorPlan(addFurniture(currentPlan, newFurniture));
+      setSelectedIds([newFurniture.id]);
     }
-  }, [activeTool, floorPlan, selectedIds, snapToGrid, gridSize, findElementAt, findWallAt, setFloorPlan, setSelectedIds, addWallDrawPoint, pushHistory, addDoor, addWindow, addText, removeElement, clearWallDraw, finalizeWalls, setRoomDrawStart, setActiveTool, getOrCreatePlan]);
+  }, [activeTool, floorPlan, selectedIds, snapToGrid, gridSize, findElementAt, findWallAt, setFloorPlan, setSelectedIds, addWallDrawPoint, pushHistory, addDoor, addWindow, addText, removeElement, clearWallDraw, finalizeWalls, setRoomDrawStart, setActiveTool, getOrCreatePlan, placingFurnitureType, addFurniture, setPlacingFurnitureType]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -738,6 +779,13 @@ export default function FloorPlanViewer2D() {
             });
           }
 
+          // Check furniture
+          if (level.furniture) {
+            level.furniture.forEach(f => {
+              if (isPointInRect(f.position)) newSelectedIds.push(f.id);
+            });
+          }
+
           if (e.ctrlKey) {
             // Merge with existing selection if Ctrl is held
             const merged = new Set([...selectedIds, ...newSelectedIds]);
@@ -799,6 +847,9 @@ export default function FloorPlanViewer2D() {
       const currentPoints = useEditorStore.getState().wallDrawPoints;
       if (currentPoints.length > 0) {
         clearWallDraw();
+      } else if (activeTool === 'furniture') {
+        setPlacingFurnitureType(null);
+        setActiveTool('select');
       } else {
         setRoomDrawStart(null);
         setSelectedIds([]);
@@ -833,6 +884,7 @@ export default function FloorPlanViewer2D() {
     window: 'copy',
     text: 'text',
     eraser: 'not-allowed',
+    furniture: 'copy',
   };
 
   return (

@@ -10,6 +10,8 @@ import type {
     Room,
     TextElement,
     PropertyType,
+    FurnitureElement,
+    FurnitureType,
 } from '../types/floorplan';
 
 // ── History snapshot for undo/redo ──
@@ -80,6 +82,11 @@ interface EditorStore {
     updateText: (fp: FloorPlan, id: string, updates: Partial<TextElement>) => FloorPlan;
     removeElement: (fp: FloorPlan, id: string) => FloorPlan;
     moveElement: (fp: FloorPlan, id: string, delta: Point2D) => FloorPlan;
+
+    // ── Furniture placement ──
+    placingFurnitureType: FurnitureType | null;
+    setPlacingFurnitureType: (type: FurnitureType | null) => void;
+    addFurniture: (fp: FloorPlan, furniture: FurnitureElement) => FloorPlan;
 }
 
 const DEFAULT_TRANSFORM: CanvasTransform = { zoom: 40, panX: 0, panY: 0 };
@@ -253,6 +260,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                 doors: level.doors.filter((d) => d.id !== id),
                 windows: level.windows.filter((w) => w.id !== id),
                 texts: (level.texts || []).filter((t) => t.id !== id),
+                furniture: (level.furniture || []).filter((f) => f.id !== id),
             }]
         }
     },
@@ -296,7 +304,25 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                 texts: (level.texts || []).map((t) =>
                     t.id === id ? { ...t, position: movePoint(t.position) } : t
                 ),
+                furniture: (level.furniture || []).map((f) =>
+                    f.id === id ? { ...f, position: movePoint(f.position) } : f
+                ),
             }]
         };
+    },
+
+    // ── Furniture placement ──
+    placingFurnitureType: null,
+    setPlacingFurnitureType: (type) => set({ placingFurnitureType: type }),
+    addFurniture: (fp, furniture) => {
+        const level = fp.levels[0];
+        if (!level) return fp;
+        return {
+            ...fp,
+            levels: [{
+                ...level,
+                furniture: [...(level.furniture || []), furniture]
+            }]
+        }
     },
 }));

@@ -23,6 +23,7 @@ import type {
     Door,
     Window as FPWindow,
     RoomType,
+    FurnitureElement,
 } from "@/types/floorplan";
 import "./Viewer3D.css";
 
@@ -298,6 +299,144 @@ const GroundPlane: React.FC<{ level: Level }> = ({ level }) => {
 };
 
 // ---------------------------------------------------------------------------
+// Furniture 3D Meshes
+// ---------------------------------------------------------------------------
+
+const FURNITURE_COLORS = {
+    table: '#b45309',
+    chair: '#c2410c',
+    bed: '#7c3aed',
+    cupboard: '#047857',
+};
+
+/** 3D Table: flat slab + 4 cylindrical legs */
+const Table3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
+    const topH = 0.04;
+    const legH = 0.72;
+    const legR = 0.03;
+    return (
+        <group position={[f.position.x, 0, f.position.y]} rotation={[0, -(f.rotation * Math.PI) / 180, 0]}>
+            {/* Table top */}
+            <mesh position={[0, legH + topH / 2, 0]} castShadow>
+                <boxGeometry args={[f.width, topH, f.depth]} />
+                <meshStandardMaterial color={FURNITURE_COLORS.table} />
+            </mesh>
+            {/* Legs */}
+            {[
+                [-f.width / 2 + 0.06, -f.depth / 2 + 0.06],
+                [f.width / 2 - 0.06, -f.depth / 2 + 0.06],
+                [-f.width / 2 + 0.06, f.depth / 2 - 0.06],
+                [f.width / 2 - 0.06, f.depth / 2 - 0.06],
+            ].map(([lx, lz], i) => (
+                <mesh key={i} position={[lx, legH / 2, lz]} castShadow>
+                    <cylinderGeometry args={[legR, legR, legH, 8]} />
+                    <meshStandardMaterial color={FURNITURE_COLORS.table} />
+                </mesh>
+            ))}
+        </group>
+    );
+};
+
+/** 3D Chair: seat + 4 legs + back panel */
+const Chair3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
+    const seatH = 0.04;
+    const legH = 0.45;
+    const legR = 0.02;
+    const backH = 0.4;
+    const backT = 0.03;
+    return (
+        <group position={[f.position.x, 0, f.position.y]} rotation={[0, -(f.rotation * Math.PI) / 180, 0]}>
+            {/* Seat */}
+            <mesh position={[0, legH + seatH / 2, 0]} castShadow>
+                <boxGeometry args={[f.width, seatH, f.depth]} />
+                <meshStandardMaterial color={FURNITURE_COLORS.chair} />
+            </mesh>
+            {/* Legs */}
+            {[
+                [-f.width / 2 + 0.04, -f.depth / 2 + 0.04],
+                [f.width / 2 - 0.04, -f.depth / 2 + 0.04],
+                [-f.width / 2 + 0.04, f.depth / 2 - 0.04],
+                [f.width / 2 - 0.04, f.depth / 2 - 0.04],
+            ].map(([lx, lz], i) => (
+                <mesh key={i} position={[lx, legH / 2, lz]} castShadow>
+                    <cylinderGeometry args={[legR, legR, legH, 8]} />
+                    <meshStandardMaterial color={FURNITURE_COLORS.chair} />
+                </mesh>
+            ))}
+            {/* Back */}
+            <mesh position={[0, legH + seatH + backH / 2, -f.depth / 2 + backT / 2]} castShadow>
+                <boxGeometry args={[f.width, backH, backT]} />
+                <meshStandardMaterial color={FURNITURE_COLORS.chair} />
+            </mesh>
+        </group>
+    );
+};
+
+/** 3D Bed: mattress box + headboard */
+const Bed3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
+    const mattressH = 0.25;
+    const frameH = 0.15;
+    const headboardH = 0.5;
+    const headboardT = 0.06;
+    return (
+        <group position={[f.position.x, 0, f.position.y]} rotation={[0, -(f.rotation * Math.PI) / 180, 0]}>
+            {/* Frame */}
+            <mesh position={[0, frameH / 2, 0]} castShadow>
+                <boxGeometry args={[f.width, frameH, f.depth]} />
+                <meshStandardMaterial color="#4c1d95" />
+            </mesh>
+            {/* Mattress */}
+            <mesh position={[0, frameH + mattressH / 2, 0]} castShadow>
+                <boxGeometry args={[f.width - 0.04, mattressH, f.depth - 0.04]} />
+                <meshStandardMaterial color={FURNITURE_COLORS.bed} />
+            </mesh>
+            {/* Headboard */}
+            <mesh position={[0, frameH + headboardH / 2, -f.depth / 2 + headboardT / 2]} castShadow>
+                <boxGeometry args={[f.width, headboardH, headboardT]} />
+                <meshStandardMaterial color="#5b21b6" />
+            </mesh>
+        </group>
+    );
+};
+
+/** 3D Cupboard: tall box with door line */
+const Cupboard3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
+    const h = 1.8;
+    return (
+        <group position={[f.position.x, 0, f.position.y]} rotation={[0, -(f.rotation * Math.PI) / 180, 0]}>
+            {/* Body */}
+            <mesh position={[0, h / 2, 0]} castShadow>
+                <boxGeometry args={[f.width, h, f.depth]} />
+                <meshStandardMaterial color={FURNITURE_COLORS.cupboard} opacity={0.9} transparent />
+            </mesh>
+            {/* Door line (thin box) */}
+            <mesh position={[0, h / 2, f.depth / 2 + 0.001]}>
+                <boxGeometry args={[0.01, h - 0.1, 0.005]} />
+                <meshStandardMaterial color="#065f46" />
+            </mesh>
+            {/* Handles */}
+            {[-0.06, 0.06].map((ox, i) => (
+                <mesh key={i} position={[ox, h / 2, f.depth / 2 + 0.02]}>
+                    <sphereGeometry args={[0.02, 8, 8]} />
+                    <meshStandardMaterial color="#d4d4d4" />
+                </mesh>
+            ))}
+        </group>
+    );
+};
+
+/** Dispatcher component to render the right 3D mesh based on furniture type */
+const FurnitureMesh: React.FC<{ f: FurnitureElement }> = ({ f }) => {
+    switch (f.type) {
+        case 'table':    return <Table3D f={f} />;
+        case 'chair':    return <Chair3D f={f} />;
+        case 'bed':      return <Bed3D f={f} />;
+        case 'cupboard': return <Cupboard3D f={f} />;
+        default:         return null;
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Scene
 // ---------------------------------------------------------------------------
 
@@ -365,6 +504,11 @@ const FloorPlanScene: React.FC<{ floorPlan: FloorPlan }> = ({ floorPlan }) => {
             {/* Windows */}
             {level.windows.map((win, i) => (
                 <WindowMesh key={`win-${i}`} win={win} />
+            ))}
+
+            {/* Furniture */}
+            {(level.furniture || []).map((f, i) => (
+                <FurnitureMesh key={`furn-${i}`} f={f} />
             ))}
 
             {/* Controls */}
