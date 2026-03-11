@@ -536,3 +536,189 @@ export function drawGrid(
 
     ctx.restore();
 }
+
+// ── Furniture: Table (top-down) ──────────────────────────────────────────
+
+export function drawTable(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    width: number, depth: number,
+    rotation: number,
+    selected: boolean,
+) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rotation * Math.PI) / 180);
+
+    const w = width;
+    const d = depth;
+    const legR = Math.min(w, d) * 0.06;
+
+    // Table top
+    ctx.fillStyle = selected ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.12)';
+    ctx.fillRect(-w / 2, -d / 2, w, d);
+    ctx.strokeStyle = selected ? '#fbbf24' : '#b45309';
+    ctx.lineWidth = 0.04;
+    ctx.strokeRect(-w / 2, -d / 2, w, d);
+
+    // Legs (circles at corners)
+    ctx.fillStyle = selected ? '#fbbf24' : '#92400e';
+    const inset = legR + 0.04;
+    const corners = [
+        [-w / 2 + inset, -d / 2 + inset],
+        [w / 2 - inset, -d / 2 + inset],
+        [-w / 2 + inset, d / 2 - inset],
+        [w / 2 - inset, d / 2 - inset],
+    ];
+    for (const [cx, cy] of corners) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, legR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+// ── Furniture: Chair (top-down) ──────────────────────────────────────────
+
+export function drawChair(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    width: number, depth: number,
+    rotation: number,
+    selected: boolean,
+) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rotation * Math.PI) / 180);
+
+    const w = width;
+    const d = depth;
+
+    // Seat
+    ctx.fillStyle = selected ? 'rgba(251, 146, 60, 0.25)' : 'rgba(251, 146, 60, 0.12)';
+    ctx.fillRect(-w / 2, -d / 2, w, d);
+    ctx.strokeStyle = selected ? '#fb923c' : '#c2410c';
+    ctx.lineWidth = 0.03;
+    ctx.strokeRect(-w / 2, -d / 2, w, d);
+
+    // Backrest (thick line at top)
+    ctx.strokeStyle = selected ? '#fb923c' : '#9a3412';
+    ctx.lineWidth = 0.08;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 0.02, -d / 2);
+    ctx.lineTo(w / 2 - 0.02, -d / 2);
+    ctx.stroke();
+
+    // Legs
+    ctx.fillStyle = selected ? '#fb923c' : '#7c2d12';
+    const legR = 0.03;
+    const inset = 0.06;
+    const legs = [
+        [-w / 2 + inset, -d / 2 + inset],
+        [w / 2 - inset, -d / 2 + inset],
+        [-w / 2 + inset, d / 2 - inset],
+        [w / 2 - inset, d / 2 - inset],
+    ];
+    for (const [cx, cy] of legs) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, legR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+// ── Furniture: Bed (top-down) ────────────────────────────────────────────
+
+export function drawBed(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    width: number, depth: number,
+    rotation: number,
+    selected: boolean,
+) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rotation * Math.PI) / 180);
+
+    const w = width;
+    const d = depth;
+
+    // Mattress
+    ctx.fillStyle = selected ? 'rgba(167, 139, 250, 0.25)' : 'rgba(167, 139, 250, 0.12)';
+    const r = 0.06;
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, -d / 2, w, d, r);
+    ctx.fill();
+    ctx.strokeStyle = selected ? '#a78bfa' : '#6d28d9';
+    ctx.lineWidth = 0.04;
+    ctx.stroke();
+
+    // Pillow area (rectangle at top)
+    const pillowH = d * 0.18;
+    ctx.fillStyle = selected ? 'rgba(196, 181, 253, 0.4)' : 'rgba(139, 92, 246, 0.2)';
+    ctx.beginPath();
+    ctx.roundRect(-w / 2 + 0.06, -d / 2 + 0.06, w - 0.12, pillowH, r);
+    ctx.fill();
+    ctx.strokeStyle = selected ? '#c4b5fd' : '#7c3aed';
+    ctx.lineWidth = 0.025;
+    ctx.stroke();
+
+    // Blanket fold line
+    ctx.strokeStyle = selected ? '#a78bfa' : '#7c3aed';
+    ctx.lineWidth = 0.02;
+    ctx.setLineDash([0.06, 0.04]);
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 0.08, -d / 2 + pillowH + 0.15);
+    ctx.lineTo(w / 2 - 0.08, -d / 2 + pillowH + 0.15);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.restore();
+}
+
+// ── Furniture: Cupboard (top-down) ───────────────────────────────────────
+
+export function drawCupboard(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number,
+    width: number, depth: number,
+    rotation: number,
+    selected: boolean,
+) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rotation * Math.PI) / 180);
+
+    const w = width;
+    const d = depth;
+
+    // Body
+    ctx.fillStyle = selected ? 'rgba(52, 211, 153, 0.25)' : 'rgba(52, 211, 153, 0.12)';
+    ctx.fillRect(-w / 2, -d / 2, w, d);
+    ctx.strokeStyle = selected ? '#34d399' : '#047857';
+    ctx.lineWidth = 0.04;
+    ctx.strokeRect(-w / 2, -d / 2, w, d);
+
+    // Center divider
+    ctx.strokeStyle = selected ? '#34d399' : '#065f46';
+    ctx.lineWidth = 0.02;
+    ctx.beginPath();
+    ctx.moveTo(0, -d / 2 + 0.04);
+    ctx.lineTo(0, d / 2 - 0.04);
+    ctx.stroke();
+
+    // Handles (small circles)
+    ctx.fillStyle = selected ? '#34d399' : '#059669';
+    ctx.beginPath();
+    ctx.arc(-0.08, 0, 0.04, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0.08, 0, 0.04, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+

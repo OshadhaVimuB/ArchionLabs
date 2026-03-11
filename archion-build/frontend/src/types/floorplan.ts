@@ -45,7 +45,7 @@ export const ROOM_COLORS: Record<RoomType, string> = {
 
 export type PropertyType = "apartment" | "house" | "office" | "commercial";
 
-export type EditorTool = 'select' | 'wall' | 'room' | 'door' | 'window' | 'text' | 'eraser';
+export type EditorTool = 'select' | 'wall' | 'room' | 'door' | 'window' | 'text' | 'eraser' | 'furniture';
 
 export interface CanvasTransform {
   zoom: number;
@@ -115,6 +115,32 @@ export interface TextElement {
 }
 
 // ---------------------------------------------------------------------------
+// Furniture Elements
+// ---------------------------------------------------------------------------
+
+export type FurnitureType = 'table' | 'chair' | 'bed' | 'cupboard';
+
+export type FurnitureCategory = 'living_room' | 'bedroom' | 'kitchen' | 'bathroom';
+
+export interface FurnitureElement {
+  id: string;
+  type: FurnitureType;
+  category: FurnitureCategory;
+  position: Point2D;
+  rotation: number;
+  width: number;
+  depth: number;
+}
+
+/** Default dimensions for each furniture type (meters). */
+export const FURNITURE_DEFAULTS: Record<FurnitureType, { width: number; depth: number; label: string; category: FurnitureCategory }> = {
+  table:    { width: 1.2, depth: 0.8, label: 'Table',    category: 'living_room' },
+  chair:    { width: 0.5, depth: 0.5, label: 'Chair',    category: 'living_room' },
+  bed:      { width: 1.4, depth: 2.0, label: 'Bed',      category: 'bedroom' },
+  cupboard: { width: 1.0, depth: 0.5, label: 'Cupboard', category: 'bedroom' },
+};
+
+// ---------------------------------------------------------------------------
 // Composite Structures
 // ---------------------------------------------------------------------------
 
@@ -127,6 +153,7 @@ export interface Level {
   doors: Door[];
   windows: Window[];
   texts?: TextElement[];
+  furniture?: FurnitureElement[];
 }
 
 export interface FloorPlan {
