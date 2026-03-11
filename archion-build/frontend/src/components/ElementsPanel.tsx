@@ -174,9 +174,6 @@ export default function ElementsPanel() {
                             Click on the canvas to place{" "}
                             <span className="capitalize">{placingFurnitureType}</span>
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                            Press Esc or click here again to cancel
-                        </p>
                     </div>
                 )}
             </div>

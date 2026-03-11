@@ -378,22 +378,41 @@ const Bed3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
     const frameH = 0.15;
     const headboardH = 0.5;
     const headboardT = 0.06;
+
+    const pillowDepth = 0.5;
+    const blanketDepth = f.depth - pillowDepth - headboardT;
+
+    const blanketZ = f.depth / 2 - blanketDepth / 2;
+    const pillowZ = -f.depth / 2 + headboardT + pillowDepth / 2;
+
+    const woodColor = "#653716"; // Wood brown
+    const redColor = "#dc2626";  // Red blanket
+    const whiteColor = "#f8fafc"; // White sheets/pillows
+
     return (
         <group position={[f.position.x, 0, f.position.y]} rotation={[0, -(f.rotation * Math.PI) / 180, 0]}>
-            {/* Frame */}
+            {/* Frame - Wood Brown */}
             <mesh position={[0, frameH / 2, 0]} castShadow>
                 <boxGeometry args={[f.width, frameH, f.depth]} />
-                <meshStandardMaterial color="#4c1d95" />
+                <meshStandardMaterial color={woodColor} />
             </mesh>
-            {/* Mattress */}
-            <mesh position={[0, frameH + mattressH / 2, 0]} castShadow>
-                <boxGeometry args={[f.width - 0.04, mattressH, f.depth - 0.04]} />
-                <meshStandardMaterial color={FURNITURE_COLORS.bed} />
+
+            {/* Blanket (Red base) */}
+            <mesh position={[0, frameH + mattressH / 2, blanketZ]} castShadow>
+                <boxGeometry args={[f.width - 0.04, mattressH, blanketDepth - 0.02]} />
+                <meshStandardMaterial color={redColor} />
             </mesh>
-            {/* Headboard */}
+
+            {/* Pillows/Sheets (Top white) */}
+            <mesh position={[0, frameH + mattressH / 2, pillowZ]} castShadow>
+                <boxGeometry args={[f.width - 0.04, mattressH, pillowDepth - 0.02]} />
+                <meshStandardMaterial color={whiteColor} />
+            </mesh>
+
+            {/* Headboard (Back part - Wood Brown) */}
             <mesh position={[0, frameH + headboardH / 2, -f.depth / 2 + headboardT / 2]} castShadow>
                 <boxGeometry args={[f.width, headboardH, headboardT]} />
-                <meshStandardMaterial color="#5b21b6" />
+                <meshStandardMaterial color={woodColor} />
             </mesh>
         </group>
     );
@@ -428,11 +447,11 @@ const Cupboard3D: React.FC<{ f: FurnitureElement }> = ({ f }) => {
 /** Dispatcher component to render the right 3D mesh based on furniture type */
 const FurnitureMesh: React.FC<{ f: FurnitureElement }> = ({ f }) => {
     switch (f.type) {
-        case 'table':    return <Table3D f={f} />;
-        case 'chair':    return <Chair3D f={f} />;
-        case 'bed':      return <Bed3D f={f} />;
+        case 'table': return <Table3D f={f} />;
+        case 'chair': return <Chair3D f={f} />;
+        case 'bed': return <Bed3D f={f} />;
         case 'cupboard': return <Cupboard3D f={f} />;
-        default:         return null;
+        default: return null;
     }
 };
 

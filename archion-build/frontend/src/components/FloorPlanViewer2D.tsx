@@ -136,6 +136,7 @@ export default function FloorPlanViewer2D() {
     placingFurnitureType,
     setPlacingFurnitureType,
     addFurniture,
+    updateFurniture,
   } = useEditorStore();
 
   const level = floorPlan?.levels?.[0];
@@ -275,9 +276,9 @@ export default function FloorPlanViewer2D() {
         currentLevel.furniture.forEach((f) => {
           const isSelected = selectedIds.includes(f.id);
           switch (f.type) {
-            case 'table':    drawTable(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
-            case 'chair':    drawChair(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
-            case 'bed':      drawBed(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'table': drawTable(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'chair': drawChair(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
+            case 'bed': drawBed(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
             case 'cupboard': drawCupboard(ctx, f.position.x, f.position.y, f.width, f.depth, f.rotation, isSelected); break;
           }
         });
@@ -671,6 +672,8 @@ export default function FloorPlanViewer2D() {
       };
       setFloorPlan(addFurniture(currentPlan, newFurniture));
       setSelectedIds([newFurniture.id]);
+      setActiveTool('select');
+      setPlacingFurnitureType(null);
     }
   }, [activeTool, floorPlan, selectedIds, snapToGrid, gridSize, findElementAt, findWallAt, setFloorPlan, setSelectedIds, addWallDrawPoint, pushHistory, addDoor, addWindow, addText, removeElement, clearWallDraw, finalizeWalls, setRoomDrawStart, setActiveTool, getOrCreatePlan, placingFurnitureType, addFurniture, setPlacingFurnitureType]);
 
@@ -723,75 +726,77 @@ export default function FloorPlanViewer2D() {
       }
     }
 
-    if (activeTool === 'select' && dragSelectStart.current && floorPlan?.levels?.[0]) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const { zoom, panX, panY } = useEditorStore.getState().transform;
-        const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
-        const start = dragSelectStart.current;
+    if (activeTool === 'select' && dragSelectStart.current) {
+      if (floorPlan?.levels?.[0]) {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const { zoom, panX, panY } = useEditorStore.getState().transform;
+          const wp = screenToWorld(e.clientX, e.clientY, canvas, zoom, panX, panY);
+          const start = dragSelectStart.current;
 
-        const minX = Math.min(start.x, wp.x);
-        const minY = Math.min(start.y, wp.y);
-        const maxX = Math.max(start.x, wp.x);
-        const maxY = Math.max(start.y, wp.y);
+          const minX = Math.min(start.x, wp.x);
+          const minY = Math.min(start.y, wp.y);
+          const maxX = Math.max(start.x, wp.x);
+          const maxY = Math.max(start.y, wp.y);
 
-        // Only select if there was an actual drag (not just a click)
-        if (maxX - minX > 0.1 || maxY - minY > 0.1) {
-          const level = floorPlan.levels[0];
-          const newSelectedIds: string[] = [];
+          // Only select if there was an actual drag (not just a click)
+          if (maxX - minX > 0.1 || maxY - minY > 0.1) {
+            const level = floorPlan.levels[0];
+            const newSelectedIds: string[] = [];
 
-          // Helper to check if a point is inside the rect
-          const isPointInRect = (p: Point2D) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+            // Helper to check if a point is inside the rect
+            const isPointInRect = (p: Point2D) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
 
-          // Check walls (if either start or end is in rect)
-          level.walls.forEach(w => {
-            if (isPointInRect(w.start) || isPointInRect(w.end)) {
-              newSelectedIds.push(w.id);
-            }
-          });
-
-          // Check rooms (if their bounding box intersects our select rect)
-          level.rooms.forEach(r => {
-            const rMinX = r.bounding_box.min_point.x;
-            const rMinY = r.bounding_box.min_point.y;
-            const rMaxX = r.bounding_box.max_point.x;
-            const rMaxY = r.bounding_box.max_point.y;
-            // AABB intersection check:  not (A is completely left of B, or right, or above, or below)
-            if (!(rMaxX < minX || rMinX > maxX || rMaxY < minY || rMinY > maxY)) {
-              newSelectedIds.push(r.id);
-            }
-          });
-
-          // Check doors
-          level.doors.forEach(d => {
-            if (isPointInRect(d.position)) newSelectedIds.push(d.id);
-          });
-
-          // Check windows
-          level.windows.forEach(w => {
-            if (isPointInRect(w.position)) newSelectedIds.push(w.id);
-          });
-
-          // Check texts
-          if (level.texts) {
-            level.texts.forEach(t => {
-              if (isPointInRect(t.position)) newSelectedIds.push(t.id);
+            // Check walls (if either start or end is in rect)
+            level.walls.forEach(w => {
+              if (isPointInRect(w.start) || isPointInRect(w.end)) {
+                newSelectedIds.push(w.id);
+              }
             });
-          }
 
-          // Check furniture
-          if (level.furniture) {
-            level.furniture.forEach(f => {
-              if (isPointInRect(f.position)) newSelectedIds.push(f.id);
+            // Check rooms (if their bounding box intersects our select rect)
+            level.rooms.forEach(r => {
+              const rMinX = r.bounding_box.min_point.x;
+              const rMinY = r.bounding_box.min_point.y;
+              const rMaxX = r.bounding_box.max_point.x;
+              const rMaxY = r.bounding_box.max_point.y;
+              // AABB intersection check:  not (A is completely left of B, or right, or above, or below)
+              if (!(rMaxX < minX || rMinX > maxX || rMaxY < minY || rMinY > maxY)) {
+                newSelectedIds.push(r.id);
+              }
             });
-          }
 
-          if (e.ctrlKey) {
-            // Merge with existing selection if Ctrl is held
-            const merged = new Set([...selectedIds, ...newSelectedIds]);
-            setSelectedIds(Array.from(merged));
-          } else {
-            setSelectedIds(newSelectedIds);
+            // Check doors
+            level.doors.forEach(d => {
+              if (isPointInRect(d.position)) newSelectedIds.push(d.id);
+            });
+
+            // Check windows
+            level.windows.forEach(w => {
+              if (isPointInRect(w.position)) newSelectedIds.push(w.id);
+            });
+
+            // Check texts
+            if (level.texts) {
+              level.texts.forEach(t => {
+                if (isPointInRect(t.position)) newSelectedIds.push(t.id);
+              });
+            }
+
+            // Check furniture
+            if (level.furniture) {
+              level.furniture.forEach(f => {
+                if (isPointInRect(f.position)) newSelectedIds.push(f.id);
+              });
+            }
+
+            if (e.ctrlKey) {
+              // Merge with existing selection if Ctrl is held
+              const merged = new Set([...selectedIds, ...newSelectedIds]);
+              setSelectedIds(Array.from(merged));
+            } else {
+              setSelectedIds(newSelectedIds);
+            }
           }
         }
       }
@@ -874,7 +879,23 @@ export default function FloorPlanViewer2D() {
       setFloorPlan(updated);
       setSelectedIds([]);
     }
-  }, [clearWallDraw, setSelectedIds, selectedIds, floorPlan, pushHistory, removeElement, setFloorPlan, activeTool, finalizeWalls]);
+    // Rotate selected furniture by 90° with R key
+    if (e.key === 'r' && activeTool === 'select' && selectedIds.length > 0 && floorPlan) {
+      const lvl = floorPlan.levels?.[0];
+      if (lvl?.furniture) {
+        let updated = floorPlan;
+        let didRotate = false;
+        for (const id of selectedIds) {
+          const furn = lvl.furniture.find(f => f.id === id);
+          if (furn) {
+            if (!didRotate) { pushHistory(floorPlan, 'Rotate furniture'); didRotate = true; }
+            updated = updateFurniture(updated, id, { rotation: (furn.rotation + 90) % 360 });
+          }
+        }
+        if (didRotate) setFloorPlan(updated);
+      }
+    }
+  }, [clearWallDraw, setSelectedIds, selectedIds, floorPlan, pushHistory, removeElement, setFloorPlan, activeTool, finalizeWalls, updateFurniture, setPlacingFurnitureType, setActiveTool, setRoomDrawStart]);
 
   const cursorMap: Record<string, string> = {
     select: 'default',

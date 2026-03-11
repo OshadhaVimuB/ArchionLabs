@@ -87,6 +87,7 @@ interface EditorStore {
     placingFurnitureType: FurnitureType | null;
     setPlacingFurnitureType: (type: FurnitureType | null) => void;
     addFurniture: (fp: FloorPlan, furniture: FurnitureElement) => FloorPlan;
+    updateFurniture: (fp: FloorPlan, id: string, updates: Partial<FurnitureElement>) => FloorPlan;
 }
 
 const DEFAULT_TRANSFORM: CanvasTransform = { zoom: 40, panX: 0, panY: 0 };
@@ -322,6 +323,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
             levels: [{
                 ...level,
                 furniture: [...(level.furniture || []), furniture]
+            }]
+        }
+    },
+    updateFurniture: (fp, id, updates) => {
+        const level = fp.levels[0];
+        if (!level) return fp;
+        return {
+            ...fp,
+            levels: [{
+                ...level,
+                furniture: (level.furniture || []).map(f => f.id === id ? { ...f, ...updates } : f)
             }]
         }
     },

@@ -5,10 +5,11 @@ import { useFloorPlanStore } from "@/store/useFloorPlanStore";
 import { useEditorStore } from "@/store/useEditorStore";
 import { Card } from "@/components/ui/card";
 import { ROOM_COLORS, RoomType } from "@/types/floorplan";
+import { RotateCw } from "lucide-react";
 
 export default function ElementPropertiesPanel() {
     const { floorPlan, setFloorPlan } = useFloorPlanStore();
-    const { selectedIds, updateRoom, updateText } = useEditorStore();
+    const { selectedIds, updateRoom, updateText, updateFurniture, pushHistory } = useEditorStore();
 
     const [roomName, setRoomName] = useState("");
     const [roomType, setRoomType] = useState<RoomType>("other");
@@ -23,6 +24,7 @@ export default function ElementPropertiesPanel() {
 
     const selectedRoom = level && selectedId ? level.rooms.find(r => r.id === selectedId) : null;
     const selectedText = level && selectedId ? (level.texts || []).find(t => t.id === selectedId) : null;
+    const selectedFurniture = level && selectedId ? (level.furniture || []).find(f => f.id === selectedId) : null;
 
     useEffect(() => {
         if (selectedRoom) {
@@ -79,7 +81,13 @@ export default function ElementPropertiesPanel() {
         setFloorPlan(updateText(floorPlan, selectedId, { color: e.target.value }));
     };
 
-    if (!selectedRoom && !selectedText) return null;
+    const handleRotateFurniture = () => {
+        if (!selectedId || !floorPlan || !selectedFurniture) return;
+        pushHistory(floorPlan, 'Rotate furniture');
+        setFloorPlan(updateFurniture(floorPlan, selectedId, { rotation: (selectedFurniture.rotation + 90) % 360 }));
+    };
+
+    if (!selectedRoom && !selectedText && !selectedFurniture) return null;
 
     return (
         <Card className="absolute top-4 left-4 z-20 w-64 p-4 shadow-lg bg-black/80 backdrop-blur-md border border-border/50 text-foreground flex flex-col gap-4">
@@ -152,6 +160,36 @@ export default function ElementPropertiesPanel() {
                             onChange={handleTextColorChange}
                         />
                     </div>
+                </div>
+            )}
+
+            {selectedFurniture && (
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1 text-xs">
+                        <label className="text-muted-foreground">Type</label>
+                        <p className="capitalize font-medium">{selectedFurniture.type}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs">
+                        <label className="text-muted-foreground">Size</label>
+                        <p className="font-medium">{selectedFurniture.width}m × {selectedFurniture.depth}m</p>
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs">
+                        <label className="text-muted-foreground">Rotation</label>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">{selectedFurniture.rotation}°</span>
+                            <button
+                                onClick={handleRotateFurniture}
+                                className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
+                                title="Rotate 90° (or press R)"
+                            >
+                                <RotateCw className="h-3 w-3" />
+                                +90°
+                            </button>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                        Press <kbd className="bg-muted/40 px-1 rounded text-[10px]">R</kbd> to rotate
+                    </p>
                 </div>
             )}
         </Card>
