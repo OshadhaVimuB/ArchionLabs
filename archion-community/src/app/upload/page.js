@@ -11,17 +11,34 @@ export default function UploadTemplate() {
   const [designer, setDesigner] = useState("");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-
+  const [invalidFile, setInvalidFile] = useState(false);
+  const[errorMessage, setErrorMessage] = useState("");
+ 
   function handleFileChange(e) {
   const selected = e.target.files[0];
 
-  if (selected) {
-    setFile(selected);
+  if (!selected) return;
 
-    const url = URL.createObjectURL(selected);
-    setPreviewUrl(url);
+  const allowedExtensions = [".glb",".gltf"];
+
+  const isValid = allowedExtensions.some(ext => selected.name.toLowerCase().endsWith(ext));
+  
+  if(!isValid){
+    setInvalidFile(true);
+    setErrorMessage("Invalid file type. Please upload a .glb or .gltf file.");
+    setFile(null);
+    setPreviewUrl(null);
+    return;
   }
+  setInvalidFile(false);
+  setErrorMessage("");
+  setFile(selected);
+
+
+  const url = URL.createObjectURL(selected);
+  setPreviewUrl(url);
 }
+
  function removeFile() {
   setFile(null);
   setPreviewUrl(null);
@@ -48,13 +65,12 @@ const handleUpload = async () => {
       body: formData
     });
 
-    if (response.ok) {
-      alert("Template uploaded!");
-      window.location.href = "/";
-    } else {
-      alert("Upload failed");
+    if(!response.ok){
+      const errorText = await response.text();
+      throw new Error(errorText);
     }
-
+    alert("Model uploaded successfully!");
+    window.location.href = "/"; // Redirect to homepage after upload
   } catch (error) {
     console.error(error);
     alert("Server connection failed");
@@ -135,7 +151,7 @@ const handleUpload = async () => {
           <div className="bg-zinc-800 rounded-lg p-8 border border-zinc-700 text-center">
 
             <p className="text-sm mb-4 text-zinc-400">
-              Upload 3D Model (.glb)
+              Upload 3D Model (.glb/.gltf)
             </p>
 
             <div className="flex justify-center gap-4">
@@ -171,11 +187,15 @@ const handleUpload = async () => {
           {/* PREVIEW BOX */}
           <div className="bg-zinc-800 rounded-lg h-[300px] border border-zinc-700 overflow-hidden">
 
-  {previewUrl ? (
+ {invalidFile ? (
+    <div className="flex items-center justify-center h-full text-red-400">
+      Invalid file type. Please upload a .glb or .gltf model.
+    </div>
+  ) : previewUrl ? (
     <ModelViewer modelUrl={previewUrl} />
   ) : (
     <div className="flex items-center justify-center h-full text-zinc-400">
-      Live Preview
+      Upload a model to preview
     </div>
   )}
 
@@ -190,6 +210,7 @@ const handleUpload = async () => {
 
             <button
               onClick={handleUpload}
+              disabled={!file}
               className="px-6 py-2 bg-green-600 rounded hover:bg-green-500"
             >
               Upload Template
