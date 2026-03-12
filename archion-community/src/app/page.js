@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 export default function Home() {
 
   const [templates, setTemplates] = useState([]);
-  const[page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -16,19 +16,14 @@ export default function Home() {
   useEffect(() => {
 
   async function loadTemplates() {
-
-    try {
-      const res = await fetch(`http://localhost:5000/templates?page=${page}`);
+    try{
+      const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
       const data = await res.json();
-
       console.log("Loaded templates:", data);
-
       setTemplates(data);
-
     } catch (error) {
       console.error("Failed to load templates:", error);
     }
-
   }
 
   loadTemplates();
