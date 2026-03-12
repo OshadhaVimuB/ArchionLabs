@@ -20,10 +20,13 @@ export default function Home() {
       const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
       const data = await res.json();
       console.log("Loaded templates:", data);
-      setTemplates(data);
+      setTemplates(data.templates || []);
     } catch (error) {
       console.error("Failed to load templates:", error);
+      setTemplates([]);
     }
+
+
   }
 
   loadTemplates();
