@@ -3,7 +3,7 @@ import TemplateCard from "./TemplateCard";
 
 export default function TemplateGrid({ templates = [], deleteMode, selectedIds, setSelectedIds, searchTerm }) {
 
-  const filteredTemplates = templates.filter((template)=>
+  const filteredTemplates = (templates || []).filter((template)=>
     template.title.toLowerCase().includes((searchTerm || "").toLowerCase())
 
   );
