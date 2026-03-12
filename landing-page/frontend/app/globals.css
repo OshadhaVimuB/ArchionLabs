@@ -78,7 +78,10 @@ h2 span {
   color: #2563eb;
   /* Brand accent color */
 }
-
+h3,
+h4 {
+  color: #0f172a;
+}
 .text-dark {
   color: #0f172a !important;
 }
@@ -150,7 +153,13 @@ h2 span {
   opacity: 1;
   transform: translate(0) scale(1);
 }
-h3,
-h4 {
-  color: #0f172a;
-}
+
+
+
+
+
+
+
+
+
+
