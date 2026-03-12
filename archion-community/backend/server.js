@@ -1,13 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/models", express.static(path.join(__dirname, "../public/models")));
 
 
-const path = require("path");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -26,13 +27,14 @@ let templates = [
     id: 1,
     title: "Modern Apartment Interior",
     author: "MysticalChimp",
-    model: "/models/test.glb"
+    modelUrl: "/models/test.glb"
   },
   {
     id: 2,
     title: "Cute Character Model",
-    author: "TechUser"
-  }
+    author: "TechUser",
+    modelUrl: "/models/test.glb"
+  },
 ];
 
 // GET templates
