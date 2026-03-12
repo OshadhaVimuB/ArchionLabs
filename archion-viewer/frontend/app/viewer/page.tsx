@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Viewer3D from "@/components/Viewer3D";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
 import { Eye, ScanEye, Info, Move3d, RotateCcw, Upload, AlertCircle, Cpu, MapPin, Trash2, X } from "lucide-react";
 
@@ -44,6 +45,11 @@ export default function ViewerPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
 
+      {/* 3D Viewer Canvas - Full Screen */}
+      <div className="w-full h-full relative z-10">
+        <Viewer3D />
+      </div>
+
       {/* Top Control Bar */}
       <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-background/80 to-transparent z-20 p-4 pointer-events-none">
         <div className="flex items-center justify-between max-w-full px-4 pointer-events-auto">
@@ -52,8 +58,8 @@ export default function ViewerPage() {
               <Eye className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground tracking-tight">{modelName || "3D Model"}</h1>
-              <p className="text-xs text-muted-foreground font-medium">3D Architecture Viewer</p>
+              <h1 className="text-xl font-bold text-foreground tracking-tight">Archion-Viewer</h1>
+              <p className="text-xs text-muted-foreground font-medium">{modelName || "3D Model"}</p>
             </div>
           </div>
 
