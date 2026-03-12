@@ -101,10 +101,14 @@ const handleUpload = async () => {
     <div className="min-h-screen bg-zinc-900 text-white px-10 py-12">
 
       <div className="max-w-6xl mx-auto grid grid-cols-2 gap-16">
-
+      {formError && (
+  <div className="bg-red-500 text-white px-4 py-2 rounded mb-4">
+    {formError}
+  </div>
+)}
         {/* LEFT SIDE FORM */}
         <div className="space-y-6">
-
+        
           <h1 className="text-2xl font-bold mb-6">
             Upload New Template
           </h1>
