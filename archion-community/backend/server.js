@@ -15,26 +15,20 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, "../public/models"));
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  }
+
+  const cleanName = file.originalname
+    .replace(/\s+/g, "-")      // replace spaces
+    .replace(/[()]/g, "");     // remove brackets
+
+  cb(null, Date.now() + "-" + cleanName);
+}
 });
 const upload = multer({ storage: storage });
 
 
 
 let templates = [
-  {
-    id: 1,
-    title: "Modern Apartment Interior",
-    author: "MysticalChimp",
-    modelUrl: "/models/test.glb"
-  },
-  {
-    id: 2,
-    title: "Cute Character Model",
-    author: "TechUser",
-    modelUrl: "/models/test.glb"
-  },
+ 
 ];
 
 // GET templates
