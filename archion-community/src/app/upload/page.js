@@ -121,6 +121,9 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Enter template title"
             />
+            {fieldErrors.title && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.title}</p>
+)}
           </div>
 
           <div>
@@ -132,6 +135,10 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Write description"
             />
+            {fieldErrors.description && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.description}</p>
+)}
+
           </div>
 
           <div>
@@ -147,6 +154,9 @@ const handleUpload = async () => {
               <option>Character</option>
               <option>Architecture</option>
             </select>
+            {fieldErrors.category && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.category}</p>
+)}
           </div>
 
           <div>
@@ -157,6 +167,9 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Enter your name"
             />
+            {fieldErrors.designer && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.designer}</p>
+)}
           </div>
 
           <button className="px-6 py-2 bg-blue-600 rounded hover:bg-blue-500">
