@@ -8,16 +8,32 @@ import { useState, useEffect } from "react";
 export default function Home() {
 
   const [templates, setTemplates] = useState([]);
+  const[page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/templates")
-      .then(res => res.json())
-      .then(data => setTemplates(data))
-      .catch(err => console.error(err));
-  }, []);
+
+  async function loadTemplates() {
+
+    try {
+      const res = await fetch(`http://localhost:5000/templates?page=${page}`);
+      const data = await res.json();
+
+      console.log("Loaded templates:", data);
+
+      setTemplates(data);
+
+    } catch (error) {
+      console.error("Failed to load templates:", error);
+    }
+
+  }
+
+  loadTemplates();
+
+}, [page]);
 
   const handleDelete = async () => {
 
@@ -86,6 +102,31 @@ export default function Home() {
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
         />
+
+        <div className="flex justify-center gap-4 mt-10">
+
+<button
+onClick={() => setPage(page - 1)}
+disabled={page === 1}
+className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+>
+Previous
+</button>
+
+<span className="px-4 py-2 text-zinc-300">
+Page {page}
+</span>
+
+<button
+onClick={() => setPage(page + 1)}
+className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+>
+Next
+</button>
+
+</div>
+        
+
 
       </div>
 
