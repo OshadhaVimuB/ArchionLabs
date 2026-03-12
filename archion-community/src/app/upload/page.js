@@ -244,7 +244,7 @@ const handleUpload = async () => {
 
             <button
               onClick={handleUpload}
-              disabled={!file}
+              disabled={!title || !description || !category || !designer || !file}
               className="px-6 py-2 bg-green-600 rounded hover:bg-green-500"
             >
               Upload Template
