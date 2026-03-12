@@ -7,7 +7,7 @@ export default function ModelPage() {
 
   const params = useParams();
 
-  const modelUrl = "/models/test.glb"; // later from backend
+  const modelUrl = "http://localhost:5000/models/test.glb";// later from backend
 
   return (
 
