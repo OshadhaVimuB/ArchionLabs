@@ -83,7 +83,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     className="h-48 bg-zinc-700 overflow-hidden"
     onClick={(e) => e.preventDefault()}
   >
-    <ModelViewer modelUrl={`http://localhost:5000${template.modelUrl}`} />
+    <ModelViewer modelUrl={encodeURI(`http://localhost:5000${template.modelUrl}`)} />
   </div>
 
           <div className="p-3">
