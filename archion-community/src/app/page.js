@@ -99,24 +99,21 @@ export default function Home() {
         />
 
         <div className="flex justify-center gap-4 mt-10">
-
-<button
-onClick={() => setPage(page - 1)}
-disabled={page === 1}
-className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+<button onClick={() => setPage(page-1)}disabled={page === 1}
+  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
 >
-Previous
+  Previous
 </button>
 
 <span className="px-4 py-2 text-zinc-300">
-Page {page}
+  Page {page}
 </span>
-
-<button
-onClick={() => setPage(page + 1)}
-className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
->
 Next
+
+<button onClick={() => setPage(page+1)}
+  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+>
+  Next
 </button>
 
 </div>
