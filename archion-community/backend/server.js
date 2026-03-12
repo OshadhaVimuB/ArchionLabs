@@ -39,9 +39,21 @@ let templates = [
 
 // GET templates
 app.get("/templates", (req, res) => {
-  res.json(templates);
-});
 
+  const page = parseInt(req.query.page) || 1;
+  const limit = 9;
+
+  const start = (page - 1) * limit;
+  const end = start + limit;
+
+  const paginatedTemplates = templates.slice(start, end);
+
+  res.json({
+    templates: paginatedTemplates,
+    total: templates.length
+  });
+
+});
 // DELETE template
 app.delete("/templates/:id", (req, res) => {
   const id = parseInt(req.params.id);
