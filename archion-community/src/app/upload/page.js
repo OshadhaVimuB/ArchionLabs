@@ -12,6 +12,8 @@ export default function UploadTemplate() {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [invalidFile, setInvalidFile] = useState(false);
+  const [formError, setFormError] = useState("");
+  const[fieldErrors, setFieldErrors] = useState({});
   const[errorMessage, setErrorMessage] = useState("");
  
   function handleFileChange(e) {
@@ -47,6 +49,21 @@ export default function UploadTemplate() {
   if (input) input.value = "";
 }
 const handleUpload = async () => {
+  const errors = {};
+
+  if (!title.trim()) errors.title = "Title is required";
+  if (!description.trim()) errors.description = "Description is required";
+  if (!category) errors.category = "Category is required";
+  if (!designer.trim()) errors.designer = "Designer name is required";
+
+  if (Object.keys(errors).length > 0) {
+    setFieldErrors(errors);
+    setFormError("Please fill the required fields");
+    return;
+  }
+
+  setFieldErrors({});
+  setFormError("");
 
   if (!file) {
     alert("Please select a 3D model file first");
