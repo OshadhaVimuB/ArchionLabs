@@ -141,7 +141,7 @@ class IntentParser:
 The user wants to modify their existing floor plan. 
 Below is the CURRENT state of the floor plan in JSON format. Use spatial reasoning to fulfill the user's request.
 Modify this JSON to apply the request. 
-You can add, remove, or modify objects inside the `rooms`, `walls`, `doors`, `windows`, and `texts` arrays.
+You can add, remove, or modify objects inside the `rooms`, `walls`, `doors`, `windows`, `texts`, and `furniture` arrays.
 
 Current Floor Plan JSON:
 {json.dumps(current_floorplan)}
@@ -151,7 +151,10 @@ CRITICAL RULES:
 - Do NOT output markdown code blocks (```json).
 - Do NOT output any explanations or conversational text. Start with {{ and end with }}.
 - If the user asks to add something, make sure its geometry makes sense and doesn't completely overlap existing bounds.
+- If the user specifies furniture, add it to the `furniture` array INSIDE the `levels` array (`levels[0].furniture`) with its correct `type`, `width`, `depth`, `category` (e.g. 'living_room', 'bedroom', 'kitchen', 'bathroom'), and an `id`.
+- If the user specifies text labels, add them to the `texts` array INSIDE the `levels` array (`levels[0].texts`) with `text`, `position`, `fontSize`, `color`, and `rotation`.
 """
+
 
         try:
             logger.info("Calling LLM to modify floorplan...")
@@ -243,7 +246,8 @@ Return ONLY a valid JSON object with this exact structure, representing the extr
         }
       ],
       "windows": [],
-      "texts": []
+      "texts": [],
+      "furniture": []
     }
   ]
 }
