@@ -14,13 +14,13 @@ export default function FilterBar({
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
-  useEffect(() => {
+ useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
         setShowCalendar(false);
       }
-    }
+    }  
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
@@ -29,7 +29,7 @@ export default function FilterBar({
   }, []);
 
   return (
-    <div className="flex items-center justify-between px-8 py-3 bg-zinc-900 text-white border-b border-zinc-800">
+   <div className="flex items-center justify-between px-8 py-3 bg-zinc-900 text-white border-b border-zinc-800">
 
       {/* LEFT SIDE */}
       <div className="flex items-center gap-4 relative">
