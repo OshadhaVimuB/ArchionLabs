@@ -58,7 +58,6 @@ export default function FilterBar({
                 >
                   Date
                 </button>
-
                 {showCalendar && (
                   <div className="absolute top-full left-0 mt-2 bg-zinc-800 p-3 rounded shadow-lg z-50">
                     <input
