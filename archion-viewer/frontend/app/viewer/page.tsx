@@ -3,15 +3,18 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Viewer3D from "@/components/Viewer3D";
+import ShareModal from "@/components/ShareModel";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
-import { Eye, ScanEye, Info, Move3d, RotateCcw, Upload, AlertCircle, Cpu, MapPin, Trash2, X } from "lucide-react";
+import { Eye, ScanEye, Info, Move3d, RotateCcw, Upload, AlertCircle, Cpu, MapPin, Trash2, X, Share2 } from "lucide-react";
+import { Share } from "next/font/google";
 
 export default function ViewerPage() {
   const router = useRouter();
-  const { modelUrl, modelName, modelFormat, isLoading, error, reset, annotations, annotationMode, setAnnotationMode, removeAnnotation, clearAnnotations } = useFloorPlanStore();
+  const { modelUrl, modelName, modelFormat, mtlText, isLoading, error, reset, annotations, annotationMode, setAnnotationMode, removeAnnotation, clearAnnotations } = useFloorPlanStore();
   const [showInfo, setShowInfo] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [showAnnotations, setShowAnnotations] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleBackToUpload = () => {
     reset();
@@ -106,6 +109,17 @@ export default function ViewerPage() {
                 </span>
               )}
             </button>
+
+            {/* ── Share Button ── */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="backdrop-blur-md border px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm bg-card/80 border-border hover:border-violet-400/60 hover:bg-violet-500/10 text-foreground hover:text-violet-300"
+              title="Share this model securely"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+
             <button
               onClick={handleBackToUpload}
               className="bg-primary/10 hover:bg-destructive/10 text-primary hover:text-destructive border border-primary/20 hover:border-destructive/30 px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm ml-2"
@@ -241,6 +255,17 @@ export default function ViewerPage() {
             <p className="text-xs text-destructive/80 mt-1">{error}</p>
           </div>
         </div>
+      )}
+      
+      {/* Share Modal */}
+      {showShareModal && modelUrl && (
+        <ShareModal
+          modelUrl={modelUrl}
+          modelFormat={modelFormat || "gltf"}
+          modelName={modelName || "3D Model"}
+          mtlText={mtlText}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );
