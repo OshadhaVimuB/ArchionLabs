@@ -111,6 +111,7 @@ async def generate_floorplan(
             logger.info("Modifying existing floor plan based on prompt")
             floorplan_dict = parser.modify_floorplan(request.current_floorplan, request.prompt)
             floorplan = FloorPlan(**floorplan_dict)
+            floorplan_dict = floorplan.model_dump()
             room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []
             summary = "Updated floor plan based on your request."
         else:

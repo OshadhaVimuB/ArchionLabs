@@ -29,6 +29,20 @@ class RoomType(str, Enum):
     OTHER = "other"
 
 
+class FurnitureType(str, Enum):
+    TABLE = "table"
+    CHAIR = "chair"
+    BED = "bed"
+    CUPBOARD = "cupboard"
+
+
+class FurnitureCategory(str, Enum):
+    LIVING_ROOM = "living_room"
+    BEDROOM = "bedroom"
+    KITCHEN = "kitchen"
+    BATHROOM = "bathroom"
+
+
 class Point2D(BaseModel):
     """A 2D coordinate point."""
     x: float = Field(..., description="X coordinate in meters")
@@ -98,6 +112,27 @@ class Room(BaseModel):
             self.area = self.bounding_box.area
 
 
+class TextElement(BaseModel):
+    """A text label element on the floor plan."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
+    text: str = Field(..., description="The text content")
+    position: Point2D = Field(..., description="Center position of the text")
+    fontSize: float = Field(default=16, description="Font size")
+    color: str = Field(default="#000000", description="Text color (hex)")
+    rotation: float = Field(default=0, description="Rotation angle in degrees")
+
+
+class FurnitureElement(BaseModel):
+    """A 2D/3D furniture element placed on the plan."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique ID for frontend selection")
+    type: FurnitureType = Field(..., description="Type of furniture")
+    category: FurnitureCategory = Field(..., description="Room category context")
+    position: Point2D = Field(..., description="Center position")
+    rotation: float = Field(default=0, description="Rotation angle")
+    width: float = Field(..., description="Width in meters")
+    depth: float = Field(..., description="Depth in meters")
+
+
 class Level(BaseModel):
     """A single floor level containing rooms, walls, doors, and windows."""
     level_number: int = Field(default=0, description="Floor level number (0 = ground)")
@@ -107,6 +142,8 @@ class Level(BaseModel):
     walls: List[Wall] = Field(default_factory=list, description="Walls on this level")
     doors: List[Door] = Field(default_factory=list, description="Doors on this level")
     windows: List[Window] = Field(default_factory=list, description="Windows on this level")
+    texts: Optional[List[TextElement]] = Field(default_factory=list, description="Text elements on this level")
+    furniture: Optional[List[FurnitureElement]] = Field(default_factory=list, description="Furniture elements on this level")
 
 
 class FloorPlan(BaseModel):
