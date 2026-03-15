@@ -154,3 +154,87 @@ def _compute_efficiency_score(self) -> dict:
             "average": round(avg, 3),
             "per_agent": per_agent,
         }
+
+# Density heatmap
+
+def _compute_density_heatmap(self) -> dict:
+        """Generate 2D density grid using histogram2d + gaussian blur."""
+        if self._n_frames == 0 or self._n_agents == 0:
+            return {"grid": [], "bounds": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+                    "resolution": HEATMAP_RESOLUTION, "shape": [0, 0]}
+
+        # Flatten all positions
+        all_pos = self._positions.reshape(-1, 2)
+        x_all = all_pos[:, 0]
+        y_all = all_pos[:, 1]
+
+        # Bounds from polygon
+        if not self._polygon.is_empty:
+            bx_min, by_min, bx_max, by_max = self._polygon.bounds
+        else:
+            bx_min, by_min = float(x_all.min()), float(y_all.min())
+            bx_max, by_max = float(x_all.max()), float(y_all.max())
+
+        # Add small padding
+        pad = HEATMAP_RESOLUTION
+        bx_min -= pad
+        by_min -= pad
+        bx_max += pad
+        by_max += pad
+
+        n_bins_x = max(1, int(math.ceil((bx_max - bx_min) / HEATMAP_RESOLUTION)))
+        n_bins_y = max(1, int(math.ceil((by_max - by_min) / HEATMAP_RESOLUTION)))
+
+        hist, _, _ = np.histogram2d(
+            y_all, x_all,
+            bins=[n_bins_y, n_bins_x],
+            range=[[by_min, by_max], [bx_min, bx_max]],
+        )
+
+        # Gaussian smooth
+        hist = gaussian_filter(hist, sigma=1.0)
+
+        # Normalize 0-1
+        max_val = hist.max()
+        if max_val > 0:
+            grid_norm = hist / max_val
+        else:
+            grid_norm = hist
+
+        return {
+            "grid": grid_norm.tolist(),
+            "bounds": {
+                "min_x": round(bx_min, 2),
+                "min_y": round(by_min, 2),
+                "max_x": round(bx_max, 2),
+                "max_y": round(by_max, 2),
+            },
+            "resolution": HEATMAP_RESOLUTION,
+            "shape": [n_bins_y, n_bins_x],
+            "max_density": round(float(max_val), 1),
+        }
+
+# Congestion timeline
+def _compute_congestion_timeline(self) -> list[dict]:
+        """Congestion percentage per 5-second window."""
+        if self._velocities.size == 0:
+            return []
+
+        window_frames = SIM_HZ * 5  # 5-second windows
+        n_windows = max(1, math.ceil(self._velocities.shape[0] / window_frames))
+        results: list[dict] = []
+
+        for w in range(n_windows):
+            start = w * window_frames
+            end = min((w + 1) * window_frames, self._velocities.shape[0])
+            chunk = self._velocities[start:end]
+            if chunk.size == 0:
+                continue
+            slow_pct = float(np.sum(chunk < SLOW_THRESHOLD) / chunk.size * 100)
+            results.append({
+                "time_sec": round(start / SIM_HZ, 1),
+                "congestion_pct": round(slow_pct, 1),
+            })
+
+        return results
+        
