@@ -54,8 +54,8 @@ const COMPLEXITY_COLORS: Record<string, string> = {
     unknown: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
 };
 
-
 // Type icons
+
 function ViolationIcon({ type }: { type: string }) {
     const cls = "h-4 w-4";
     switch (type) {
@@ -86,10 +86,7 @@ function formatValue(type: string, value: number): string {
     if (type === "bottleneck") return `${value.toFixed(1)} p/m²`;
     return `${value.toFixed(2)}m`;
 }
-
-
 // AI Recommendation types
-
 
 interface AIRecommendation {
     analysis: string;
@@ -104,7 +101,6 @@ interface AIRecommendation {
     _cost_overridden?: boolean;
 }
 
-
 // Confidence badge
 
 
@@ -112,8 +108,8 @@ function ConfidenceBadge({ confidence, isFallback }: { confidence?: number; isFa
     if (isFallback) {
         return (
             <span className="inline-flex items-center gap-1 rounded-md border border-zinc-600/40 bg-zinc-700/20 px-2 py-0.5 text-[9px] font-medium text-zinc-500">
-        Fallback · No AI
-      </span>
+                Fallback · No AI
+            </span>
         );
     }
     if (confidence == null) return null;
@@ -126,8 +122,8 @@ function ConfidenceBadge({ confidence, isFallback }: { confidence?: number; isFa
                 : "border-orange-500/30 bg-orange-500/10 text-orange-400";
     return (
         <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-medium ${color}`}>
-      {pct}% confidence
-    </span>
+            {pct}% confidence
+        </span>
     );
 }
 
@@ -147,8 +143,8 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
                 <div className="flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3 text-purple-400" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
-            AI Recommendation
-          </span>
+                        AI Recommendation
+                    </span>
                 </div>
                 <ConfidenceBadge
                     confidence={rec._confidence}
@@ -179,8 +175,8 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
                             <li key={i} className="flex items-start gap-1.5">
                                 <CheckCircle2 className="h-3 w-3 text-zinc-600 mt-0.5 shrink-0" />
                                 <span className="text-[10px] text-zinc-400 leading-relaxed">
-                  {step}
-                </span>
+                                    {step}
+                                </span>
                             </li>
                         ))}
                     </ul>
@@ -189,23 +185,23 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
 
             {/* Bottom row: complexity + cost */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-        <span
-            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase ${COMPLEXITY_COLORS[rec.complexity] ?? COMPLEXITY_COLORS.unknown}`}
-        >
-          {rec.complexity}
-        </span>
+                <span
+                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase ${COMPLEXITY_COLORS[rec.complexity] ?? COMPLEXITY_COLORS.unknown}`}
+                >
+                    {rec.complexity}
+                </span>
                 {rec.estimated_cost_lkr && rec.estimated_cost_lkr !== "N/A" && (
                     <span className="text-[9px] font-mono text-zinc-500">
-            LKR {rec.estimated_cost_lkr}
+                        LKR {rec.estimated_cost_lkr}
                         {rec._cost_overridden && (
                             <span className="ml-1 text-zinc-600 not-italic">(kb estimate)</span>
                         )}
-          </span>
+                    </span>
                 )}
                 {rec.regulation_reference && rec.regulation_reference !== "N/A" && (
                     <span className="text-[9px] text-zinc-600 italic truncate max-w-[160px]" title={rec.regulation_reference}>
-            {rec.regulation_reference}
-          </span>
+                        {rec.regulation_reference}
+                    </span>
                 )}
             </div>
 
@@ -225,12 +221,15 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
         </motion.div>
     );
 }
+
+
 // ViolationCard — single violation with AI recommendation
 
+
 function ViolationCard({
-                           violation,
-                           onFocusViolation,
-                       }: {
+    violation,
+    onFocusViolation,
+}: {
     violation: Violation;
     onFocusViolation: (v: Violation) => void;
 }) {
@@ -280,9 +279,9 @@ function ViolationCard({
         <div className={`rounded-lg border ${SEVERITY_BG[violation.severity]} p-3`}>
             <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-          <span className={SEVERITY_TEXT[violation.severity]}>
-            <ViolationIcon type={violation.type} />
-          </span>
+                    <span className={SEVERITY_TEXT[violation.severity]}>
+                        <ViolationIcon type={violation.type} />
+                    </span>
                     <div>
                         <p className="text-xs font-semibold text-zinc-200">
                             {formatType(violation.type)}
@@ -290,8 +289,8 @@ function ViolationCard({
                         <span
                             className={`text-[10px] font-bold uppercase ${SEVERITY_TEXT[violation.severity]}`}
                         >
-              {violation.severity}
-            </span>
+                            {violation.severity}
+                        </span>
                     </div>
                 </div>
                 <button
@@ -308,19 +307,19 @@ function ViolationCard({
             </p>
 
             <div className="mt-2 flex items-center gap-3 text-[10px] font-mono">
-        <span className="text-zinc-400">
-          Measured:{" "}
-            <span className={SEVERITY_TEXT[violation.severity]}>
-            {formatValue(violation.type, violation.measured_value)}
-          </span>
-        </span>
+                <span className="text-zinc-400">
+                    Measured:{" "}
+                    <span className={SEVERITY_TEXT[violation.severity]}>
+                        {formatValue(violation.type, violation.measured_value)}
+                    </span>
+                </span>
                 <span className="text-zinc-500">|</span>
                 <span className="text-zinc-400">
-          Required:{" "}
+                    Required:{" "}
                     <span className="text-zinc-300">
-            {formatValue(violation.type, violation.required_value)}
-          </span>
-        </span>
+                        {formatValue(violation.type, violation.required_value)}
+                    </span>
+                </span>
             </div>
 
             <p className="mt-1.5 text-[9px] text-zinc-600 italic">
@@ -370,7 +369,6 @@ function ViolationCard({
 
 // ViolationPanel — HTML overlay (outside Canvas)
 
-
 interface ViolationPanelProps {
     report: ComplianceReport | null;
     loading: boolean;
@@ -378,10 +376,10 @@ interface ViolationPanelProps {
 }
 
 export function ViolationPanel({
-                                   report,
-                                   loading,
-                                   onFocusViolation,
-                               }: ViolationPanelProps) {
+    report,
+    loading,
+    onFocusViolation,
+}: ViolationPanelProps) {
     const [panelOpen, setPanelOpen] = useState(false);
 
     const totalViolations = report?.total_violations ?? 0;
@@ -402,16 +400,16 @@ export function ViolationPanel({
                     <ShieldAlert className="h-5 w-5 text-red-400" />
                 )}
                 <span className="text-xs font-medium text-zinc-300">
-          {loading
-              ? "Auditing…"
-              : report
-                  ? `${totalViolations} Violation${totalViolations !== 1 ? "s" : ""}`
-                  : "Compliance"}
-        </span>
+                    {loading
+                        ? "Auditing…"
+                        : report
+                            ? `${totalViolations} Violation${totalViolations !== 1 ? "s" : ""}`
+                            : "Compliance"}
+                </span>
                 {totalViolations > 0 && !loading && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-            {totalViolations}
-          </span>
+                        {totalViolations}
+                    </span>
                 )}
             </button>
 
@@ -430,8 +428,8 @@ export function ViolationPanel({
                             <div className="flex items-center gap-2">
                                 <ShieldAlert className="h-4 w-4 text-zinc-400" />
                                 <span className="text-sm font-semibold text-zinc-200">
-                  Compliance Report
-                </span>
+                                    Compliance Report
+                                </span>
                             </div>
                             <button
                                 onClick={() => setPanelOpen(false)}
@@ -454,11 +452,10 @@ export function ViolationPanel({
                                         </p>
                                     </div>
                                     <div
-                                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 ${
-                                            passed
+                                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 ${passed
                                                 ? "bg-green-500/15 border border-green-500/30"
                                                 : "bg-red-500/15 border border-red-500/30"
-                                        }`}
+                                            }`}
                                     >
                                         {passed ? (
                                             <ShieldCheck className="h-4 w-4 text-green-400" />
@@ -466,19 +463,17 @@ export function ViolationPanel({
                                             <ShieldAlert className="h-4 w-4 text-red-400" />
                                         )}
                                         <span
-                                            className={`text-sm font-bold ${
-                                                passed ? "text-green-400" : "text-red-400"
-                                            }`}
+                                            className={`text-sm font-bold ${passed ? "text-green-400" : "text-red-400"
+                                                }`}
                                         >
-                      {report.compliance_score}%
-                    </span>
+                                            {report.compliance_score}%
+                                        </span>
                                         <span
-                                            className={`text-[10px] font-bold uppercase ${
-                                                passed ? "text-green-500" : "text-red-500"
-                                            }`}
+                                            className={`text-[10px] font-bold uppercase ${passed ? "text-green-500" : "text-red-500"
+                                                }`}
                                         >
-                      {report.status}
-                    </span>
+                                            {report.status}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -493,8 +488,8 @@ export function ViolationPanel({
                                                     key={sev}
                                                     className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${SEVERITY_BG[sev]} ${SEVERITY_TEXT[sev]}`}
                                                 >
-                          {count} {sev}
-                        </span>
+                                                    {count} {sev}
+                                                </span>
                                             );
                                         },
                                     )}
@@ -530,13 +525,13 @@ export function ViolationPanel({
     );
 }
 
+// ViolationMarkers — R3F component (inside Canvas)
 
-// ViolationMarkers — R3F component
 
 function ViolationCone({
-                           violation,
-                           highlighted,
-                       }: {
+    violation,
+    highlighted,
+}: {
     violation: Violation;
     highlighted: boolean;
 }) {
@@ -544,7 +539,6 @@ function ViolationCone({
 
     const color = SEVERITY_COLORS[violation.severity] ?? "#ffffff";
 
-    // Backend [x, y] → Three.js [x, height, -y]
     const targetX = violation.coordinate.x;
     const targetZ = -violation.coordinate.y;
 
@@ -552,10 +546,9 @@ function ViolationCone({
         if (!meshRef.current) return;
         const t = state.clock.elapsedTime;
 
-        // Bob above floor for visibility
         meshRef.current.position.y = 1.8 + Math.sin(t * 2) * 0.06;
 
-        // Scale pulse when highlighted
+
         if (highlighted) {
             const s = 1.0 + Math.sin(t * 4) * 0.3;
             meshRef.current.scale.setScalar(s);
@@ -582,8 +575,8 @@ function ViolationCone({
 }
 
 function PulsingRing({
-                         violation,
-                     }: {
+    violation,
+}: {
     violation: Violation;
 }) {
     const ringRef = useRef<THREE.Mesh>(null);
@@ -624,9 +617,9 @@ interface ViolationMarkersProps {
 }
 
 export function ViolationMarkers({
-                                     violations,
-                                     highlightedId,
-                                 }: ViolationMarkersProps) {
+    violations,
+    highlightedId,
+}: ViolationMarkersProps) {
     return (
         <group>
             {violations.map((v) => (
