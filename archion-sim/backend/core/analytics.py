@@ -237,4 +237,135 @@ def _compute_congestion_timeline(self) -> list[dict]:
             })
 
         return results
-        
+
+# Velocity timeline
+def _compute_velocity_timeline(self) -> list[dict]:
+        """Average velocity per 1-second bucket."""
+        if self._velocities.size == 0:
+            return []
+
+        bucket_frames = SIM_HZ  # 10 frames = 1 second
+        n_buckets = max(1, math.ceil(self._velocities.shape[0] / bucket_frames))
+        results: list[dict] = []
+
+        for b in range(n_buckets):
+            start = b * bucket_frames
+            end = min((b + 1) * bucket_frames, self._velocities.shape[0])
+            chunk = self._velocities[start:end]
+            if chunk.size == 0:
+                continue
+            results.append({
+                "time_sec": round(b, 1),
+                "avg_velocity_ms": round(float(np.mean(chunk)), 3),
+            })
+
+        return results
+
+# summary
+def _compute_summary(self) -> dict:
+        """Aggregate summary metrics."""
+        sim_duration = self._n_frames / SIM_HZ if self._n_frames > 0 else 0
+
+        if self._velocities.size > 0:
+            avg_vel = float(np.mean(self._velocities))
+            peak_congestion = float(
+                np.max([
+                    np.sum(self._velocities[i] < SLOW_THRESHOLD) / self._n_agents * 100
+                    for i in range(self._velocities.shape[0])
+                ]) if self._velocities.shape[0] > 0 else 0
+            )
+        else:
+            avg_vel = 0.0
+            peak_congestion = 0.0
+
+        # Total distance traveled by all agents
+        if self._n_frames > 1:
+            segments = np.diff(self._positions, axis=0)
+            total_dist = float(np.sum(np.linalg.norm(segments, axis=2)))
+        else:
+            total_dist = 0.0
+
+        return {
+            "total_agents": self._n_agents,
+            "simulation_duration_sec": round(sim_duration, 1),
+            "avg_velocity_ms": round(avg_vel, 3),
+            "peak_congestion_pct": round(peak_congestion, 1),
+            "total_distance_m": round(total_dist, 1),
+            "floor_area_sqm": round(self._floor_area, 2),
+        }
+
+# Main Entry Point
+def compute_all(self) -> dict:
+        """Run all analytics and return the full result dict."""
+        flow_rate = self._compute_flow_rate()
+        congestion = self._compute_congestion_index()
+        efficiency = self._compute_efficiency_score()
+        heatmap = self._compute_density_heatmap()
+        cong_timeline = self._compute_congestion_timeline()
+        vel_timeline = self._compute_velocity_timeline()
+        summary = self._compute_summary()
+
+        # Compute average flow rate
+        avg_flow = (
+            sum(p["agents_per_minute"] for p in flow_rate) / len(flow_rate)
+            if flow_rate else 0
+        )
+
+        print(f"[Analytics] Flow rate: {avg_flow:.1f} agents/min")
+        print(f"[Analytics] Congestion index: {congestion['percentage']}%")
+        print(f"[Analytics] Efficiency score: {efficiency['average'] * 100:.1f}%")
+        print(f"[Analytics] Heatmap: {heatmap['shape'][0]}x{heatmap['shape'][1]} grid")
+
+        return {
+            "flow_rate": flow_rate,
+            "congestion_index": congestion,
+            "efficiency_score": efficiency,
+            "density_heatmap": heatmap,
+            "congestion_timeline": cong_timeline,
+            "velocity_timeline": vel_timeline,
+            "summary": summary,
+        }
+
+#Standalone heatmap PNG Generation
+def generate_heatmap_png(heatmap_data: dict, output_path: str) -> str:
+    """Render heatmap grid as a PNG using matplotlib"""
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    grid = np.array(heatmap_data["grid"])
+    if grid.size == 0:
+        # Create a blank placeholder
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.text(0.5, 0.5, "No data", ha="center", va="center", fontsize=14)
+        ax.set_axis_off()
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        return output_path
+
+    bounds = heatmap_data["bounds"]
+    extent = [bounds["min_x"], bounds["max_x"], bounds["min_y"], bounds["max_y"]]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    im = ax.imshow(
+        grid,
+        origin="lower",
+        extent=extent,
+        cmap="jet",
+        alpha=0.85,
+        vmin=0,
+        vmax=1,
+        interpolation="bilinear",
+    )
+    ax.set_xlabel("X (m)", fontsize=10)
+    ax.set_ylabel("Y (m)", fontsize=10)
+    ax.set_title("Agent Density Heatmap", fontsize=13, fontweight="bold")
+    cbar = plt.colorbar(im, ax=ax, label="Normalized Density", shrink=0.85)
+    cbar.ax.tick_params(labelsize=8)
+
+    fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"[Analytics] Heatmap PNG saved: {output_path}")
+    return output_path
+    
