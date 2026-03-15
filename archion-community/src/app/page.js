@@ -12,6 +12,8 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
 
@@ -68,6 +70,9 @@ export default function Home() {
       <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        filter={filter}
+        setFilter={setFilter}
+        setSelectedDate={setSelectedDate}
       />
 
       {/* BUTTON SECTION */}
@@ -99,6 +104,7 @@ export default function Home() {
           deleteMode={deleteMode}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
+          filter={filter}
         />
 
         <div className="flex justify-center gap-4 mt-10">
