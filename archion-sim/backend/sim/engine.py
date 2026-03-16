@@ -156,9 +156,6 @@ class SimulationEngine:
                 angle_to_exit = 0.0 
                 if aid in agent_goals:
                     ex, ey = agent_goals[aid]
-                    angle_to_exit = math.atan2(ey - y, x - x) # Fix: seems like intended ey-y, ex-x
-                    # Wait, the original code had angle_to_exit = math.atan2(ey - y, ex - x)
-                    # Let me keep it as ex-x
                     angle_to_exit = math.atan2(ey - y, ex - x)
                 elif self.exit_pos is not None:
                     ex, ey = self.exit_pos
