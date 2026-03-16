@@ -155,7 +155,7 @@ def _velocity_chart(velocity_timeline: list[dict]) -> Image:
 
     
     def _severity_pie_chart(violations: list[dict]) -> Image:
-    """Pie chart of violation counts by severity."""
+    """Pie chart of violation counts by severity"""
     
     sev_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for v in violations:
@@ -248,3 +248,283 @@ def _heatmap_image(heatmap_data: dict) -> Image:
     fig.tight_layout()
     return _fig_to_image(fig, width=160 * mm, height=140 * mm)
 
+# Report Generator
+class ReportGenerator:
+    """Generates a multi-page PDF compliance audit report."""
+
+    def __init__(
+        self,
+        compliance_report: dict,
+        analytics_data: dict,
+        building_type: str = "residential",
+        floor_area: float = 0.0,
+        ai_recommendations: dict | None = None,
+    ) -> None:
+        self._compliance = compliance_report
+        self._analytics = analytics_data
+        self._building_type = building_type
+        self._floor_area = floor_area
+        self._ai_recs = ai_recommendations or {}
+        self._s = _styles()
+
+    def generate(self, project_name: str = "Building Compliance Audit") -> str:
+        """Generate the PDF and return the file path."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"archion_report_{timestamp}.pdf"
+        filepath = REPORTS_DIR / filename
+
+        doc = SimpleDocTemplate(
+            str(filepath),
+            pagesize=A4,
+            leftMargin=20 * mm,
+            rightMargin=20 * mm,
+            topMargin=25 * mm,
+            bottomMargin=20 * mm,
+        )
+
+        story: list = []
+        story += self._cover_page(project_name)
+        story.append(PageBreak())
+        story += self._executive_summary()
+        story.append(PageBreak())
+        story += self._building_info(project_name)
+        story.append(PageBreak())
+        story += self._compliance_analysis()
+        story.append(PageBreak())
+        story += self._compliance_breakdown()
+        story.append(PageBreak())
+        story += self._ai_recommendations_page()
+        story.append(PageBreak())
+        story += self._recommendations_summary()
+        story.append(PageBreak())
+        story += self._performance_metrics()
+        story.append(PageBreak())
+        story += self._heatmap_page()
+        story.append(PageBreak())
+        story += self._conclusion()
+        story.append(PageBreak())
+        story += self._appendix()
+
+        doc.build(story, onFirstPage=self._footer, onLaterPages=self._footer)
+        print(f"[Report] PDF generated: {filename} (11 pages)")
+        return str(filepath)
+
+# Footer
+    @staticmethod
+    def _footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(HexColor("#a1a1aa"))
+        canvas.drawString(20 * mm, 10 * mm,
+                          f"Archion Sim — Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        canvas.drawRightString(PAGE_W - 20 * mm, 10 * mm,
+                               f"Page {doc.page}")
+        canvas.restoreState()
+
+    # Cover Page - page 1
+    def _cover_page(self, project_name: str) -> list:
+        elements: list = []
+        elements.append(Spacer(1, 80 * mm))
+        elements.append(Paragraph("ARCHION SIM", self._s["title"]))
+        elements.append(Spacer(1, 6 * mm))
+        elements.append(Paragraph("Building Compliance &amp; Analytics Report", self._s["subtitle"]))
+        elements.append(Spacer(1, 20 * mm))
+        elements.append(Paragraph(project_name, ParagraphStyle(
+            "project", fontName="Helvetica-Bold", fontSize=14,
+            alignment=TA_CENTER, textColor=CYAN,
+        )))
+        elements.append(Spacer(1, 10 * mm))
+
+        score = self._compliance.get("compliance_score", 0)
+        status = self._compliance.get("status", "fail").upper()
+        color = GREEN if status == "PASS" else RED
+        elements.append(Paragraph(
+            f"Compliance Score: {score:.0f}% — {status}",
+            ParagraphStyle("score", fontName="Helvetica-Bold", fontSize=16,
+                           alignment=TA_CENTER, textColor=color),
+        ))
+        elements.append(Spacer(1, 10 * mm))
+
+        meta_data = [
+            ["Building Type", self._building_type.replace("_", " ").title()],
+            ["Report Date", datetime.now().strftime("%B %d, %Y")],
+            ["Floor Area", f"{self._floor_area:.1f} m²"],
+        ]
+        meta_table = Table(meta_data, colWidths=[60 * mm, 80 * mm])
+        meta_table.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+            ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("TEXTCOLOR", (0, 0), (-1, -1), DARK),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(meta_table)
+        return elements
+
+    # Executive Summary - page 2
+    def _executive_summary(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Executive Summary", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        score = self._compliance.get("compliance_score", 0)
+        status = self._compliance.get("status", "fail")
+        summary = self._compliance.get("summary", {})
+        total = self._compliance.get("total_violations", 0)
+
+        # Score badge
+        style_key = "badge_pass" if status == "pass" else "badge_fail"
+        elements.append(Paragraph(
+            f"Compliance Score: {score:.0f}% — {status.upper()}", self._s[style_key]
+        ))
+        elements.append(Spacer(1, 6 * mm))
+
+        # Summary table
+        cong = self._analytics.get("congestion_index", {})
+        eff = self._analytics.get("efficiency_score", {})
+        summ = self._analytics.get("summary", {})
+        flow = self._analytics.get("flow_rate", [])
+        avg_flow = sum(p["agents_per_minute"] for p in flow) / len(flow) if flow else 0
+
+        data = [
+            ["Metric", "Value"],
+            ["Total Violations", str(total)],
+            ["Critical", str(summary.get("critical", 0))],
+            ["High", str(summary.get("high", 0))],
+            ["Medium", str(summary.get("medium", 0))],
+            ["Low", str(summary.get("low", 0))],
+            ["Congestion Index", f"{cong.get('percentage', 0):.1f}%"],
+            ["Efficiency Score", f"{eff.get('average', 0) * 100:.1f}%"],
+            ["Avg Flow Rate", f"{avg_flow:.1f} agents/min"],
+            ["Avg Velocity", f"{summ.get('avg_velocity_ms', 0):.2f} m/s"],
+        ]
+
+        t = Table(data, colWidths=[80 * mm, 80 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("ALIGN", (1, 0), (1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 8 * mm))
+
+        # Key findings
+        elements.append(Paragraph("Key Findings", self._s["h2"]))
+        findings: list[str] = []
+        if summary.get("critical", 0) > 0:
+            findings.append(f"{summary['critical']} critical violation(s) requiring immediate attention.")
+        if cong.get("percentage", 0) > 30:
+            findings.append(f"High congestion index ({cong['percentage']:.1f}%) indicates circulation issues.")
+        if eff.get("average", 1) < 0.6:
+            findings.append(f"Low efficiency score ({eff['average'] * 100:.0f}%) suggests poor wayfinding.")
+        if avg_flow < 2:
+            findings.append("Low flow rate indicates potential exit capacity issues.")
+        if not findings:
+            findings.append("Building meets minimum compliance requirements.")
+
+        for f in findings:
+            elements.append(Paragraph(f"&#8226; {f}", self._s["body"]))
+            elements.append(Spacer(1, 2 * mm))
+
+        return elements
+
+    # Building Information - page 3
+    def _building_info(self, project_name: str) -> list:
+        elements: list = []
+        elements.append(Paragraph("Building Information", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        summ = self._analytics.get("summary", {})
+        data = [
+            ["Property", "Value"],
+            ["Project Name", project_name],
+            ["Building Type", self._building_type.replace("_", " ").title()],
+            ["Floor Area", f"{self._floor_area:.1f} m²"],
+            ["Compliance Standard", self._compliance.get("standard", "Sri Lankan Planning Regulations")],
+            ["Total Agents", str(summ.get("total_agents", 0))],
+            ["Simulation Duration", f"{summ.get('simulation_duration_sec', 0):.0f} seconds"],
+            ["Frame Rate", "10 Hz"],
+        ]
+
+        t = Table(data, colWidths=[70 * mm, 90 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+            ("FONTNAME", (1, 1), (1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(t)
+        return elements
+
+    # Compliance Analysis - page 4
+    def _compliance_analysis(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Compliance Analysis", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        violations = self._compliance.get("violations", [])
+
+        if not violations:
+            elements.append(Paragraph("No violations detected.", self._s["body"]))
+            return elements
+
+        # Violations table
+        header = ["#", "Type", "Severity", "Measured", "Required", "Regulation"]
+        rows = [header]
+        for i, v in enumerate(violations[:15], 1):  # Cap at 15 rows
+            rows.append([
+                str(i),
+                v.get("type", "").replace("_", " ").title(),
+                v.get("severity", "").upper(),
+                f"{v.get('measured_value', 0):.2f}",
+                f"{v.get('required_value', 0):.2f}",
+                v.get("regulation", "")[:40],
+            ])
+
+        col_widths = [10 * mm, 30 * mm, 20 * mm, 22 * mm, 22 * mm, 56 * mm]
+        t = Table(rows, colWidths=col_widths)
+
+        style_cmds = [
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]
+
+        # Color severity cells
+        for ri, row in enumerate(rows[1:], 1):
+            sev = row[2].lower()
+            if sev in SEVERITY_COLORS:
+                style_cmds.append(("TEXTCOLOR", (2, ri), (2, ri), SEVERITY_COLORS[sev]))
+                style_cmds.append(("FONTNAME", (2, ri), (2, ri), "Helvetica-Bold"))
+
+        t.setStyle(TableStyle(style_cmds))
+        elements.append(t)
+        elements.append(Spacer(1, 8 * mm))
+
+        # Bar chart
+        elements.append(Paragraph("Violation Distribution", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+        elements.append(_violations_bar_chart(violations))
+
+        return elements
