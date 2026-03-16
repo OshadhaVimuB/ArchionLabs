@@ -195,3 +195,30 @@ def generate_velocity_chart(velocity_timeline: list[dict]) -> str:
     fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=_BG_COLOR)
     plt.close(fig)
     return path
+
+    # Flow rate chart
+def generate_flow_rate_chart(flow_rate: list[dict]) -> str:
+    """Generate flow-rate-over-time line chart."""
+    if not flow_rate:
+        return ""
+
+    times = [p["time_sec"] for p in flow_rate]
+    rates = [p["agents_per_minute"] for p in flow_rate]
+
+    fig, ax = plt.subplots(figsize=(6, 2.5), dpi=150)
+    fig.patch.set_facecolor(_BG_COLOR)
+
+    ax.plot(times, rates, color="#10B981", linewidth=1.5, marker="o", markersize=3)
+    avg_rate = sum(rates) / len(rates) if rates else 0
+    ax.axhline(y=avg_rate, color="#EAB308", linestyle="--", linewidth=0.8, alpha=0.7)
+
+    ax.set_xlabel("Time (s)", fontsize=9, color=_TEXT_COLOR)
+    ax.set_ylabel("Agents/min", fontsize=9, color=_TEXT_COLOR)
+    ax.set_title("Flow Rate Over Time", fontsize=11, fontweight="bold", color=_TEXT_COLOR, pad=8)
+    _apply_style(ax)
+
+    fig.tight_layout()
+    path = str(CHARTS_DIR / "flow_rate_chart.png")
+    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=_BG_COLOR)
+    plt.close(fig)
+    return path
