@@ -81,10 +81,15 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
 
   <div
     className="h-48 bg-zinc-700 overflow-hidden"
-    onClick={(e) => e.preventDefault()}
+    
   >
-    <ModelViewer modelUrl={encodeURI(`http://localhost:5000${template.modelUrl}`)} />
+    <img
+      src={`http://localhost:5000${template.thumbnailUrl}`}
+      alt={template.title}
+      className="w-full h-full object-cover"
+    />
   </div>
+
 
           <div className="p-3">
             <h3 className="font-semibold text-white text-sm">
