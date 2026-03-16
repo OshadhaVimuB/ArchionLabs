@@ -164,7 +164,21 @@ export type ViewMode = "3d" | "2d";
 
 export type SimPhase =
   | "idle"
+  | "configuring"
   | "uploading"
   | "processing"
   | "simulating"
   | "completed";
+
+// --- Roles / Painting ---
+
+export interface RoleConfig {
+  id: string;
+  name: string;
+  /** number of agents of this role to spawn */
+  count: number;
+  /** hex color used for rendering painted cells */
+  color: string;
+  /** painted accessible area cells as [x, y] pairs */
+  areas: number[][];
+}

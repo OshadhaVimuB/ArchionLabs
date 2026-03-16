@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { Loader2, Flame } from "lucide-react";
 import gsap from "gsap";
 import ModelRenderer from "@/components/ModelRenderer";
-import type { Trajectories, SimPhase, Violation, DensityHeatmap, ViewMode } from "@/types/simulation";
+import type { Trajectories, SimPhase, Violation, DensityHeatmap, ViewMode, RoleConfig } from "@/types/simulation";
 
 
 // CameraController — sets initial camera position based on boundaries, exposes OrbitControls ref
@@ -754,6 +754,9 @@ interface SimViewerProps {
   showHeatmap?: boolean;
   onToggleHeatmap?: () => void;
   viewMode?: ViewMode;
+  roles?: RoleConfig[];
+  setRoles?: React.Dispatch<React.SetStateAction<RoleConfig[]>>;
+  activeRoleId?: string | null;
 }
 
 export default function SimViewer({
