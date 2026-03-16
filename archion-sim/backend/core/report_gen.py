@@ -155,7 +155,7 @@ def _velocity_chart(velocity_timeline: list[dict]) -> Image:
 
     
     def _severity_pie_chart(violations: list[dict]) -> Image:
-    """Pie chart of violation counts by severity"""
+        """Pie chart of violation counts by severity"""
     
     sev_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for v in violations:
@@ -547,7 +547,7 @@ class ReportGenerator:
 
         elements.append(Paragraph(
             f"AI-generated remediation advice for {len(self._ai_recs)} violation(s), "
-            f"powered by Gemini 2.0 Flash with domain-specific knowledge.",
+            f"powered by Claude 3 Haiku with domain-specific knowledge.",
             self._s["body"],
         ))
         elements.append(Spacer(1, 4 * mm))

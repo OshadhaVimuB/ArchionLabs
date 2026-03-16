@@ -12,15 +12,17 @@ import random
 import threading
 import requests
 import os
-import google.generativeai as genai
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-llm_model = genai.GenerativeModel('gemini-2.5-flash')
+try:
+    import anthropic
+    _ANTHROPIC_AVAILABLE = True
+except ImportError:
+    _ANTHROPIC_AVAILABLE = False
 
 SIM_HZ = 10            # steps per second
 SIM_DURATION = 60       # seconds
@@ -69,6 +71,14 @@ class SimulationEngine:
     seed: int | None = 42
 
     _trajectories: dict | None = field(default=None, repr=False)
+    _MODEL = "claude-3-haiku-20240307"
+
+    def __post_init__(self):
+        self.anthropic_client = None
+        if _ANTHROPIC_AVAILABLE:
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if api_key:
+                self.anthropic_client = anthropic.Anthropic(api_key=api_key)
 
     def run(self) -> dict:
         n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors = self._setup_environment()
@@ -80,17 +90,22 @@ class SimulationEngine:
             frame_data: dict[str, dict] = {}
             
             # --- LLM STRATEGIC BRAIN ---
-            if frame % 50 == 0:
-                prompt = f"We have {n_total} pedestrian agents in a simulation. Present coordinates: {positions}. Generate a strategic 2D waypoint [x, y] for each agent to navigate toward. Return ONLY a pure JSON list of coordinate pairs, e.g. [[1.0, 2.0], [3.0, 4.0]]. Do not include markdown codeblocks or extra text."
+            if frame % 50 == 0 and self.anthropic_client:
+                user_prompt = f"We have {n_total} pedestrian agents in a simulation. Present coordinates: {positions}. Generate a strategic 2D waypoint [x, y] for each agent to navigate toward. Return ONLY a pure JSON list of coordinate pairs, e.g. [[1.0, 2.0], [3.0, 4.0]]. Do not include markdown codeblocks or extra text."
                 try:
-                    response = llm_model.generate_content(prompt)
-                    clean_text = response.text.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
+                    response = self.anthropic_client.messages.create(
+                        model=self._MODEL,
+                        max_tokens=1000,
+                        messages=[{"role": "user", "content": user_prompt}]
+                    )
+                    raw_text = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
+                    clean_text = re.sub(r"```(?:json)?|```", "", raw_text).strip()
                     goals = json.loads(clean_text)
                     for aid in range(min(n_total, len(goals))):
                         agent_goals[aid] = goals[aid]
-                        print(f"\033[95m🧠 [GEMINI STRATEGY] Frame {frame}: Agent {aid} assigned waypoint {goals[aid]}\033[0m", flush=True)
+                        print(f"\033[95m🧠 [CLAUDE STRATEGY] Frame {frame}: Agent {aid} assigned waypoint {goals[aid]}\033[0m", flush=True)
                 except Exception as e:
-                    print(f"\033[91m[SimEngine] Gemini API failed: {e}. Using random targets.\033[0m", flush=True)
+                    print(f"\033[91m[SimEngine] Claude API failed: {e}. Using random targets.\033[0m", flush=True)
                     for aid in range(n_total):
                         agent_goals[aid] = list(_sample_inside(role_walk_areas[aid], rng))
             
@@ -122,6 +137,9 @@ class SimulationEngine:
                 angle_to_exit = 0.0 
                 if aid in agent_goals:
                     ex, ey = agent_goals[aid]
+                    angle_to_exit = math.atan2(ey - y, x - x) # Fix: seems like intended ey-y, ex-x
+                    # Wait, the original code had angle_to_exit = math.atan2(ey - y, ex - x)
+                    # Let me keep it as ex-x
                     angle_to_exit = math.atan2(ey - y, ex - x)
                 elif self.exit_pos is not None:
                     ex, ey = self.exit_pos
@@ -293,9 +311,9 @@ class SimulationEngine:
         print(f"[SimEngine:setup] Spawned {n_total} agents inside polygon", flush=True)
         return n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors
 
-    def _ask_gemini_wall_decision(self, aid: int, ray_front: float, ray_left: float, ray_right: float) -> int:
-        """Ask Gemini what an agent should do when facing a wall. Returns action int."""
-        prompt = (
+    def _ask_claude_wall_decision(self, aid: int, ray_front: float, ray_left: float, ray_right: float) -> int:
+        """Ask Claude what an agent should do when facing a wall. Returns action int."""
+        user_prompt = (
             f"You are controlling pedestrian Agent {aid} in a building simulation. "
             f"The agent sees a wall {ray_front:.2f}m directly ahead. "
             f"Turning left gives {ray_left:.2f}m of clearance. "
@@ -303,41 +321,43 @@ class SimulationEngine:
             f"Reply with ONLY one of these exact words: TURN_LEFT, TURN_RIGHT, or MOVE_FORWARD"
         )
         try:
-            resp = llm_model.generate_content(prompt)
-            decision = resp.text.strip().upper()
+            response = self.anthropic_client.messages.create(
+                model=self._MODEL,
+                max_tokens=20,
+                messages=[{"role": "user", "content": user_prompt}]
+            )
+            decision = "".join([c.text for c in response.content if hasattr(c, "text")]).strip().upper()
             if "LEFT" in decision:
-                print(f"\033[91m🆘 [GEMINI WALL] Agent {aid} at wall ({ray_front:.2f}m) → TURN LEFT\033[0m", flush=True)
+                print(f"\033[91m🆘 [CLAUDE WALL] Agent {aid} at wall ({ray_front:.2f}m) → TURN LEFT\033[0m", flush=True)
                 return 1
             elif "RIGHT" in decision:
-                print(f"\033[91m🆘 [GEMINI WALL] Agent {aid} at wall ({ray_front:.2f}m) → TURN RIGHT\033[0m", flush=True)
+                print(f"\033[91m🆘 [CLAUDE WALL] Agent {aid} at wall ({ray_front:.2f}m) → TURN RIGHT\033[0m", flush=True)
                 return 2
             else:
-                print(f"\033[91m🆘 [GEMINI WALL] Agent {aid} at wall ({ray_front:.2f}m) → MOVE FORWARD\033[0m", flush=True)
+                print(f"\033[91m🆘 [CLAUDE WALL] Agent {aid} at wall ({ray_front:.2f}m) → MOVE FORWARD\033[0m", flush=True)
                 return 0
         except Exception as e:
-            print(f"\033[91m[GEMINI WALL] API failed: {e}\033[0m", flush=True)
+            print(f"\033[91m[CLAUDE WALL] API failed: {e}\033[0m", flush=True)
             return 1 if ray_left > ray_right else 2
 
     def stream(self):
         """Generator: yields frames indefinitely in real-time until the client disconnects.
 
-        Gemini is called:
+        Claude is called:
         1. Every 50 frames for strategic waypoints (every 5 seconds).
-        2. When an agent hits a wall < 1.0m — but with a 20-frame cooldown per agent,
-           so it only asks Gemini ONCE per wall encounter, not every frame.
+        2. When an agent hits a wall < 1.2m — but with a 20-frame cooldown per agent,
+           so it only asks Claude ONCE per wall encounter, not every frame.
         """
         n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors = self._setup_environment()
 
         agent_goals = {}
-        gemini_wall_last_frame: dict[int, int] = {}
-        gemini_wall_action: dict[int, int] = {}
+        claude_wall_last_frame: dict[int, int] = {}
+        claude_wall_action: dict[int, int] = {}
 
 
-        WALL_TRIGGER_DIST = 1.2   # metres — start asking Gemini when this close to a wall
+        WALL_TRIGGER_DIST = 1.2   # metres — start asking Claude when this close to a wall
         WALL_COOLDOWN = 20        # frames — don't ask again for 2 seconds after last answer
-        STRATEGY_INTERVAL = 50    # frames — how often Gemini gives new waypoints
-
-
+        STRATEGY_INTERVAL = 50    # frames — how often Claude gives new waypoints
 
         import time
         import traceback
@@ -347,10 +367,10 @@ class SimulationEngine:
                 frame_data: dict[str, dict] = {}
 
                 # --- LLM STRATEGIC BRAIN ---
-                if frame % STRATEGY_INTERVAL == 0:
+                if frame % STRATEGY_INTERVAL == 0 and self.anthropic_client:
                     minx, miny, maxx, maxy = walk_area.bounds
                     cx, cy = (minx + maxx) / 2, (miny + maxy) / 2
-                    prompt = (
+                    user_prompt = (
                         f"You are guiding {n_total} pedestrian agents to EXPLORE the entire floor plan.\n"
                         f"Building bounds: X=[{minx:.1f}, {maxx:.1f}], Y=[{miny:.1f}, {maxy:.1f}], Center=[{cx:.1f},{cy:.1f}].\n"
                         f"Agent current positions: {[[round(p[0],2), round(p[1],2)] for p in positions]}.\n"
@@ -362,17 +382,22 @@ class SimulationEngine:
                         f"Return ONLY a JSON list of [x, y] pairs, one per agent. No markdown, no explanation."
                     )
                     
-                    #Ask Gemini async in background so we NEVER block the frame loop
-                    def _fetch_strategy(_prompt=prompt, _frame=frame):
+                    #Ask Claude async in background so we NEVER block the frame loop
+                    def _fetch_strategy(_prompt=user_prompt, _frame=frame):
                         try:
-                            resp = llm_model.generate_content(_prompt)
-                            clean = resp.text.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
+                            response = self.anthropic_client.messages.create(
+                                model=self._MODEL,
+                                max_tokens=1000,
+                                messages=[{"role": "user", "content": _prompt}]
+                            )
+                            raw_text = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
+                            clean = re.sub(r"```(?:json)?|```", "", raw_text).strip()
                             goals = json.loads(clean)
                             for aid in range(min(n_total, len(goals))):
                                 agent_goals[aid] = goals[aid]
-                                print(f"\033[95m🧠 [GEMINI STRATEGY] Frame {_frame}: Agent {aid} → waypoint {goals[aid]}\033[0m", flush=True)
+                                print(f"\033[95m🧠 [CLAUDE STRATEGY] Frame {_frame}: Agent {aid} → waypoint {goals[aid]}\033[0m", flush=True)
                         except Exception as e:
-                            print(f"\033[91m[SimEngine] Gemini strategy failed: {e}\033[0m", flush=True)
+                            print(f"\033[91m[SimEngine] Claude strategy failed: {e}\033[0m", flush=True)
                     
                     threading.Thread(target=_fetch_strategy, daemon=True).start()
 
@@ -417,37 +442,38 @@ class SimulationEngine:
                     actions = [0] * n_total
 
 
-                # --- APPLY ACTIONS + GEMINI WALL OVERRIDE ---
+                # --- APPLY ACTIONS + CLAUDE WALL OVERRIDE ---
                 for aid, action in enumerate(actions):
                     x, y = positions[aid]
                     heading = headings[aid]
                     ray_front, ray_left, ray_right = per_agent_rays[aid]
 
-                    #  WALL DETECTED — ask Gemini in background, use heuristic immediately
+                    #  WALL DETECTED — ask Claude in background, use heuristic immediately
                     if ray_front < WALL_TRIGGER_DIST:
-                        frames_since_last_call = frame - gemini_wall_last_frame.get(aid, -9999)
+                        frames_since_last_call = frame - claude_wall_last_frame.get(aid, -9999)
 
                         if frames_since_last_call >= WALL_COOLDOWN:
                             # Immediately use a smart heuristic.
                             immediate_action = 1 if ray_left > ray_right else 2
 
-                            gemini_wall_action[aid] = immediate_action
-                            gemini_wall_last_frame[aid] = frame
+                            claude_wall_action[aid] = immediate_action
+                            claude_wall_last_frame[aid] = frame
                             action = immediate_action
 
-                            # Ask Gemini async in background.
-                            _rf, _rl, _rr, _aid = ray_front, ray_left, ray_right, aid
-                            def _ask_async(_aid=_aid, _rf=_rf, _rl=_rl, _rr=_rr):
-                                print(f"\033[93m📡 [AGENT {_aid}→GEMINI] Wall {_rf:.2f}m ahead | Left={_rl:.2f}m Right={_rr:.2f}m — asking...\033[0m", flush=True)
-                                result = self._ask_gemini_wall_decision(_aid, _rf, _rl, _rr)
-                                gemini_wall_action[_aid] = result  # update for next encounter
-                            threading.Thread(target=_ask_async, daemon=True).start()
+                            # Ask Claude async in background.
+                            if self.anthropic_client:
+                                _rf, _rl, _rr, _aid = ray_front, ray_left, ray_right, aid
+                                def _ask_async(_aid=_aid, _rf=_rf, _rl=_rl, _rr=_rr):
+                                    print(f"\033[93m📡 [AGENT {_aid}→CLAUDE] Wall {_rf:.2f}m ahead | Left={_rl:.2f}m Right={_rr:.2f}m — asking...\033[0m", flush=True)
+                                    result = self._ask_claude_wall_decision(_aid, _rf, _rl, _rr)
+                                    claude_wall_action[_aid] = result  # update for next encounter
+                                threading.Thread(target=_ask_async, daemon=True).start()
                         else:
-                            action = gemini_wall_action.get(aid, action)
+                            action = claude_wall_action.get(aid, action)
 
-                    elif aid in gemini_wall_action and ray_front >= WALL_TRIGGER_DIST + 0.3:
+                    elif aid in claude_wall_action and ray_front >= WALL_TRIGGER_DIST + 0.3:
                         # Agent cleared the wall — MARL takes back over
-                        del gemini_wall_action[aid]
+                        del claude_wall_action[aid]
 
                     if action == 0:
                         heading += rng.uniform(-0.05, 0.05)

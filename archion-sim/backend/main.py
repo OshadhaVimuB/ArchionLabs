@@ -6,7 +6,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-# Load .env file so GEMINI_API_KEY and other secrets are available
+# Load .env file so ANTHROPIC_API_KEY and other secrets are available
 from dotenv import load_dotenv
 load_dotenv()
 

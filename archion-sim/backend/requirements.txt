@@ -15,8 +15,8 @@ matplotlib
 # Environment
 python-dotenv
 
-# LLM (Gemini)
-google-generativeai>=0.3.2
+# LLM (Anthropic Claude)
+anthropic
 
 # MARL training (optional — only needed if running marl/train.py)
 # Install separately to avoid large download when just running the server:
