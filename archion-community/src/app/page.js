@@ -8,16 +8,32 @@ import { useState, useEffect } from "react";
 export default function Home() {
 
   const [templates, setTemplates] = useState([]);
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/templates")
-      .then(res => res.json())
-      .then(data => setTemplates(data))
-      .catch(err => console.error(err));
-  }, []);
+
+  async function loadTemplates() {
+    try{
+      const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
+      const data = await res.json();
+      console.log("Loaded templates:", data);
+      setTemplates(data.templates || []);
+    } catch (error) {
+      console.error("Failed to load templates:", error);
+      setTemplates([]);
+    }
+
+
+  }
+
+  loadTemplates();
+
+}, [page]);
 
   const handleDelete = async () => {
 
@@ -54,6 +70,9 @@ export default function Home() {
       <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        filter={filter}
+        setFilter={setFilter}
+        setSelectedDate={setSelectedDate}
       />
 
       {/* BUTTON SECTION */}
@@ -85,7 +104,30 @@ export default function Home() {
           deleteMode={deleteMode}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
+          filter={filter}
         />
+
+        <div className="flex justify-center gap-4 mt-10">
+<button onClick={() => setPage(page-1)}disabled={page === 1}
+  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+>
+  Previous
+</button>
+
+<span className="px-4 py-2 text-zinc-300">
+  Page {page}
+</span>
+Next
+
+<button onClick={() => setPage(page+1)}
+  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+>
+  Next
+</button>
+
+</div>
+        
+
 
       </div>
 
