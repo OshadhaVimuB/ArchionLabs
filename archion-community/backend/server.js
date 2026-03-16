@@ -10,21 +10,32 @@ app.use(express.json());
 const modelsPath = path.resolve(__dirname, "../public/models");
 app.use("/models", express.static(modelsPath));
 console.log("Serving models from:", modelsPath);
+app.use("/thumbnails", express.static(path.join(__dirname, "../public/thumbnails")));
+
 
 const generateThumbnail = require("./generateThumbnail");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../public/models"));
+
+    if (file.fieldname === "model") {
+      cb(null, path.join(__dirname, "../public/models"));
+    }
+
+    if (file.fieldname === "thumbnail") {
+      cb(null, path.join(__dirname, "../public/thumbnails"));
+    }
+
   },
+
   filename: function (req, file, cb) {
 
-  const cleanName = file.originalname
-    .replace(/\s+/g, "-")      // replace spaces
-    .replace(/[()]/g, "");     // remove brackets
+    const cleanName = file.originalname
+      .replace(/\s+/g, "-")
+      .replace(/[()]/g, "");
 
-  cb(null, Date.now() + "-" + cleanName);
-}
+    cb(null, Date.now() + "-" + cleanName);
+  }
 });
 const upload = multer({ storage: storage });
 
@@ -71,25 +82,26 @@ app.delete("/templates/:id", (req, res) => {
   templates = templates.filter(t => t.id !== id);
   res.json({ message: "Deleted successfully" });
 });
+app.post("/upload-model", upload.fields([
+  { name: "model", maxCount: 1 },
+  { name: "thumbnail", maxCount: 1 }
+]), (req, res) => {
 
-// POST new template
-app.post("/upload-model", upload.single("model"), async(req, res) => {
-  const modelPath = "/models/" + req.file.filename;
+  const modelFile = req.files["model"]?.[0];
+  const thumbnailFile = req.files["thumbnail"]?.[0];
 
-  const thumbnailFile = req.file.filename.replace(".glb", ".png");
-
-  const thumbnailPath = path.resolve(__dirname, "../public/thumbnails/" + thumbnailFile);
-
-  await generateThumbnail(
-    `http://localhost:5000${modelPath}`,
-    thumbnailPath
-  );
+  if (!modelFile) {
+    return res.status(400).json({ message: "Model file is required" });
+  }
 
   const newTemplate = {
     id: Date.now(),
     title: req.body.title,
     author: req.body.author,
-    modelUrl: "/models/" + req.file.filename,
+    modelUrl: "/models/" + modelFile.filename,
+    thumbnailUrl: thumbnailFile
+      ? "/thumbnails/" + thumbnailFile.filename
+      : null,
     createdAt: new Date().toISOString()
   };
 
