@@ -94,7 +94,7 @@ app.post("/upload-model", upload.fields([
   }
   const modelFile = req.files["model"][0];
 
-      let thumbnailUrl = null;
+      let thumbnailUrl = "/thumbnails/default.png";
 
       if (!thumbnailUrl) {
   thumbnailUrl = "/thumbnails/default.png";
