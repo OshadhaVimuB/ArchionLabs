@@ -778,7 +778,7 @@ export default function SimViewer({
   onToggleHeatmap,
   viewMode = "3d",
 }: SimViewerProps) {
-  const isProcessing = phase === "simulating" || phase === "uploading";
+  const isProcessing = phase === "uploading";
   const hasModel = !!(modelUrl && modelFormat);
   const controlsRef = useRef<any>(null);
 
@@ -882,9 +882,7 @@ export default function SimViewer({
           <div className="flex flex-col items-center gap-3 rounded-xl bg-zinc-900/80 px-8 py-6 border border-zinc-700">
             <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
             <p className="text-sm font-medium text-zinc-300">
-              {phase === "simulating"
-                ? "Calculating Physics…"
-                : "Processing Model…"}
+              Processing Model…
             </p>
           </div>
         </div>

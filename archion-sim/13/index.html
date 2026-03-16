@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>ArchionLabs | AI-Powered Architecture Design Software</title>
+    <meta name="title" content="ArchionLabs | AI-Powered Architecture Design Software" />
+    <meta name="description" content="Transform 2D floor plans into intelligent 3D models with AI simulations." />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="./Assets/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./Assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./Assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./Assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <a href="#main-content" class="skip-to-main" style="position: absolute; left: -9999px; z-index: 999;">Skip to main content</a>
+    
+    <nav class="navbar" id="navbar" role="navigation">
+      <div class="container nav-container">
+        <a href="/" class="logo" aria-label="ArchionLabs Home">
+          <img src="./Assets/icon svg 2 1.svg" alt="ArchionLabs Logo" class="logo-img" width="120" height="40" style="filter: invert(1);" />
+        </a>
+
+        <button class="mobile-toggle" id="mobile-menu-btn" aria-label="Toggle mobile menu">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <ul class="nav-links">
+          <li>
+            <a href="#products">Products <i class="fas fa-chevron-down" style="font-size: 0.7em; margin-left: 4px"></i></a>
+          </li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#team">Team</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="#" class="btn btn-outline btn-sm">Login</a>
+          <a href="#" class="btn btn-primary btn-sm">Sign up</a>
+        </div>
+      </div>
+    </nav>
+
+    <main id="main-content">
+      <header class="hero">
+        <div class="grid-scene" aria-hidden="true">
+          <canvas id="simulation-canvas"></canvas>
+        </div>
+        <div class="grid-overlay" aria-hidden="true"></div>
+
+        <div class="container hero-content slide-left">
+          <div class="beta-badge" role="status">
+            <span class="dot" aria-hidden="true"></span> Open Beta Coming Soon
+          </div>
+          <h1>Where Architecture<br />Meets Intelligence</h1>
+          <p class="subtitle">
+            ArchionLabs empowers boundary-pushing architects by transforming
+            static floor plans into intelligent 3D spaces with AI simulations and
+            real-time collaboration.
+          </p>
+
+          <div class="hero-btns">
+            <a href="#" class="btn btn-primary">Start building</a>
+            <a href="#" class="btn btn-outline">Get a demo</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="intro-section" aria-labelledby="intro-heading">
+        <div class="container intro-grid">
+          <div class="intro-text slide-left">
+            <div class="pill-badge">2D to Simulate Real World</div>
+            <h2 id="intro-heading">
+              Built for Architects.<br /><span>Powered by Intelligence.</span>
+            </h2>
+            <p>
+              Not just automation, not just visualization. Archion Labs turns
+              complex architectural work into a simple, intelligent workflow.
+            </p>
+
+            <div class="icon-row" role="img">
+              <img src="./Assets/Ar Build icon.svg" alt="Build" width="72" height="72" />
+              <img src="./Assets/Ar Sim icon.svg" alt="Sim" width="72" height="72" />
+              <img src="./Assets/Ar View icon.svg" alt="View" width="72" height="72" />
+              <img src="./Assets/Ar Share icon.svg" alt="Share" width="72" height="72" />
+            </div>
+          </div>
+
+          <article class="intro-card slide-right">
+            <p class="mb-8">
+              Archion Labs streamlines the entire architectural workflow from
+              turning 2D plans into instant 3D models to simulating real movement
+              and sharing designs securely with clients. Our tools remove the
+              slow, manual steps so architects can focus on designing smarter,
+              faster, and with confidence.
+            </p>
+            <a href="#" class="btn btn-outline btn-sm">Learn more</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="products-section" id="products" aria-labelledby="products-heading">
+        <div class="container">
+          <div class="text-center mb-8 slide-up">
+            <h2 id="products-heading">Our Intelligent Product Suite</h2>
+            <p class="subtitle mt-4">
+              Tools designed to streamline every stage of the architectural
+              workflow.
+            </p>
+          </div>
+
+          <div class="products-grid">
+            <article class="product-card scale-in">
+              <div>
+                <header class="prod-header">
+                  <h3>Archion Sim</h3>
+                  <img src="./Assets/Ar Sim icon.svg" alt="Sim" class="prod-icon" width="56" height="56" />
+                </header>
+                <p class="prod-desc">
+                  Archion Sim uses AI-driven agents to show how people move inside
+                  your building. It highlights congestion, accessibility issues,
+                  and overall flow quality using heatmaps.
+                </p>
+              </div>
+              <div class="prod-actions">
+                <a href="#" class="btn btn-primary btn-sm">Archion Sim</a>
+                <a href="#" class="btn btn-outline btn-sm">Learn More</a>
+              </div>
+            </article>
+
+            <article class="product-card scale-in" style="transition-delay: 0.1s">
+              <div>
+                <header class="prod-header">
+                  <h3>Archion Build</h3>
+                  <img src="./Assets/Ar Build icon.svg" alt="Build" class="prod-icon" width="56" height="56" />
+                </header>
+                <p class="prod-desc">
+                  Archion Build instantly transforms your 2D floor plans into
+                  accurate 3D models. It removes the need for slow manual modeling
+                  and gives you a ready to edit structure.
+                </p>
+              </div>
+              <div class="prod-actions">
+                <a href="#" class="btn btn-primary btn-sm">Archion Build</a>
+                <a href="#" class="btn btn-outline btn-sm">Learn More</a>
+              </div>
+            </article>
+
+            <article class="product-card scale-in">
+              <div>
+                <header class="prod-header">
+                  <h3>Archion View</h3>
+                  <img src="./Assets/Ar View icon.svg" alt="View" class="prod-icon" width="56" height="56" />
+                </header>
+                <p class="prod-desc">
+                  Archion View allows anyone to explore 3D designs directly in the
+                  browser with smooth controls. Users can rotate, zoom, cut
+                  sections, and review details.
+                </p>
+              </div>
+              <div class="prod-actions">
+                <a href="#" class="btn btn-primary btn-sm">Archion View</a>
+                <a href="#" class="btn btn-outline btn-sm">Learn More</a>
+              </div>
+            </article>
+
+            <article class="product-card scale-in" style="transition-delay: 0.1s">
+              <div>
+                <header class="prod-header">
+                  <h3>Archion Share</h3>
+                  <img src="./Assets/Ar Share icon.svg" alt="Share" class="prod-icon" width="56" height="56" />
+                </header>
+                <p class="prod-desc">
+                  Archion Share lets you share your 3D models safely with flexible
+                  permission settings. You can choose private, view-only, or
+                  public access.
+                </p>
+              </div>
+              <div class="prod-actions">
+                <a href="#" class="btn btn-primary btn-sm">Archion Share</a>
+                <a href="#" class="btn btn-outline btn-sm">Learn More</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="workflow-section" id="how-it-works" aria-labelledby="workflow-heading">
+        <div class="container workflow-grid">
+          <div class="workflow-visual slide-left">
+            <img
+              src="./Assets/Product-Diagram.svg"
+              alt="Workflow diagram"
+              class="workflow-diagram floating"
+              width="447"
+              height="327"
+            />
+          </div>
+          <div class="workflow-text slide-right">
+            <div class="pill-badge">
+              <i class="fas fa-cube" style="margin-right: 8px"></i> AI-Defined Architecture
+            </div>
+            <h2 id="workflow-heading">From floor plan to insight<br /><span>in one upload.</span></h2>
+            <p class="mb-8">
+              Archion Labs instantly converts your 2D drawings into intelligent 3D
+              models, runs real-world movement simulations, and prepares them for
+              seamless client viewing all automated, all architect-first.
+            </p>
+            <div class="flex gap-4">
+              <a href="#" class="btn btn-primary btn-sm">Archion Build</a>
+              <a href="#" class="btn btn-outline btn-sm">Archion Sim</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pricing-section" id="pricing" aria-labelledby="pricing-heading">
+        <div class="container">
+          <div class="slide-left mb-8">
+            <h2 id="pricing-heading">Simple and Affordable Pricing Plans</h2>
+            <p class="subtitle mt-4" style="margin-left: 0;">
+              Designed for architects, studios, and teams of all sizes.
+            </p>
+
+            <div class="toggle-container" role="tablist">
+              <div class="toggle-switch">
+                <button class="toggle-btn active" onclick="switchPricing('monthly', this)" role="tab" aria-selected="true">Monthly</button>
+                <button class="toggle-btn" onclick="switchPricing('yearly', this)" role="tab" aria-selected="false">Yearly</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pricing-cards" id="pricing-cards">
+            <article class="price-card scale-in">
+              <h3 class="price-title">Free</h3>
+              <span class="price-sub">Great for students and personal use</span>
+              <div class="price-amount">$0.00<span>/month</span></div>
+              <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Upload 2D floor plans</li>
+                <li><i class="fas fa-check-circle"></i> Limited Auto 3D generation</li>
+                <li><i class="fas fa-check-circle"></i> Access to Archion View</li>
+                <li><i class="fas fa-check-circle"></i> 2GB Storage for Files</li>
+              </ul>
+              <a href="#" class="btn btn-outline btn-full mt-4">Get Started</a>
+            </article>
+
+            <article class="price-card pro scale-in" style="transition-delay: 0.1s">
+              <h3 class="price-title">Pro Plan</h3>
+              <span class="price-sub">Great for Freelancers & Professional use</span>
+              <div class="price-amount">$20.00<span>/month</span></div>
+              <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> High-precision 3D generation</li>
+                <li><i class="fas fa-check-circle"></i> Full Archion Sim features</li>
+                <li><i class="fas fa-check-circle"></i> Advanced sharing controls</li>
+                <li><i class="fas fa-check-circle"></i> 100GB Storage for Files</li>
+              </ul>
+              <a href="#" class="btn btn-primary btn-full mt-4">Continue with Pro</a>
+            </article>
+
+            <article class="price-card scale-in" style="transition-delay: 0.2s">
+              <h3 class="price-title">Enterprise Plan</h3>
+              <span class="price-sub">Great for Large scale enterprises</span>
+              <div class="price-amount">$25.00<span>/month</span></div>
+              <span style="display: block; font-size: 0.75rem; margin-top: -20px; margin-bottom: 20px; color: #64748b;">
+                *per member
+              </span>
+              <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Team workspaces & assets</li>
+                <li><i class="fas fa-check-circle"></i> Version history & comparisons</li>
+                <li><i class="fas fa-check-circle"></i> Priority support</li>
+                <li><i class="fas fa-check-circle"></i> 5TB Shared Storage</li>
+              </ul>
+              <a href="#" class="btn btn-outline btn-full mt-4">Contact team</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="team-section" id="team" aria-labelledby="team-heading">
+        <div class="container">
+          <div class="text-center mb-8 slide-up">
+            <div class="pill-badge"><i class="fas fa-users" style="margin-right: 8px"></i> Our Team</div>
+            <h2 id="team-heading">Meet the Minds Behind <span>ArchionLabs</span></h2>
+            <p class="subtitle mt-4">
+              Built by a passionate team of developers and architects dedicated to
+              redefining spaces.
+            </p>
+          </div>
+
+          <div class="team-grid">
+            <article class="team-card scale-in">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Oshadha Vimukthi" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Oshadha Vimukthi</h3>
+              <span class="team-role">System Architect, UX Engineer</span>
+              <p class="team-bio">Designs the core system architecture and ensures every interaction feels intuitive and purposeful.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+
+            <article class="team-card scale-in" style="transition-delay: 0.1s">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Visula Siriwardana" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Visula Siriwardana</h3>
+              <span class="team-role">Full-Stack Developer</span>
+              <p class="team-bio">Bridges front-end finesse with back-end reliability to deliver seamless user experiences.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+
+            <article class="team-card scale-in" style="transition-delay: 0.2s">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Chamath Anupama" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Chamath Anupama</h3>
+              <span class="team-role">Full-Stack Developer</span>
+              <p class="team-bio">Turns complex requirements into clean, scalable code across the entire stack.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+
+            <article class="team-card scale-in" style="transition-delay: 0.3s">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Sadewni Mendis" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Sadewni Mendis</h3>
+              <span class="team-role">Full-Stack Developer</span>
+              <p class="team-bio">Crafts robust features with a keen eye for detail and performance optimization.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+
+            <article class="team-card scale-in" style="transition-delay: 0.4s">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Danuka Dulanjana" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Danuka Dulanjana</h3>
+              <span class="team-role">Full-Stack Developer</span>
+              <p class="team-bio">Builds reliable systems and integrates cutting-edge tools into the platform.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+
+            <article class="team-card scale-in" style="transition-delay: 0.5s">
+              <div class="team-avatar-wrap">
+                <img src="https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg" alt="Sachiro Hithosha" class="team-img" width="120" height="120" />
+              </div>
+              <h3>Sachiro Hithosha</h3>
+              <span class="team-role">Full-Stack Developer</span>
+              <p class="team-bio">Focuses on creating efficient workflows and polished user-facing features.</p>
+              <div class="team-socials">
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="footer-cta" aria-labelledby="contact-heading">
+        <div class="container">
+          <div class="text-center mb-8 slide-up">
+            <h2 id="contact-heading">Let's Build Smarter Spaces Together</h2>
+            <p class="subtitle mt-4">
+              Have questions, or want to explore how Archion Labs can fit into your workflow?
+            </p>
+          </div>
+
+          <div class="contact-grid scale-in">
+            <address class="contact-info">
+              <h3 class="mb-4 text-dark">Get in touch</h3>
+              <div class="contact-row">
+                <i class="fas fa-envelope"></i>
+                <a href="mailto:support@archionlabs.com">support@archionlabs.com</a>
+              </div>
+              <div class="contact-row">
+                <i class="fas fa-phone"></i>
+                <a href="tel:+94786714988">+94 78 671 4988</a>
+              </div>
+              <div class="contact-row">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>
+                  Informatics Institute of Technology<br />435 Galle Rd,<br />Colombo 03, Sri Lanka.
+                </span>
+              </div>
+            </address>
+            <div class="map-box">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1661.149908165949!2d79.8535424625369!3d6.899525391586822!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae259005994ae6f%3A0x79d8b73865f8778d!2sIIT%20City%20Campus!5e1!3m2!1sen!2slk!4v1763911484409!5m2!1sen!2slk"
+                width="500"
+                height="300"
+                style="border: 0"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                class="map-image"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer role="contentinfo">
+      <div class="container">
+        <div class="footer-cols">
+          <div class="footer-col brand">
+            <a href="/" aria-label="ArchionLabs Home">
+              <img class="footer-logo" src="./Assets/icon svg 2 1.svg" alt="ArchionLabs Logo" width="100" height="33" style="filter: invert(1);" />
+            </a>
+          </div>
+
+          <nav class="footer-col">
+            <h4>Products</h4>
+            <a href="#products">Archion Build</a>
+            <a href="#products">Archion Sim</a>
+            <a href="#products">Archion View</a>
+            <a href="#products">Archion Share</a>
+          </nav>
+
+          <nav class="footer-col">
+            <h4>Company</h4>
+            <a href="#team">About Us</a>
+            <a href="#contact-heading">Contact Us</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="/privacy-policy">Privacy & Policy</a>
+          </nav>
+
+          <nav class="footer-col">
+            <h4>Legal</h4>
+            <a href="/terms">Terms of Policy</a>
+            <a href="/cookie-policy">Cookie Policy</a>
+            <a href="/privacy-policy">Privacy & Policy</a>
+            <a href="/security">Security Policy</a>
+          </nav>
+
+          <nav class="footer-col">
+            <h4>Social</h4>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i> LinkedIn</a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i> Instagram</a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i> Facebook</a>
+            <a href="#" class="social-link"><i class="fab fa-tiktok"></i> TikTok</a>
+          </nav>
+        </div>
+        <p class="copyright">© 2025 ArchionLabs. All rights reserved.</p>
+      </div>
+    </footer>
+    
+    <script src="./script.js"></script>
+  </body>
+</html>

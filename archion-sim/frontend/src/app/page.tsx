@@ -166,14 +166,17 @@ export default function Home() {
       es.addEventListener("frame", (e: MessageEvent) => {
         const payload = JSON.parse(e.data) as { frame: number; agents: Record<string, AgentFrame> };
 
-        // ⚡ Only keep the LATEST frame — no accumulation, no spread, no GC pressure
-        // Store as key "0" so the viewer always reads from frame 0 (current live position)
-        setTrajectories({ "0": payload.agents });
-        scrubTo(0);
+        // ⚡ Accumulate frames for real-time visualization
+        setTrajectories((prev) => ({
+          ...(prev || {}),
+          [payload.frame.toString()]: payload.agents,
+        }));
+        
+        // Update current frame to the latest one received
+        scrubTo(payload.frame);
 
         if (!firstFrameReceived) {
           firstFrameReceived = true;
-          // Note: Keep phase as "simulating". We set "completed" only when it's done.
         }
       });
 
