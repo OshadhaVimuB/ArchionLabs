@@ -107,6 +107,8 @@ export default function Home() {
   // Upload handler
   // ----------------------------------------------------------------
   const handleUploadComplete = useCallback((data: GeometryData) => {
+    console.log("=== handleUploadComplete Start ===");
+    console.log("Received data structure:", !!data);
     // Prepend API_URL to relative model path so the browser can fetch it
     const fullData: GeometryData = {
       ...data,
@@ -119,10 +121,10 @@ export default function Home() {
     setComplianceReport(null);
     setComplianceLoading(false);
     setViewMode("3d");
-    console.log("=== Geometry Data Received ===");
-    console.log("Boundary points:", data.boundaries.length);
+    console.log("=== Geometry Data Received & Applied ===");
+    console.log("Boundary points:", data.boundaries?.length ?? 0);
     console.log("Raw boundary points:", data.rawBoundaries?.length ?? 0);
-    console.log("Obstacles detected:", data.obstacles.length);
+    console.log("Obstacles detected:", data.obstacles?.length ?? 0);
     if (data.floorArea) console.log("Floor area:", data.floorArea, "m²");
     if (fullData.modelUrl) console.log("Model URL:", fullData.modelUrl);
   }, [resetPlayback]);
@@ -425,7 +427,7 @@ export default function Home() {
                 .then((data) => handleUploadComplete(data))
                 .catch((err) => {
                   setError(err instanceof Error ? err.message : "Upload failed");
-                  setPhase("processing");
+                  setPhase(geometry ? "processing" : "idle");
                 });
             }}
           />
