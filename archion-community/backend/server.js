@@ -11,6 +11,8 @@ const modelsPath = path.resolve(__dirname, "../public/models");
 app.use("/models", express.static(modelsPath));
 console.log("Serving models from:", modelsPath);
 
+const generateThumbnail = require("./generateThumbnail");
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, "../public/models"));
@@ -71,7 +73,17 @@ app.delete("/templates/:id", (req, res) => {
 });
 
 // POST new template
-app.post("/upload-model", upload.single("model"), (req, res) => {
+app.post("/upload-model", upload.single("model"), async(req, res) => {
+  const modelPath = "/models/" + req.file.filename;
+
+  const thumbnailFile = req.file.filename.replace(".glb", ".png");
+
+  const thumbnailPath = path.resolve(__dirname, "../public/thumbnails/" + thumbnailFile);
+
+  await generateThumbnail(
+    `http://localhost:5000${modelPath}`,
+    thumbnailPath
+  );
 
   const newTemplate = {
     id: Date.now(),
