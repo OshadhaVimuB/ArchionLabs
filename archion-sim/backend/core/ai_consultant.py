@@ -174,3 +174,256 @@ def _build_prompt(
             )
 
         return prompt
+
+# single violation advice
+def get_compliance_advice(
+        self,
+        violation: dict,
+        building_context: dict,
+        wall_segments: list | None = None,
+        boundary_coords: list | None = None,
+    ) -> dict:
+        """Get AI recommendation for a single violation.
+
+        Returns the cached response if the violation was already processed.
+        """
+        from core.validator import validate_and_score, build_fallback_recommendation
+        from core.knowledge_base import get_cost_range, classify_deficiency_level, get_time_estimate, get_regulation_context
+
+        vid = violation.get("id", "")
+        if vid in self._cache:
+            print(f"[AI Consultant] Cache hit: {vid}")
+            return self._cache[vid]
+
+        print(f"[AI Consultant] Processing: {vid}")
+        start = time.time()
+
+        building_type = building_context.get("building_type", "residential")
+        vtype = violation.get("type", "")
+        measured = float(violation.get("measured_value", 0.0))
+        required = float(violation.get("required_value", 0.0))
+        severity = violation.get("severity", "medium")
+        deficiency_level = classify_deficiency_level(measured, required, vtype)
+        kb_cost_range = get_cost_range(vtype, deficiency_level)
+
+        prompt = self._build_prompt(
+            violation, building_context, wall_segments, boundary_coords
+        )
+        gen_config = self._types.GenerateContentConfig(
+            system_instruction=_SYSTEM_PROMPT,
+            temperature=0.25,
+            top_p=0.85,
+            max_output_tokens=4096,
+            response_mime_type="application/json",
+            thinking_config=self._types.ThinkingConfig(thinking_budget=0),
+        )
+
+        response = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                if attempt > 0:
+                    delay = self._retry_base_delay * (2 ** (attempt - 1))
+                    print(f"[AI Consultant] Retry {attempt}/{self._max_retries} (delay {delay:.1f}s)")
+                    time.sleep(delay)
+
+                response = self._client.models.generate_content(
+                    model=_MODEL, contents=prompt, config=gen_config
+                )
+                elapsed = time.time() - start
+                text = _extract_json(response.text)
+                recommendation = json.loads(text)
+                recommendation = validate_and_score(recommendation, violation, kb_cost_range)
+
+                usage = getattr(response, "usage_metadata", None)
+                if usage:
+                    print(
+                        f"[AI Consultant] Done in {elapsed:.1f}s "
+                        f"(in={getattr(usage, 'prompt_token_count', '?')} "
+                        f"out={getattr(usage, 'candidates_token_count', '?')} tokens)"
+                    )
+                else:
+                    print(f"[AI Consultant] Done in {elapsed:.1f}s")
+
+                self._cache[vid] = recommendation
+                return recommendation
+
+            except json.JSONDecodeError:
+                print(f"[AI Consultant] Non-JSON on attempt {attempt + 1}")
+                if attempt < self._max_retries:
+                    continue
+                raw = _extract_json(response.text) if response else ""
+                reg = get_regulation_context(vtype, building_type)
+                fb = build_fallback_recommendation(
+                    violation=violation, building_type=building_type,
+                    kb_cost_range=kb_cost_range,
+                    time_estimate=get_time_estimate(vtype, deficiency_level),
+                    deficiency_level=deficiency_level,
+                    regulation_ref=reg.get("reference") or violation.get("regulation", ""),
+                )
+                if raw:
+                    fb["analysis"] = raw
+                self._cache[vid] = fb
+                return fb
+
+            except Exception as exc:
+                exc_str = str(exc)
+                print(f"[AI Consultant] Error attempt {attempt + 1}: {exc_str[:120]}")
+                if "429" in exc_str or "quota" in exc_str.lower() or "resource_exhausted" in exc_str.lower():
+                    print(f"[AI Consultant] Quota limit — falling back immediately")
+                    reg = get_regulation_context(vtype, building_type)
+                    return build_fallback_recommendation(
+                        violation=violation, building_type=building_type,
+                        kb_cost_range=kb_cost_range,
+                        time_estimate=get_time_estimate(vtype, deficiency_level),
+                        deficiency_level=deficiency_level,
+                        regulation_ref=reg.get("reference") or violation.get("regulation", ""),
+                    )
+                if attempt < self._max_retries:
+                    continue
+                traceback.print_exc()
+                reg = get_regulation_context(vtype, building_type)
+                return build_fallback_recommendation(
+                    violation=violation, building_type=building_type,
+                    kb_cost_range=kb_cost_range,
+                    time_estimate=get_time_estimate(vtype, deficiency_level),
+                    deficiency_level=deficiency_level,
+                    regulation_ref=reg.get("reference") or violation.get("regulation", ""),
+                )
+
+        reg = get_regulation_context(vtype, building_type)
+        return build_fallback_recommendation(
+            violation=violation, building_type=building_type,
+            kb_cost_range=kb_cost_range,
+            time_estimate=get_time_estimate(vtype, deficiency_level),
+            deficiency_level=deficiency_level,
+            regulation_ref=reg.get("reference") or violation.get("regulation", ""),
+        )
+
+    # Batch processing
+def get_batch_compliance_advice(
+        self,
+        violations: list[dict],
+        building_context: dict,
+        wall_segments: list | None = None,
+        boundary_coords: list | None = None,
+    ) -> dict[str, dict]:
+        """Process multiple violations, sorted by severity.
+
+        Returns ``{violation_id: recommendation}`` dict.
+        """
+        if not violations:
+            return {}
+
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        sorted_violations = sorted(
+            violations,
+            key=lambda v: severity_order.get(v.get("severity", "medium"), 2),
+        )
+
+        print(f"[AI Consultant] Batch: {len(sorted_violations)} violations")
+        batch_start = time.time()
+        max_batch_secs = 90
+        results: dict[str, dict] = {}
+
+        building_type = building_context.get("building_type", "residential")
+
+        gen_config = self._types.GenerateContentConfig(
+            system_instruction=_SYSTEM_PROMPT,
+            temperature=0.25,
+            top_p=0.85,
+            max_output_tokens=4096,
+            response_mime_type="application/json",
+            thinking_config=self._types.ThinkingConfig(thinking_budget=0),
+        )
+
+        from core.validator import validate_and_score, build_fallback_recommendation
+        from core.knowledge_base import get_cost_range, classify_deficiency_level, get_time_estimate, get_regulation_context
+
+        for i, violation in enumerate(sorted_violations):
+            vid = violation.get("id", "")
+
+            if time.time() - batch_start > max_batch_secs:
+                print(f"[AI Consultant] Batch timeout after {i} violations")
+                break
+
+            if vid in self._cache:
+                results[vid] = self._cache[vid]
+                continue
+
+            print(f"[AI Consultant] [{i+1}/{len(sorted_violations)}] {vid}")
+
+            vtype = violation.get("type", "")
+            measured = float(violation.get("measured_value", 0.0))
+            required = float(violation.get("required_value", 0.0))
+            deficiency_level = classify_deficiency_level(measured, required, vtype)
+            kb_cost_range = get_cost_range(vtype, deficiency_level)
+
+            prompt = self._build_prompt(
+                violation, building_context, wall_segments, boundary_coords
+            )
+
+            response = None
+            for attempt in range(self._max_retries + 1):
+                try:
+                    if attempt > 0:
+                        time.sleep(self._retry_base_delay * (2 ** (attempt - 1)))
+                    response = self._client.models.generate_content(
+                        model=_MODEL, contents=prompt, config=gen_config
+                    )
+                    recommendation = json.loads(_extract_json(response.text))
+                    recommendation = validate_and_score(
+                        recommendation, violation, kb_cost_range
+                    )
+                    self._cache[vid] = recommendation
+                    results[vid] = recommendation
+                    break
+                except json.JSONDecodeError:
+                    if attempt < self._max_retries:
+                        continue
+                    reg = get_regulation_context(vtype, building_type)
+                    fb = build_fallback_recommendation(
+                        violation, building_type, kb_cost_range,
+                        get_time_estimate(vtype, deficiency_level),
+                        deficiency_level,
+                        reg.get("reference") or violation.get("regulation", ""),
+                    )
+                    self._cache[vid] = fb
+                    results[vid] = fb
+                except Exception as exc:
+                    exc_str = str(exc)
+                    if "429" in exc_str or "quota" in exc_str.lower() or "resource_exhausted" in exc_str.lower():
+                        print(f"[AI Consultant] Quota limit hit — stopping batch")
+                        reg = get_regulation_context(vtype, building_type)
+                        fb = build_fallback_recommendation(
+                            violation, building_type, kb_cost_range,
+                            get_time_estimate(vtype, deficiency_level),
+                            deficiency_level,
+                            reg.get("reference") or violation.get("regulation", ""),
+                        )
+                        results[vid] = fb
+                        # No point continuing the batch if quota is exhausted
+                        break
+                    if attempt < self._max_retries:
+                        continue
+                    reg = get_regulation_context(vtype, building_type)
+                    fb = build_fallback_recommendation(
+                        violation, building_type, kb_cost_range,
+                        get_time_estimate(vtype, deficiency_level),
+                        deficiency_level,
+                        reg.get("reference") or violation.get("regulation", ""),
+                    )
+                    results[vid] = fb
+
+        elapsed = time.time() - batch_start
+        print(f"[AI Consultant] Batch done: {len(results)} recs in {elapsed:.1f}s")
+        return results
+    
+    # Module level singleton
+_consultant: AIConsultant | None = None
+
+
+def get_consultant() -> AIConsultant:
+    global _consultant
+    if _consultant is None:
+        _consultant = AIConsultant()
+    return _consultant
