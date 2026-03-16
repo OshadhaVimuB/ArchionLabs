@@ -33,6 +33,9 @@ STEP_SIZE = 0.09        # metres per tick (~0.9 m/s at 10 Hz)
 TURN_RATE = 0.15        # max radians of heading change per tick
 WALL_MARGIN = 0.3       # stay this far from polygon boundary
 WALL_THICKNESS = 0.35   # buffer around each wall/furniture segment
+LOCK_INTERVAL = 10      # lock path every 10 frames
+LOCK_GRID_SIZE = 0.4    # size of locked cells in metres
+LOCK_SAFE_DIST_SQ = 2.0 * 2.0  # agent must move 2m away before cell locks
 
 # The URL for our new standalone AI Brain
 BRAIN_API_URL = "http://127.0.0.1:8001/act_batch"
@@ -83,6 +86,13 @@ class SimulationEngine:
     def run(self) -> dict:
         n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors = self._setup_environment()
         trajectories: dict[str, dict[str, dict]] = {}
+
+        # Path locking state
+        locked_cells: set[tuple[int, int]] = set()
+        pending_locks: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+
+        def to_grid(x, y):
+            return (int(x / LOCK_GRID_SIZE), int(y / LOCK_GRID_SIZE))
 
         # --- THE NEW MARL BRAIN LOOP ---
         agent_goals = {}
@@ -182,12 +192,30 @@ class SimulationEngine:
                 dy = math.sin(heading) * speed
                 nx, ny = x + dx, y + dy
 
-                # Check wall collision using your original Shapely logic
-                if role_walk_areas[aid].contains(Point(nx, ny)):
+                # Check wall collision AND locked cells
+                new_pt = Point(nx, ny)
+                in_walk_area = role_walk_areas[aid].contains(new_pt)
+                is_locked = to_grid(nx, ny) in locked_cells
+
+                if in_walk_area and not is_locked:
                     positions[aid] = [nx, ny]
                     headings[aid] = heading
                 else:
                     headings[aid] = headings[aid] + math.pi + rng.uniform(-0.5, 0.5)
+
+                # Update path locking logic
+                if frame % LOCK_INTERVAL == 0 and action != 3: # Don't lock if interacting
+                    pending_locks[aid].append((positions[aid][0], positions[aid][1]))
+
+                # Commit pending locks if moved far enough away (Doorway Avoidance)
+                still_pending = []
+                for px, py in pending_locks[aid]:
+                    dist_sq = (positions[aid][0] - px)**2 + (positions[aid][1] - py)**2
+                    if dist_sq >= LOCK_SAFE_DIST_SQ:
+                        locked_cells.add(to_grid(px, py))
+                    else:
+                        still_pending.append((px, py))
+                pending_locks[aid] = still_pending
 
                 frame_data[str(aid)] = {
                     "pos": [round(positions[aid][0], 4), round(positions[aid][1], 4)],
@@ -354,6 +382,13 @@ class SimulationEngine:
         claude_wall_last_frame: dict[int, int] = {}
         claude_wall_action: dict[int, int] = {}
 
+        # Path locking state
+        locked_cells: set[tuple[int, int]] = set()
+        pending_locks: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+
+        def to_grid(x, y):
+            return (int(x / LOCK_GRID_SIZE), int(y / LOCK_GRID_SIZE))
+
 
         WALL_TRIGGER_DIST = 1.2   # metres — start asking Claude when this close to a wall
         WALL_COOLDOWN = 20        # frames — don't ask again for 2 seconds after last answer
@@ -491,12 +526,31 @@ class SimulationEngine:
                     dy = math.sin(heading) * speed
                     nx, ny = x + dx, y + dy
 
-                    # --- MOVEMENT LOGIC ---
-                    if role_walk_areas[aid].contains(Point(nx, ny)):
+                    # --- MOVEMENT LOGIC (Wall + Path Locking) ---
+                    new_pt = Point(nx, ny)
+                    in_walk_area = role_walk_areas[aid].contains(new_pt)
+                    is_locked = to_grid(nx, ny) in locked_cells
+
+                    if in_walk_area and not is_locked:
                         positions[aid] = [nx, ny]
                         headings[aid] = heading
                     else:
+                        # Collision: turn around
                         headings[aid] = heading + math.pi + rng.uniform(-0.5, 0.5)
+
+                    # Update path locking logic
+                    if frame % LOCK_INTERVAL == 0 and action != 3: 
+                        pending_locks[aid].append((positions[aid][0], positions[aid][1]))
+
+                    # Commit pending locks if moved far enough away
+                    still_pending = []
+                    for px, py in pending_locks[aid]:
+                        dist_sq = (positions[aid][0] - px)**2 + (positions[aid][1] - py)**2
+                        if dist_sq >= LOCK_SAFE_DIST_SQ:
+                            locked_cells.add(to_grid(px, py))
+                        else:
+                            still_pending.append((px, py))
+                    pending_locks[aid] = still_pending
 
                     frame_data[str(aid)] = {
                         "pos": [round(positions[aid][0], 4), round(positions[aid][1], 4)],
