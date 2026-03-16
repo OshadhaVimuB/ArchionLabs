@@ -528,3 +528,506 @@ class ReportGenerator:
         elements.append(_violations_bar_chart(violations))
 
         return elements
+
+# AI Recommendations - page 5
+    def _ai_recommendations_page(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("AI-Powered Recommendations", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        violations = self._compliance.get("violations", [])
+
+        if not self._ai_recs or not violations:
+            elements.append(Paragraph(
+                "AI recommendations were not generated for this report. "
+                "Use the interactive dashboard to request per-violation recommendations.",
+                self._s["body"],
+            ))
+            return elements
+
+        elements.append(Paragraph(
+            f"AI-generated remediation advice for {len(self._ai_recs)} violation(s), "
+            f"powered by Gemini 2.0 Flash with domain-specific knowledge.",
+            self._s["body"],
+        ))
+        elements.append(Spacer(1, 4 * mm))
+
+        rec_title = ParagraphStyle(
+            "rec_title", fontName="Helvetica-Bold", fontSize=10,
+            leading=14, textColor=DARK,
+        )
+        rec_body = ParagraphStyle(
+            "rec_body", fontName="Helvetica", fontSize=9,
+            leading=12, textColor=DARK,
+        )
+        rec_label = ParagraphStyle(
+            "rec_label", fontName="Helvetica-Bold", fontSize=9,
+            leading=12, textColor=GRAY,
+        )
+
+        for v in violations:
+            vid = v.get("id", "")
+            rec = self._ai_recs.get(vid)
+            if not rec:
+                continue
+
+            vtype = v.get("type", "unknown").replace("_", " ").title()
+            sev = v.get("severity", "medium").upper()
+            sev_color = SEVERITY_COLORS.get(v.get("severity", "medium"), GRAY)
+
+            # Violation header
+            elements.append(Paragraph(
+                f'<font color="{sev_color.hexval()}">[{sev}]</font> {vtype} '
+                f'— Measured: {v.get("measured_value", 0):.2f}m '
+                f'(Required: {v.get("required_value", 0):.2f}m)',
+                rec_title,
+            ))
+            elements.append(Spacer(1, 2 * mm))
+
+            # Analysis
+            analysis = rec.get("analysis", "")
+            if analysis:
+                elements.append(Paragraph("Analysis:", rec_label))
+                elements.append(Paragraph(analysis[:500], rec_body))
+                elements.append(Spacer(1, 2 * mm))
+
+            # Solution
+            solution = rec.get("solution", "")
+            if solution:
+                elements.append(Paragraph("Solution:", rec_label))
+                elements.append(Paragraph(solution[:400], rec_body))
+                elements.append(Spacer(1, 2 * mm))
+
+            # Implementation steps
+            steps = rec.get("implementation_steps", [])
+            if steps:
+                elements.append(Paragraph("Implementation Steps:", rec_label))
+                for i, step in enumerate(steps[:6], 1):
+                    elements.append(Paragraph(f"{i}. {step}", rec_body))
+                elements.append(Spacer(1, 2 * mm))
+
+            # Complexity & Cost row
+            complexity = rec.get("complexity", "unknown").upper()
+            cost = rec.get("estimated_cost", "")
+            meta_parts = [f"Complexity: {complexity}"]
+            if cost:
+                meta_parts.append(f"Est. Cost: {cost}")
+            elements.append(Paragraph(" | ".join(meta_parts), rec_label))
+            elements.append(Spacer(1, 2 * mm))
+
+            # Alternatives
+            alts = rec.get("alternatives", [])
+            if alts:
+                elements.append(Paragraph("Alternatives:", rec_label))
+                for alt in alts[:3]:
+                    elements.append(Paragraph(f"&#8226; {alt}", rec_body))
+                elements.append(Spacer(1, 1 * mm))
+
+            # Separator line
+            sep = Table([[""]], colWidths=[160 * mm])
+            sep.setStyle(TableStyle([
+                ("LINEBELOW", (0, 0), (-1, 0), 0.5, LIGHT_GRAY),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ]))
+            elements.append(sep)
+            elements.append(Spacer(1, 3 * mm))
+
+        return elements
+
+        # Compliance Breakdown - page 6
+
+    def _compliance_breakdown(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Compliance Breakdown", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        violations = self._compliance.get("violations", [])
+
+        # Radar chart — category scores
+        elements.append(_compliance_radar_chart(self._compliance, self._analytics))
+        elements.append(Spacer(1, 6 * mm))
+
+        # Severity distribution pie chart
+        elements.append(Paragraph("Severity Distribution", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+        elements.append(_severity_pie_chart(violations))
+        elements.append(Spacer(1, 4 * mm))
+
+        # Per-category summary table
+        elements.append(Paragraph("Category Summary", self._s["h2"]))
+        type_stats: dict[str, dict] = {}
+        for v in violations:
+            vt = v.get("type", "unknown")
+            if vt not in type_stats:
+                type_stats[vt] = {"count": 0, "critical": 0, "high": 0}
+            type_stats[vt]["count"] += 1
+            sev = v.get("severity", "medium")
+            if sev in ("critical", "high"):
+                type_stats[vt][sev] = type_stats[vt].get(sev, 0) + 1
+
+        rows = [["Category", "Total", "Critical", "High", "Status"]]
+        for vt, stats in type_stats.items():
+            status_text = "FAIL" if stats["critical"] > 0 else ("WARNING" if stats["high"] > 0 else "OK")
+            rows.append([
+                vt.replace("_", " ").title(),
+                str(stats["count"]),
+                str(stats["critical"]),
+                str(stats["high"]),
+                status_text,
+            ])
+
+        if len(rows) > 1:
+            t = Table(rows, colWidths=[40 * mm, 20 * mm, 20 * mm, 20 * mm, 20 * mm])
+            style_cmds = [
+                ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+                ("TEXTCOLOR", (0, 0), (-1, 0), white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ]
+            # Color status cells
+            for ri, row in enumerate(rows[1:], 1):
+                if row[4] == "FAIL":
+                    style_cmds.append(("TEXTCOLOR", (4, ri), (4, ri), RED))
+                    style_cmds.append(("FONTNAME", (4, ri), (4, ri), "Helvetica-Bold"))
+                elif row[4] == "WARNING":
+                    style_cmds.append(("TEXTCOLOR", (4, ri), (4, ri), ORANGE))
+                    style_cmds.append(("FONTNAME", (4, ri), (4, ri), "Helvetica-Bold"))
+                else:
+                    style_cmds.append(("TEXTCOLOR", (4, ri), (4, ri), GREEN))
+            t.setStyle(TableStyle(style_cmds))
+            elements.append(t)
+
+        return elements
+
+    # Recoomendations Summary - Page 7
+    def _recommendations_summary(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Recommendations Summary", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        violations = self._compliance.get("violations", [])
+
+        if not self._ai_recs:
+            elements.append(Paragraph(
+                "AI recommendations were not available for this report.",
+                self._s["body"],
+            ))
+            elements.append(Spacer(1, 8 * mm))
+        else:
+            elements.append(Paragraph(
+                f"Summary of {len(self._ai_recs)} AI-generated remediation recommendations:",
+                self._s["body"],
+            ))
+            elements.append(Spacer(1, 4 * mm))
+
+            # Condensed table of all recommendations
+            rows = [["Violation", "Severity", "Solution Summary", "Complexity", "Est. Cost"]]
+            for v in violations:
+                rec = self._ai_recs.get(v.get("id", ""))
+                if not rec:
+                    continue
+                vtype = v.get("type", "").replace("_", " ").title()
+                sev = v.get("severity", "medium").upper()
+                solution = rec.get("solution", "N/A")[:80]
+                if len(rec.get("solution", "")) > 80:
+                    solution += "..."
+                complexity = rec.get("complexity", "unknown").title()
+                cost = rec.get("estimated_cost", "N/A")
+                rows.append([vtype, sev, solution, complexity, str(cost)])
+
+            if len(rows) > 1:
+                t = Table(rows, colWidths=[28 * mm, 18 * mm, 70 * mm, 22 * mm, 22 * mm])
+                style_cmds = [
+                    ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7),
+                    ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+                t.setStyle(TableStyle(style_cmds))
+                elements.append(t)
+                elements.append(Spacer(1, 6 * mm))
+
+        # Priority action items
+        elements.append(Paragraph("Priority Action Items", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+
+        summary = self._compliance.get("summary", {})
+        priority_items = []
+        if summary.get("critical", 0) > 0:
+            priority_items.append(
+                f"<b>IMMEDIATE:</b> Address {summary['critical']} critical violation(s) — "
+                f"these represent life-safety non-compliance issues."
+            )
+        if summary.get("high", 0) > 0:
+            priority_items.append(
+                f"<b>HIGH PRIORITY:</b> Remediate {summary['high']} high-severity violation(s) "
+                f"before occupancy certificate application."
+            )
+        if summary.get("medium", 0) > 0:
+            priority_items.append(
+                f"<b>RECOMMENDED:</b> Address {summary['medium']} medium-severity issue(s) "
+                f"to improve overall compliance score."
+            )
+        if summary.get("low", 0) > 0:
+            priority_items.append(
+                f"<b>OPTIONAL:</b> {summary['low']} low-severity advisory note(s) for best-practice compliance."
+            )
+        if not priority_items:
+            priority_items.append("No remediation actions required — building is fully compliant.")
+
+        for item in priority_items:
+            elements.append(Paragraph(f"&#8226; {item}", self._s["body"]))
+            elements.append(Spacer(1, 2 * mm))
+
+        # Cost estimation summary
+        elements.append(Spacer(1, 4 * mm))
+        elements.append(Paragraph("Estimated Remediation Effort", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+
+        total_simple = sum(1 for r in self._ai_recs.values() if r.get("complexity", "").lower() in ("low", "simple"))
+        total_moderate = sum(1 for r in self._ai_recs.values() if r.get("complexity", "").lower() in ("moderate", "medium"))
+        total_complex = sum(1 for r in self._ai_recs.values() if r.get("complexity", "").lower() in ("high", "complex"))
+
+        effort_data = [
+            ["Complexity", "Count", "Typical Timeline"],
+            ["Simple", str(total_simple), "1-2 weeks"],
+            ["Moderate", str(total_moderate), "2-4 weeks"],
+            ["Complex", str(total_complex), "4-8 weeks"],
+        ]
+        t = Table(effort_data, colWidths=[40 * mm, 30 * mm, 50 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(t)
+
+        return elements
+
+    # Performance Metrics - page 8
+    def _performance_metrics(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Performance Metrics", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        # Velocity chart
+        vel_tl = self._analytics.get("velocity_timeline", [])
+        elements.append(_velocity_chart(vel_tl))
+        elements.append(Spacer(1, 4 * mm))
+
+        # Flow rate chart
+        flow = self._analytics.get("flow_rate", [])
+        elements.append(_flow_rate_chart(flow))
+        elements.append(Spacer(1, 4 * mm))
+
+        # Metrics table
+        summ = self._analytics.get("summary", {})
+        cong = self._analytics.get("congestion_index", {})
+        eff = self._analytics.get("efficiency_score", {})
+
+        data = [
+            ["Metric", "Value"],
+            ["Average Velocity", f"{summ.get('avg_velocity_ms', 0):.2f} m/s"],
+            ["Peak Congestion", f"{summ.get('peak_congestion_pct', 0):.1f}%"],
+            ["Congestion Index", f"{cong.get('percentage', 0):.1f}%"],
+            ["Path Efficiency", f"{eff.get('average', 0) * 100:.1f}%"],
+            ["Total Distance (all agents)", f"{summ.get('total_distance_m', 0):.0f} m"],
+        ]
+        t = Table(data, colWidths=[80 * mm, 80 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(t)
+
+        return elements
+
+    # Page 9 — Heatmap
+    def _heatmap_page(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Density Heatmap", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        heatmap = self._analytics.get("density_heatmap", {})
+        elements.append(_heatmap_image(heatmap))
+        elements.append(Spacer(1, 3 * mm))
+
+        max_density = heatmap.get("max_density", 0)
+        res = heatmap.get("resolution", 0.5)
+        shape = heatmap.get("shape", [0, 0])
+        elements.append(Paragraph(
+            f"Grid resolution: {res}m | Grid size: {shape[1]}x{shape[0]} | "
+            f"Peak density: {max_density:.0f} agent-frames per cell",
+            self._s["caption"],
+        ))
+        elements.append(Spacer(1, 2 * mm))
+        elements.append(Paragraph(
+            "Red zones indicate high pedestrian density and potential bottleneck areas. "
+            "Blue zones show low-traffic areas. The heatmap aggregates agent positions "
+            "across the entire simulation duration.",
+            self._s["body"],
+        ))
+
+        return elements
+
+    # Conclusion - page 10
+    def _conclusion(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Conclusion &amp; Next Steps", self._s["h1"]))
+        elements.append(Spacer(1, 4 * mm))
+
+        score = self._compliance.get("compliance_score", 0)
+        status = self._compliance.get("status", "fail")
+        total = self._compliance.get("total_violations", 0)
+        summary = self._compliance.get("summary", {})
+
+        if status == "pass":
+            verdict = (
+                f"The building achieves a compliance score of {score:.0f}%, meeting the "
+                f"minimum threshold for {self._building_type.replace('_', ' ')} buildings "
+                f"under Sri Lankan Planning and Development Regulations."
+            )
+        else:
+            verdict = (
+                f"The building scores {score:.0f}%, falling below the required compliance "
+                f"threshold. {total} violation(s) were detected, including "
+                f"{summary.get('critical', 0)} critical and {summary.get('high', 0)} high "
+                f"severity issues requiring remediation."
+            )
+
+        elements.append(Paragraph(verdict, self._s["body"]))
+        elements.append(Spacer(1, 6 * mm))
+
+        elements.append(Paragraph("Recommended Next Steps", self._s["h2"]))
+        steps = [
+            "Address all critical violations as highest priority",
+            "Engage a licensed structural engineer for detailed design modifications",
+            "Submit revised floor plans to UDA for approval",
+            "Obtain fire safety clearance for any corridor or exit changes",
+            "Re-run simulation after modifications to verify compliance",
+            "Obtain Certificate of Conformity (COC) from local authority",
+        ]
+        for s in steps:
+            elements.append(Paragraph(f"&#8226; {s}", self._s["body"]))
+            elements.append(Spacer(1, 1.5 * mm))
+
+        elements.append(Spacer(1, 10 * mm))
+        elements.append(Paragraph(
+            f"Report generated on {datetime.now().strftime('%B %d, %Y at %H:%M')} "
+            f"by Archion Sim v1.0",
+            self._s["caption"],
+        ))
+
+        return elements
+
+    # Appendix - page 11
+    def _appendix(self) -> list:
+        elements: list = []
+        elements.append(Paragraph("Appendix: Methodology &amp; Standards", self._s["h1"]))
+        elements.append(Spacer(1, 6 * mm))
+
+        elements.append(Paragraph("Simulation Methodology", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+        methodology = [
+            "Agent-based pedestrian simulation using a Social Force Model (SFM) to replicate "
+            "realistic crowd dynamics within the building floor plan.",
+            "Agents are initialized at random interior positions and navigate toward the nearest exit "
+            "using A* pathfinding on a discretized navigation mesh.",
+            "Social forces include: desired velocity force, agent-agent repulsion, "
+            "wall repulsion, and obstacle avoidance.",
+            "Simulation runs at 10 Hz (100ms timestep) for 60 seconds of simulated time, "
+            "producing 600 frames of trajectory data.",
+        ]
+        for m in methodology:
+            elements.append(Paragraph(f"&#8226; {m}", self._s["body"]))
+            elements.append(Spacer(1, 1.5 * mm))
+
+        elements.append(Spacer(1, 4 * mm))
+        elements.append(Paragraph("Compliance Standards Reference", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+
+        standards = [
+            ["Standard", "Description"],
+            ["SL Planning Regs", "Sri Lankan Planning and Development Regulations"],
+            ["NBC SL 2012", "National Building Code of Sri Lanka"],
+            ["NFPA 101", "Life Safety Code (Fire egress requirements)"],
+            ["ADA / DDA", "Accessibility design standards (corridor width, ramp gradient)"],
+        ]
+        t = Table(standards, colWidths=[40 * mm, 120 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(t)
+
+        elements.append(Spacer(1, 6 * mm))
+        elements.append(Paragraph("Violation Severity Definitions", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+
+        sev_defs = [
+            ["Severity", "Definition", "Action Required"],
+            ["Critical", "Life-safety risk or major code violation", "Immediate remediation"],
+            ["High", "Significant non-compliance affecting usability", "Remediate before occupancy"],
+            ["Medium", "Moderate non-compliance, reduced accessibility", "Recommended fix"],
+            ["Low", "Minor advisory, best-practice recommendation", "Optional improvement"],
+        ]
+        t = Table(sev_defs, colWidths=[25 * mm, 75 * mm, 60 * mm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), CYAN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor("#f4f4f5")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(t)
+
+        elements.append(Spacer(1, 8 * mm))
+        elements.append(Paragraph("Disclaimer", self._s["h2"]))
+        elements.append(Spacer(1, 2 * mm))
+        elements.append(Paragraph(
+            "This report is generated by automated simulation software and is intended "
+            "for preliminary assessment purposes only. It does not replace professional "
+            "engineering review or regulatory approval. All measurements and recommendations "
+            "should be verified by a licensed architect or structural engineer before "
+            "implementation. Archion Sim is not responsible for design decisions made "
+            "based solely on this report.",
+            self._s["body"],
+        ))
+
+        return elements
