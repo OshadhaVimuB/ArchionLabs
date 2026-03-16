@@ -86,29 +86,48 @@ app.post("/upload-model", upload.fields([
   { name: "model", maxCount: 1 },
   { name: "thumbnail", maxCount: 1 }
 ]), (req, res) => {
-
-  const modelFile = req.files["model"]?.[0];
-  const thumbnailFile = req.files["thumbnail"]?.[0];
-
-  if (!modelFile) {
-    return res.status(400).json({ message: "Model file is required" });
+  try{
+    if (!req.files || !req.files["model"]) {
+        return res.status(400).json({
+          error: "3D model file is required"
+        });
   }
+  const modelFile = req.files["model"][0];
 
-  const newTemplate = {
-    id: Date.now(),
-    title: req.body.title,
-    author: req.body.author,
-    modelUrl: "/models/" + modelFile.filename,
-    thumbnailUrl: thumbnailFile
-      ? "/thumbnails/" + thumbnailFile.filename
-      : null,
-    createdAt: new Date().toISOString()
-  };
+      let thumbnailUrl = null;
 
-  templates.push(newTemplate);
+      if (!thumbnailUrl) {
+  thumbnailUrl = "/thumbnails/default.png";
+}
 
-  res.json(newTemplate);
+      if (req.files["thumbnail"]) {
+        const thumbnailFile = req.files["thumbnail"][0];
+        thumbnailUrl = "/thumbnails/" + thumbnailFile.filename;
+      }
+
+      const newTemplate = {
+        id: Date.now(),
+        title: req.body.title || "Untitled",
+        author: req.body.author || "Unknown",
+        modelUrl: "/models/" + modelFile.filename,
+        thumbnailUrl: thumbnailUrl,
+        createdAt: new Date().toISOString()
+      };
+
+      templates.push(newTemplate);
+
+      res.json(newTemplate);
+
+    } catch (error) {
+
+      console.error("Upload error:", error);
+
+      res.status(500).json({
+        error: "Server error while uploading template"
+      });
+    }
 });
+
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
