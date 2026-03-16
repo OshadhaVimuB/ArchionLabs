@@ -11,17 +11,36 @@ export default function UploadTemplate() {
   const [designer, setDesigner] = useState("");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-
+  const [invalidFile, setInvalidFile] = useState(false);
+  const [formError, setFormError] = useState("");
+  const[fieldErrors, setFieldErrors] = useState({});
+  const[errorMessage, setErrorMessage] = useState("");
+ 
   function handleFileChange(e) {
   const selected = e.target.files[0];
 
-  if (selected) {
-    setFile(selected);
+  if (!selected) return;
 
-    const url = URL.createObjectURL(selected);
-    setPreviewUrl(url);
+  const allowedExtensions = [".glb",".gltf"];
+
+  const isValid = allowedExtensions.some(ext => selected.name.toLowerCase().endsWith(ext));
+  
+  if(!isValid){
+    setInvalidFile(true);
+    setErrorMessage("Invalid file type. Please upload a .glb or .gltf file.");
+    setFile(null);
+    setPreviewUrl(null);
+    return;
   }
+  setInvalidFile(false);
+  setErrorMessage("");
+  setFile(selected);
+
+
+  const url = URL.createObjectURL(selected);
+  setPreviewUrl(url);
 }
+
  function removeFile() {
   setFile(null);
   setPreviewUrl(null);
@@ -30,6 +49,21 @@ export default function UploadTemplate() {
   if (input) input.value = "";
 }
 const handleUpload = async () => {
+  const errors = {};
+
+  if (!title.trim()) errors.title = "Title is required";
+  if (!description.trim()) errors.description = "Description is required";
+  if (!category) errors.category = "Category is required";
+  if (!designer.trim()) errors.designer = "Designer name is required";
+
+  if (Object.keys(errors).length > 0) {
+    setFieldErrors(errors);
+    setFormError("Please fill the required fields");
+    return;
+  }
+
+  setFieldErrors({});
+  setFormError("");
 
   if (!file) {
     alert("Please select a 3D model file first");
@@ -48,13 +82,12 @@ const handleUpload = async () => {
       body: formData
     });
 
-    if (response.ok) {
-      alert("Template uploaded!");
-      window.location.href = "/";
-    } else {
-      alert("Upload failed");
+    if(!response.ok){
+      const errorText = await response.text();
+      throw new Error(errorText);
     }
-
+    alert("Model uploaded successfully!");
+    window.location.href = "/"; // Redirect to homepage after upload
   } catch (error) {
     console.error(error);
     alert("Server connection failed");
@@ -68,10 +101,16 @@ const handleUpload = async () => {
     <div className="min-h-screen bg-zinc-900 text-white px-10 py-12">
 
       <div className="max-w-6xl mx-auto grid grid-cols-2 gap-16">
+      
 
         {/* LEFT SIDE FORM */}
         <div className="space-y-6">
-
+        {formError && (
+            <div className="bg-red-500 text-white px-4 py-2 rounded mb-4">
+              {formError}
+            </div>
+        )}
+        
           <h1 className="text-2xl font-bold mb-6">
             Upload New Template
           </h1>
@@ -84,6 +123,9 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Enter template title"
             />
+            {fieldErrors.title && (
+                <p className="text-red-400 text-sm mt-1">{fieldErrors.title}</p>
+            )}
           </div>
 
           <div>
@@ -95,6 +137,10 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Write description"
             />
+            {fieldErrors.description && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.description}</p>
+)}
+
           </div>
 
           <div>
@@ -110,6 +156,9 @@ const handleUpload = async () => {
               <option>Character</option>
               <option>Architecture</option>
             </select>
+            {fieldErrors.category && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.category}</p>
+)}
           </div>
 
           <div>
@@ -120,6 +169,9 @@ const handleUpload = async () => {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
               placeholder="Enter your name"
             />
+            {fieldErrors.designer && (
+  <p className="text-red-400 text-sm mt-1">{fieldErrors.designer}</p>
+)}
           </div>
 
           <button className="px-6 py-2 bg-blue-600 rounded hover:bg-blue-500">
@@ -135,7 +187,7 @@ const handleUpload = async () => {
           <div className="bg-zinc-800 rounded-lg p-8 border border-zinc-700 text-center">
 
             <p className="text-sm mb-4 text-zinc-400">
-              Upload 3D Model (.glb)
+              Upload 3D Model (.glb/.gltf)
             </p>
 
             <div className="flex justify-center gap-4">
@@ -171,11 +223,15 @@ const handleUpload = async () => {
           {/* PREVIEW BOX */}
           <div className="bg-zinc-800 rounded-lg h-[300px] border border-zinc-700 overflow-hidden">
 
-  {previewUrl ? (
+ {invalidFile ? (
+    <div className="flex items-center justify-center h-full text-red-400">
+      Invalid file type. Please upload a .glb or .gltf model.
+    </div>
+  ) : previewUrl ? (
     <ModelViewer modelUrl={previewUrl} />
   ) : (
     <div className="flex items-center justify-center h-full text-zinc-400">
-      Live Preview
+      Upload a model to preview
     </div>
   )}
 
