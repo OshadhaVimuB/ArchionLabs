@@ -110,14 +110,16 @@ export default function UploadTemplate() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText);
+        throw new Error(errorData.error || "Upload failed: " + errorText);
       }
 
       alert("Model uploaded successfully!");
       window.location.href = "/";
     } catch (error) {
       console.error(error);
-      alert("Server connection failed");
+      const errorData = await response.json();
+      alert(errorData.error || "Upload failed");
+      
     }
   };
 
