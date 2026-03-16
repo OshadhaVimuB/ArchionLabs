@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import ModelViewer from "./ModelViewer";
+
 
 export default function TemplateCard({ template, deleteMode, selectedIds, setSelectedIds }) {
 
