@@ -14,11 +14,11 @@ from sqlalchemy.orm import Session
 import base64
 import io
 
-from app.config import GROQ_API_KEY, GROQ_MODEL
+from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
 from app.database import get_db
 from app.models.db_models import Project, ChatHistory
 from app.services.geometry import LayoutSolver
-from app.services.groq_intent import IntentParser
+from app.services.claude_intent import IntentParser
 from app.services.model3d import generate_threejs_json, generate_cadquery_script
 from app.models.floorplan import FloorPlan
 
@@ -42,7 +42,7 @@ class GenerateRequest(BaseModel):
     )
     model: str | None = Field(
         None,
-        description="The groq model to use for generation",
+        description="The AI model to use for generation",
     )
     current_floorplan: dict | None = Field(
         None,
@@ -103,8 +103,8 @@ async def generate_floorplan(
     4. Return the floor plan with metadata.
     """
     try:
-        model_to_use = request.model if request.model else GROQ_MODEL
-        parser = IntentParser(api_key=GROQ_API_KEY, model=model_to_use)
+        model_to_use = request.model if request.model else ANTHROPIC_MODEL
+        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=model_to_use)
 
         if request.current_floorplan:
             # Modify existing plan
@@ -180,12 +180,14 @@ async def extract_floorplan(
     Extract a floor plan from an uploaded file (Image/PDF/DXF).
     """
     try:
-        parser = IntentParser(api_key=GROQ_API_KEY, model=GROQ_MODEL)
+        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=ANTHROPIC_MODEL)
 
         base64_img = None
+        img_media_type = "image/png"  # default for converted images
 
         if request.mime_type in ["image/png", "image/jpeg", "image/jpg"]:
             base64_img = request.file_data
+            img_media_type = "image/png" if request.mime_type == "image/png" else "image/jpeg"
         elif request.mime_type == "application/pdf":
             import fitz # PyMuPDF
             file_bytes = base64.b64decode(request.file_data)
@@ -195,6 +197,7 @@ async def extract_floorplan(
             page = doc.load_page(0)
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) # 2x zoom for better resolution
             base64_img = base64.b64encode(pix.tobytes("png")).decode("utf-8")
+            img_media_type = "image/png"
         elif request.mime_type == "application/dxf" or request.file_name.lower().endswith(".dxf"):
             import ezdxf
             import ezdxf.addons.drawing as drawing
@@ -226,6 +229,7 @@ async def extract_floorplan(
                 fig.savefig(buf, format="png", dpi=300)
                 plt.close(fig)
                 base64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
+                img_media_type = "image/png"
                 
             finally:
                 os.remove(path)
@@ -237,7 +241,7 @@ async def extract_floorplan(
              raise HTTPException(status_code=400, detail="Failed to extract image from file")
 
         # Use vision model to extract floorplan
-        floorplan_dict = parser.extract_from_image(base64_img)
+        floorplan_dict = parser.extract_from_image(base64_img, media_type=img_media_type)
         floorplan = FloorPlan(**floorplan_dict)
 
         room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []

@@ -18,22 +18,13 @@ import {
 } from "@/components/ui/select";
 
 const AI_MODELS = [
-    { value: "qwen/qwen3-32b", label: "Qwen 3 32B" },
-    { value: "groq/compound", label: "Groq Compound" },
-    { value: "groq/compound-mini", label: "Groq Compound Mini" },
-    { value: "llama-3.1-8b-instant", label: "Llama 3.1 8B Instant" },
-    { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile" },
-    { value: "meta-llama/llama-4-maverick", label: "Llama 4 Maverick" },
-    { value: "moonshotai/kimi-k2-instruct", label: "Kimi K2 Instruct" },
-    { value: "moonshotai/kimi-k2-instruct-0905", label: "Kimi K2 Instruct 0905" },
-    { value: "openai/gpt-oss-120b", label: "GPT-OSS 120B" },
-    { value: "openai/gpt-oss-20b", label: "GPT-OSS 20B" },
+    { value: "claude-3-haiku-20240307", label: "Claude 3.5 Haiku" },
 ];
 
 export default function DesignAssistant() {
     const { messages, generatePlan, isLoading, clearChat } = useFloorPlanStore();
     const [prompt, setPrompt] = useState("");
-    const [selectedModel, setSelectedModel] = useState(AI_MODELS[4].value);
+    const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].value);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom of chat
