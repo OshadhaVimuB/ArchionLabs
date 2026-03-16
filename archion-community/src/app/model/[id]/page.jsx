@@ -2,12 +2,34 @@
 
 import ModelViewer from "../../Components/ModelViewer";
 import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function ModelPage() {
 
   const params = useParams();
+  const id = params.id;
+  const [template, setTemplate] = useState(null);
 
-  const modelUrl = "/models/test.glb"; // later from backend
+  useEffect(() => {
+    async function loadTemplate() {
+      const res = await fetch(`http://localhost:5000/templates/${id}`);
+      const data = await res.json();
+    
+
+      setTemplate(data);
+    }
+    loadTemplate();
+  }, [id]);
+  if (!template) {
+    return (
+      <div className="flex items-center justify-center h-screen text-zinc-400">
+        Loading...
+      </div>
+    );
+  }
+      
+
+  const modelUrl = `http://localhost:5000${template.modelUrl}`;// later from backend
 
   return (
 
