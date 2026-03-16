@@ -2,7 +2,7 @@
 Tests for the IntentParser regex fallback (Commit 3).
 """
 
-from app.services.groq_intent import IntentParser, DEFAULT_ROOMS
+from app.services.claude_intent import IntentParser, DEFAULT_ROOMS
 
 
 class TestRegexParsing:

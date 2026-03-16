@@ -19,7 +19,7 @@ Archion Build is a full-stack web application that combines a FastAPI backend wi
 - **Undo / Redo** — Full history stack with up to 50 snapshots.
 - **Export** — Download the 2D canvas as PNG or PDF.
 - **Room Specifications Panel** — Live-updating sidebar showing dimensions and area for every room.
-- **Multiple AI Models** — Choose from Llama, Kimi, Qwen, GPT-OSS, and more via the model selector.
+- **Claude AI** — Powered by Anthropic Claude 3.5 Haiku for intelligent architectural understanding.
 - **Persistent Projects** — Every generated plan is saved to a SQLite database with full chat history.
 - **CadQuery Export** — Generate a standalone Python/CadQuery script for offline CAD export (STEP/STL).
 
@@ -35,7 +35,7 @@ Archion Build is a full-stack web application that combines a FastAPI backend wi
 | UI Components | shadcn/ui, Radix UI, Tailwind CSS |
 | Backend | FastAPI, Python |
 | Database | SQLAlchemy + SQLite |
-| AI / LLM | Groq API (Llama 3.3 70B by default) |
+| AI / LLM | Anthropic Claude API (Claude 3.5 Haiku) |
 | Validation | Pydantic v2 |
 | Testing (BE) | pytest |
 | Testing (FE) | Vitest |
@@ -58,7 +58,7 @@ archion-build/
 │   │   │   └── generate.py     # /generate/* endpoints
 │   │   └── services/
 │   │       ├── geometry.py     # Strip-packing layout solver
-│   │       ├── groq_intent.py  # NL intent parser (LLM + regex)
+│   │       ├── claude_intent.py # NL intent parser (LLM + regex)
 │   │       └── model3d.py      # Three.js JSON & CadQuery exporter
 │   ├── tests/
 │   │   ├── test_api.py
@@ -94,7 +94,7 @@ archion-build/
 
 - **Python** 3.10+
 - **Node.js** 18+
-- A **Groq API key** (optional — falls back to regex parsing if omitted)
+- An **Anthropic API key** (optional — falls back to regex parsing if omitted)
 
 ---
 
@@ -108,7 +108,7 @@ pip install -r requirements.txt
 
 # Create a .env file
 cp .env.example .env
-# Edit .env and set GROQ_API_KEY=your_key_here (optional)
+# Edit .env and set ANTHROPIC_API_KEY=your_key_here (optional)
 
 # Start the development server
 uvicorn app.main:app --reload --port 8000
@@ -121,8 +121,8 @@ The API will be available at `http://localhost:8000`. Interactive docs at `http:
 | Variable | Default | Description |
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:3000,...` | Allowed frontend origins |
-| `GROQ_API_KEY` | *(empty)* | Groq API key for LLM parsing |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Default Groq model |
+| `ANTHROPIC_API_KEY` | *(empty)* | Anthropic API key for LLM parsing |
+| `ANTHROPIC_MODEL` | `claude-3-haiku-20240307` | Default Claude model |
 
 ---
 
@@ -157,7 +157,7 @@ Generate or modify a floor plan from a natural language prompt.
 ```json
 {
   "prompt": "A house with 3 bedrooms, 2 bathrooms, a kitchen, and a living room",
-  "model": "llama-3.3-70b-versatile",
+  "model": "claude-3-haiku-20240307",
   "current_floorplan": null
 }
 ```
@@ -191,7 +191,7 @@ Health check — returns `{"status": "healthy"}`.
 
 ### Floor Plan Generation Pipeline
 
-1. **Intent Parsing** — The user's prompt is sent to the Groq LLM (or processed with regex fallback if no API key is set). The parser extracts a structured list of room requirements: type, name, and count.
+1. **Intent Parsing** — The user's prompt is sent to the Claude LLM (or processed with regex fallback if no API key is set). The parser extracts a structured list of room requirements: type, name, and count.
 
 2. **Layout Solving** — The `LayoutSolver` places rooms using a **strip-packing algorithm**: rooms are sorted by priority tier (living areas first, then bedrooms, then service rooms) and placed left-to-right in horizontal strips, wrapping to a new row when the building width limit is reached. Each room's dimensions are randomized ±15% from standard sizes for natural variation.
 

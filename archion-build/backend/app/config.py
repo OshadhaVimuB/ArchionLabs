@@ -28,6 +28,6 @@ PROJECT_NAME = "Archion Build"
 PROJECT_VERSION = "1.0.0"
 PROJECT_DESCRIPTION = "AI-powered architectural floor plan generator"
 
-# Groq LLM (optional — regex fallback is used when not set)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", None)
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+# Anthropic Claude (optional — regex fallback is used when not set)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", None)
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307")

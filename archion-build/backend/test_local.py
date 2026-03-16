@@ -1,11 +1,11 @@
 import sys
 import json
-from app.services.groq_intent import IntentParser
-from app.config import GROQ_API_KEY
+from app.services.claude_intent import IntentParser
+from app.config import ANTHROPIC_API_KEY
 from app.models.floorplan import FloorPlan, Level, Room, BoundingBox, Point2D, RoomType
 
 def test_local():
-    parser = IntentParser(api_key=GROQ_API_KEY)
+    parser = IntentParser(api_key=ANTHROPIC_API_KEY)
     
     fp = FloorPlan(
         name="Test",
