@@ -6,9 +6,10 @@ const path = require("path");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/models", express.static(path.join(__dirname, "../public/models")));
 
-
+const modelsPath = path.resolve(__dirname, "../public/models");
+app.use("/models", express.static(modelsPath));
+console.log("Serving models from:", modelsPath);
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -46,6 +47,20 @@ app.get("/templates", (req, res) => {
     templates: paginatedTemplates,
     total: templates.length
   });
+ 
+
+});
+app.get("/templates/:id", (req, res) => {
+
+  const id = parseInt(req.params.id);
+
+  const template = templates.find(t => t.id === id);
+
+  if (!template) {
+    return res.status(404).json({ message: "Template not found" });
+  }
+
+  res.json(template);
 
 });
 // DELETE template
