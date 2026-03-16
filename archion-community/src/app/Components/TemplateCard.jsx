@@ -83,15 +83,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     className="h-48 bg-zinc-700 overflow-hidden"
     
   >
-    <img
-  src={
-    template.thumbnailUrl
-      ? `http://localhost:5000${template.thumbnailUrl}`
-      : "/default-thumbnail.png"
-  }
-  alt={template.title}
-  className="w-full h-full object-cover"
-/>
+    <img src={`http://localhost:5000${template.thumbnailUrl || "/thumbnails/default.png"}`}></img>
   </div>
 
 
