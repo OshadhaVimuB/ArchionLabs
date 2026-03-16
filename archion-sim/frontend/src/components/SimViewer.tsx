@@ -314,162 +314,205 @@ function StaticAgents({ boundaries }: { boundaries: number[][] }) {
 
 
 const LERP_SPEED = 10;
-const MAX_AGENTS = 100;
-const CONFLICT_ZONE_RADIUS_SQ = 2.0 * 2.0; // 2m radius, squared
+const CONFLICT_ZONE_RADIUS_SQ = 2.0 * 2.0;
 
-const _standardColor = new THREE.Color("#3b82f6");
+const _standardColor = new THREE.Color("#2563eb");
 const _specialistColor = new THREE.Color("#eab308");
-const _conflictColor = new THREE.Color("#f97316");
+const _conflictColor = new THREE.Color("#ef4444");
 
-// Pre-built geometries (human-shaped capsules sitting on floor)
-const _standardGeo = new THREE.CapsuleGeometry(0.1, 0.8, 4, 8);
-_standardGeo.translate(0, 0.1 + 0.4, 0);
+// Procedural 3D Walkable Human component
+const WalkingAgent = ({
+  id,
+  trajectories,
+  frameRef,
+  frameKeys,
+  violations,
+}: {
+  id: string;
+  trajectories: Trajectories;
+  frameRef: React.MutableRefObject<number>;
+  frameKeys: string[];
+  violations: Violation[];
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const bodyGroupRef = useRef<THREE.Group>(null);
+  const legLRef = useRef<THREE.Group>(null);
+  const legRRef = useRef<THREE.Group>(null);
+  const armLRef = useRef<THREE.Group>(null);
+  const armRRef = useRef<THREE.Group>(null);
 
-const _specialistGeo = new THREE.CapsuleGeometry(0.035, 0.12, 4, 8);
-_specialistGeo.translate(0, 0.035 + 0.06, 0);
+  const cycleRef = useRef(Math.random() * Math.PI * 2);
+  const currentPos = useRef(new THREE.Vector3());
+  const currentRotation = useRef(0);
+  const isVisible = useRef(false);
+
+  // Material and geometry reused per agent
+  const [material] = useMemo(() => [new THREE.MeshStandardMaterial({
+    roughness: 0.7,
+    metalness: 0.2
+  })], []);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    const frameIdx = Math.min(frameRef.current, frameKeys.length - 1);
+    const frameKey = frameKeys[frameIdx];
+    const frameData = trajectories[frameKey];
+    const agentData = frameData?.[id];
+
+    if (!agentData) {
+      if (isVisible.current) {
+        groupRef.current.visible = false;
+        isVisible.current = false;
+      }
+      return;
+    }
+
+    if (!isVisible.current) {
+      groupRef.current.visible = true;
+      isVisible.current = true;
+      // Initialize position on first appear
+      currentPos.current.set(agentData.pos[0], 0, -agentData.pos[1]);
+    }
+
+    const targetX = agentData.pos[0];
+    const targetZ = -agentData.pos[1];
+
+    // Smooth movement lerp
+    const t = 1 - Math.exp(-LERP_SPEED * delta);
+    const dx = targetX - currentPos.current.x;
+    const dz = targetZ - currentPos.current.z;
+    const speed = Math.sqrt(dx * dx + dz * dz);
+
+    currentPos.current.x += dx * t;
+    currentPos.current.z += dz * t;
+    groupRef.current.position.set(currentPos.current.x, 0, currentPos.current.z);
+
+    // Rotation and Animation cycle
+    if (speed > 0.005) {
+      const targetRotation = Math.atan2(dx, dz);
+      let diff = targetRotation - currentRotation.current;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      currentRotation.current += diff * t;
+      groupRef.current.rotation.y = currentRotation.current;
+
+      cycleRef.current += speed * 12 * delta;
+    }
+
+    const cycle = cycleRef.current;
+    const stride = Math.sin(cycle) * 0.6;
+    const armSwing = Math.sin(cycle + Math.PI) * 0.6;
+    const bob = Math.abs(Math.sin(cycle)) * 0.03;
+
+    // Apply procedural animation transforms
+    if (bodyGroupRef.current) bodyGroupRef.current.position.y = 0.8 + bob;
+    if (legLRef.current) legLRef.current.rotation.x = stride;
+    if (legRRef.current) legRRef.current.rotation.x = -stride;
+    if (armLRef.current) armLRef.current.rotation.x = armSwing;
+    if (armRRef.current) armRRef.current.rotation.x = -armSwing;
+
+    // Dynamic coloring based on role and conflict
+    let inConflict = false;
+    for (const v of violations) {
+      const vX = v.coordinate.x;
+      const vZ = -v.coordinate.y;
+      const dSq = (currentPos.current.x - vX) ** 2 + (currentPos.current.z - vZ) ** 2;
+      if (dSq < CONFLICT_ZONE_RADIUS_SQ) {
+        inConflict = true;
+        break;
+      }
+    }
+
+    const targetColor = inConflict
+      ? _conflictColor
+      : (agentData.type === "specialist" ? _specialistColor : _standardColor);
+
+    if (!material.color.equals(targetColor)) {
+      material.color.copy(targetColor);
+      material.emissive.copy(targetColor).multiplyScalar(0.2);
+    }
+  });
+
+  return (
+    <group ref={groupRef} visible={false}>
+      {/* Body Part Hierarchy */}
+      <group ref={bodyGroupRef}>
+        {/* Torso */}
+        <mesh position={[0, 0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.07, 0.5, 4, 8]} />
+        </mesh>
+        {/* Head */}
+        <mesh position={[0, 0.75, 0]} castShadow material={material}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+        </mesh>
+        {/* Arm L */}
+        <group ref={armLRef} position={[-0.12, 0.6, 0]}>
+          <mesh position={[0, -0.2, 0]} castShadow material={material}>
+            <capsuleGeometry args={[0.04, 0.4, 4, 8]} />
+          </mesh>
+        </group>
+        {/* Arm R */}
+        <group ref={armRRef} position={[0.12, 0.6, 0]}>
+          <mesh position={[0, -0.2, 0]} castShadow material={material}>
+            <capsuleGeometry args={[0.04, 0.4, 4, 8]} />
+          </mesh>
+        </group>
+      </group>
+      {/* Leg L */}
+      <group ref={legLRef} position={[-0.07, 0.8, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.05, 0.7, 4, 8]} />
+        </mesh>
+      </group>
+      {/* Leg R */}
+      <group ref={legRRef} position={[0.07, 0.8, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.05, 0.7, 4, 8]} />
+        </mesh>
+      </group>
+    </group>
+  );
+};
 
 function AgentSwarm({
   trajectories,
   frameRef,
-  violations,
+  violations = [],
 }: {
   trajectories: Trajectories | null;
   frameRef: React.MutableRefObject<number>;
   violations?: Violation[];
 }) {
-  const standardRef = useRef<THREE.InstancedMesh>(null);
-  const specialistRef = useRef<THREE.InstancedMesh>(null);
-
-  const displayPosRef = useRef<Record<string, [number, number]>>({});
-  const lastFrameIdx = useRef(-1);
-  const agentsRef = useRef<
-    Record<string, { pos: [number, number]; type: "standard" | "specialist" }>
-  >({});
-
   const frameKeys = useMemo(
     () => trajectories ? Object.keys(trajectories).sort((a, b) => Number(a) - Number(b)) : [],
     [trajectories],
   );
 
-  // Pre-compute violation positions in Three.js XZ coords
-  const violationXZ = useMemo(() => {
-    if (!violations || violations.length === 0) return [];
-    return violations.map((v) => [v.coordinate.x, -v.coordinate.y] as [number, number]);
-  }, [violations]);
+  // Stable set of all agent IDs that appear in the sim
+  const allAgentIds = useMemo(() => {
+    if (!trajectories) return [];
+    const ids = new Set<string>();
+    Object.values(trajectories).forEach(frame => {
+      Object.keys(frame).forEach(id => ids.add(id));
+    });
+    return Array.from(ids);
+  }, [trajectories]);
 
-  const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
-  const tempColor = useMemo(() => new THREE.Color(), []);
-
-  useFrame((_, delta) => {
-    if (trajectories) {
-      const idx = Math.min(frameRef.current, frameKeys.length - 1);
-      const key = frameKeys[idx];
-      if (key && trajectories[key]) {
-        if (idx !== lastFrameIdx.current) {
-          const jumped = Math.abs(idx - lastFrameIdx.current) > 2;
-          lastFrameIdx.current = idx;
-          agentsRef.current = trajectories[key] as typeof agentsRef.current;
-          if (jumped) displayPosRef.current = {};
-        }
-      }
-    }
-
-    const agents = agentsRef.current;
-    const ids = Object.keys(agents);
-    const t = 1 - Math.exp(-LERP_SPEED * delta);
-
-    // Partition by type
-    const stdIds: string[] = [];
-    const specIds: string[] = [];
-    for (const id of ids) {
-      if (agents[id].type === "specialist") specIds.push(id);
-      else stdIds.push(id);
-    }
-
-    // Conflict zone check (squared distance, no sqrt)
-    const inConflict = (x: number, z: number): boolean => {
-      for (const [vx, vz] of violationXZ) {
-        const dx = x - vx;
-        const dz = z - vz;
-        if (dx * dx + dz * dz <= CONFLICT_ZONE_RADIUS_SQ) return true;
-      }
-      return false;
-    };
-
-    // Update standard InstancedMesh
-    if (standardRef.current) {
-      standardRef.current.count = stdIds.length;
-      for (let i = 0; i < stdIds.length; i++) {
-        const id = stdIds[i];
-        const agent = agents[id];
-        const targetX = agent.pos[0];
-        const targetZ = -agent.pos[1];
-
-        if (!displayPosRef.current[id]) displayPosRef.current[id] = [targetX, targetZ];
-        const prev = displayPosRef.current[id];
-        const nx = prev[0] + (targetX - prev[0]) * t;
-        const nz = prev[1] + (targetZ - prev[1]) * t;
-        displayPosRef.current[id] = [nx, nz];
-
-        tempMatrix.makeTranslation(nx, 0.05, nz);
-        standardRef.current.setMatrixAt(i, tempMatrix);
-
-        tempColor.copy(inConflict(nx, nz) ? _conflictColor : _standardColor);
-        standardRef.current.setColorAt(i, tempColor);
-      }
-      standardRef.current.instanceMatrix.needsUpdate = true;
-      if (standardRef.current.instanceColor)
-        standardRef.current.instanceColor.needsUpdate = true;
-    }
-
-    // Update specialist InstancedMesh
-    if (specialistRef.current) {
-      specialistRef.current.count = specIds.length;
-      for (let i = 0; i < specIds.length; i++) {
-        const id = specIds[i];
-        const agent = agents[id];
-        const targetX = agent.pos[0];
-        const targetZ = -agent.pos[1];
-
-        if (!displayPosRef.current[id]) displayPosRef.current[id] = [targetX, targetZ];
-        const prev = displayPosRef.current[id];
-        const nx = prev[0] + (targetX - prev[0]) * t;
-        const nz = prev[1] + (targetZ - prev[1]) * t;
-        displayPosRef.current[id] = [nx, nz];
-
-        tempMatrix.makeTranslation(nx, 0.05, nz);
-        specialistRef.current.setMatrixAt(i, tempMatrix);
-
-        tempColor.copy(inConflict(nx, nz) ? _conflictColor : _specialistColor);
-        specialistRef.current.setColorAt(i, tempColor);
-      }
-      specialistRef.current.instanceMatrix.needsUpdate = true;
-      if (specialistRef.current.instanceColor)
-        specialistRef.current.instanceColor.needsUpdate = true;
-    }
-  });
+  if (!trajectories) return null;
 
   return (
     <group>
-      <instancedMesh
-        ref={standardRef}
-        args={[_standardGeo, undefined!, MAX_AGENTS]}
-        frustumCulled={false}
-      >
-        <meshStandardMaterial color="#ffffff" />
-      </instancedMesh>
-      <instancedMesh
-        ref={specialistRef}
-        args={[_specialistGeo, undefined!, MAX_AGENTS]}
-        frustumCulled={false}
-      >
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#eab308"
-          emissiveIntensity={0.6}
-          toneMapped={false}
+      {allAgentIds.map((id) => (
+        <WalkingAgent
+          key={id}
+          id={id}
+          trajectories={trajectories}
+          frameRef={frameRef}
+          frameKeys={frameKeys}
+          violations={violations}
         />
-      </instancedMesh>
+      ))}
     </group>
   );
 }
