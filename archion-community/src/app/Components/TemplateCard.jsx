@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-
+import ModelViewer from "./ModelViewer";
 
 export default function TemplateCard({ template, deleteMode, selectedIds, setSelectedIds }) {
 
@@ -84,10 +84,14 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     
   >
     <img
-      src={`http://localhost:5000${template.thumbnailUrl}`}
-      alt={template.title}
-      className="w-full h-full object-cover"
-    />
+  src={
+    template.thumbnailUrl
+      ? `http://localhost:5000${template.thumbnailUrl}`
+      : "/default-thumbnail.png"
+  }
+  alt={template.title}
+  className="w-full h-full object-cover"
+/>
   </div>
 
 
