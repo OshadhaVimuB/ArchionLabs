@@ -215,6 +215,7 @@ export function AnalyticsDashboard({
 
     const handleGenerateReport = useCallback(async () => {
         setReportLoading(true);
+        setDownloadUrl(null);
         try {
             const res = await fetch(`${API_URL}/api/generate-report`, {
                 method: "POST",
@@ -223,10 +224,19 @@ export function AnalyticsDashboard({
             });
             const data = await res.json();
             if (data.download_url) {
+                const fullUrl = `${API_URL}${data.download_url}`;
                 setDownloadUrl(data.download_url);
+                
+                // Automatically trigger download
+                const link = document.createElement("a");
+                link.href = fullUrl;
+                link.setAttribute("download", data.filename || "report.pdf");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
             }
-        } catch {
-
+        } catch (err) {
+            console.error("Report generation failed:", err);
         } finally {
             setReportLoading(false);
         }

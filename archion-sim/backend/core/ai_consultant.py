@@ -150,7 +150,8 @@ class AIConsultant:
         severity = violation.get("severity", "medium")
         depth_instr = _SEVERITY_DEPTH.get(severity, _SEVERITY_DEPTH["medium"])
 
-        prompt = params.to_prompt_sections()
+        prompt = f"CONTEXT: Analysis for a **{building_type.upper()}** building.\n\n"
+        prompt += params.to_prompt_sections()
         prompt += depth_instr
         prompt += (
             f"\nViolation to analyse:\n"

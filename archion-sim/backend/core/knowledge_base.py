@@ -21,7 +21,7 @@ REGULATIONS: dict[str, dict[str, dict]] = {
                 "a wheelchair user and a pedestrian can pass without contact."
             ),
         },
-        "public_buildings": {
+        "office": {
             "minimum_m": 1.5,
             "recommended_m": 2.0,
             "reference": "UDA Planning Regulation Section 4.1.3",
@@ -90,7 +90,7 @@ REGULATIONS: dict[str, dict[str, dict]] = {
                 "0.9m is recommended for furniture movement and comfort."
             ),
         },
-        "public_buildings": {
+        "office": {
             "minimum_m": 0.9,
             "recommended_m": 1.2,
             "reference": "UDA Planning Regulation Section 4.1.4",

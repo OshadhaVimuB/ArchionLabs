@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
-from shapely.ops import unary_union
+from shapely.ops import unary_union, nearest_points
 
 try:
     import anthropic
@@ -31,8 +31,16 @@ TOTAL_STEPS = 600       # 60s * 10hz
 N_STANDARD_MIN, N_STANDARD_MAX = 1, 50
 STEP_SIZE = 0.09        # metres per tick (~0.9 m/s at 10 Hz)
 TURN_RATE = 0.15        # max radians of heading change per tick
-WALL_MARGIN = 0.3       # stay this far from polygon boundary
-WALL_THICKNESS = 0.35   # buffer around each wall/furniture segment
+WALL_MARGIN = 0.15       # relaxed for 0.8m doors
+WALL_THICKNESS = 0.15     # relaxed for furniture/internal walls
+LOCK_INTERVAL = 10      # lock path every 10 frames
+LOCK_GRID_SIZE = 0.4    # size of locked cells in metres
+LOCK_SAFE_DIST_SQ = 2.0 * 2.0  # agent must move 2m away before cell locks
+LOCK_TTL = 200          # locked cells expire after 20s (200 frames)
+
+STUCK_WINDOW = 40        # frames to evaluate displacement
+STUCK_THRESHOLD = 1.0    # min metres moved over STUCK_WINDOW to not be stuck
+STUCK_ESCAPE_DIST = 3.0  # distance to travel to clear stuck mode
 
 # The URL for our new standalone AI Brain
 BRAIN_API_URL = "http://127.0.0.1:8001/act_batch"
@@ -83,6 +91,17 @@ class SimulationEngine:
     def run(self) -> dict:
         n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors = self._setup_environment()
         trajectories: dict[str, dict[str, dict]] = {}
+
+        # Path locking state (gx, gy) -> lock_frame
+        locked_cells: dict[tuple[int, int], int] = {}
+        pending_locks: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+
+        # Cycle breaking state
+        pos_history: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+        stuck_waypoint: dict[int, tuple[float, float]] = {}
+
+        def to_grid(x, y):
+            return (int(x / LOCK_GRID_SIZE), int(y / LOCK_GRID_SIZE))
 
         # --- THE NEW MARL BRAIN LOOP ---
         agent_goals = {}
@@ -137,9 +156,6 @@ class SimulationEngine:
                 angle_to_exit = 0.0 
                 if aid in agent_goals:
                     ex, ey = agent_goals[aid]
-                    angle_to_exit = math.atan2(ey - y, x - x) # Fix: seems like intended ey-y, ex-x
-                    # Wait, the original code had angle_to_exit = math.atan2(ey - y, ex - x)
-                    # Let me keep it as ex-x
                     angle_to_exit = math.atan2(ey - y, ex - x)
                 elif self.exit_pos is not None:
                     ex, ey = self.exit_pos
@@ -149,8 +165,19 @@ class SimulationEngine:
 
             # 2. Ask the Brain API what to do!
             try:
-                response = requests.post(BRAIN_API_URL, json={"states": batch_states})
-                actions = response.json().get("actions", [])
+                # Filter out agents in Stuck Mode from MARL to avoid conflicting commands
+                active_aids = [aid for aid in range(n_total) if aid not in stuck_waypoint]
+                active_states = [batch_states[aid] for aid in active_aids]
+                
+                if active_states:
+                    response = requests.post(BRAIN_API_URL, json={"states": active_states}, timeout=1)
+                    motor_actions = response.json().get("actions", [0] * len(active_aids))
+                    actions = [0] * n_total
+                    for i, aid in enumerate(active_aids):
+                        actions[aid] = motor_actions[i]
+                else:
+                    actions = [0] * n_total
+                    
                 if frame % 50 == 0:
                     print(f"\033[96m🤖 [MARL MOTOR] Frame {frame}: Executing physical actions -> {actions}\033[0m", flush=True)
             except Exception as e:
@@ -163,6 +190,23 @@ class SimulationEngine:
                 x, y = positions[aid]
                 heading = headings[aid]
                 
+                # --- CYCLE BREAKING (STUCK MODE) OVERRIDE ---
+                if aid in stuck_waypoint:
+                    wx, wy = stuck_waypoint[aid]
+                    dx_w, dy_w = wx - x, wy - y
+                    dist_to_w = math.sqrt(dx_w**2 + dy_w**2)
+                    
+                    if dist_to_w < 0.5:
+                        print(f"\033[92m✅ [CYCLE BREAK] Agent {aid} cleared stuck mode!\033[0m", flush=True)
+                        del stuck_waypoint[aid]
+                    else:
+                        target_h = math.atan2(dy_w, dx_w)
+                        diff = target_h - heading
+                        while diff < -math.pi: diff += 2 * math.pi
+                        while diff > math.pi: diff -= 2 * math.pi
+                        heading += max(-TURN_RATE, min(TURN_RATE, diff))
+                        action = 0 # Forced move forward towards waypoint
+
                 # The Brain's decisions translated to movement
                 if action == 0:   # Move Forward
                     heading += rng.uniform(-0.05, 0.05) 
@@ -182,12 +226,63 @@ class SimulationEngine:
                 dy = math.sin(heading) * speed
                 nx, ny = x + dx, y + dy
 
-                # Check wall collision using your original Shapely logic
-                if role_walk_areas[aid].contains(Point(nx, ny)):
+                # Check wall collision AND locked cells
+                new_pt = Point(nx, ny)
+                in_walk_area = role_walk_areas[aid].contains(new_pt)
+                is_locked = to_grid(nx, ny) in locked_cells
+
+                if in_walk_area and not is_locked:
                     positions[aid] = [nx, ny]
                     headings[aid] = heading
                 else:
+                    # Collision/Wall encounter: Use Eye-Brain tactical decision
                     headings[aid] = headings[aid] + math.pi + rng.uniform(-0.5, 0.5)
+                    
+                # --- PHYSICAL UNSTUCKING (Push back into walk area) ---
+                agent_pt = Point(positions[aid])
+                if not role_walk_areas[aid].contains(agent_pt):
+                    # Find nearest valid point and push back slightly
+                    cp, _ = nearest_points(role_walk_areas[aid], agent_pt)
+                    # Direction from wall center back to safe point
+                    push_dir = math.atan2(cp.y - agent_pt.y, cp.x - agent_pt.x)
+                    positions[aid] = [cp.x + math.cos(push_dir)*0.05, cp.y + math.sin(push_dir)*0.05]
+
+                # Update path locking logic
+                if frame % LOCK_INTERVAL == 0 and action != 3: # Don't lock if interacting
+                    pending_locks[aid].append((positions[aid][0], positions[aid][1]))
+
+                # Commit pending locks if moved far enough away (Doorway Avoidance)
+                still_pending = []
+                for px, py in pending_locks[aid]:
+                    dist_sq = (positions[aid][0] - px)**2 + (positions[aid][1] - py)**2
+                    if dist_sq >= LOCK_SAFE_DIST_SQ:
+                        locked_cells[to_grid(px, py)] = frame
+                    else:
+                        still_pending.append((px, py))
+                pending_locks[aid] = still_pending
+
+                # --- EXPIRE OLD LOCKS ---
+                locked_cells = {grid: l_frame for grid, l_frame in locked_cells.items() if frame - l_frame < LOCK_TTL}
+
+                # --- TRACK CYCLE DETECTION ---
+                pos_history[aid].append((positions[aid][0], positions[aid][1]))
+                if len(pos_history[aid]) > STUCK_WINDOW:
+                    pos_history[aid].pop(0)
+                    sx, sy = pos_history[aid][0]
+                    displacement = math.sqrt((positions[aid][0] - sx)**2 + (positions[aid][1] - sy)**2)
+                    
+                    if displacement < STUCK_THRESHOLD and aid not in stuck_waypoint:
+                        print(f"\033[91m🔄 [CYCLE DETECT] Agent {aid} stuck (dist={displacement:.2f}m)! Finding door...\033[0m", flush=True)
+                        # Find furthest reachable point in walk area using Shapely
+                        try:
+                            sample_pts = [list(_sample_inside(role_walk_areas[aid], rng)) for _ in range(10)]
+                            # Pick furthest from current pos
+                            dist_pts = [(math.sqrt((px-x)**2 + (py-y)**2), (px, py)) for px, py in sample_pts]
+                            stuck_waypoint[aid] = max(dist_pts, key=lambda x: x[0])[1]
+                            # Clear history to avoid re-triggering immediately
+                            pos_history[aid] = [] 
+                        except:
+                            stuck_waypoint[aid] = list(_sample_inside(walk_area, rng))
 
                 frame_data[str(aid)] = {
                     "pos": [round(positions[aid][0], 4), round(positions[aid][1], 4)],
@@ -341,18 +436,23 @@ class SimulationEngine:
             return 1 if ray_left > ray_right else 2
 
     def stream(self):
-        """Generator: yields frames indefinitely in real-time until the client disconnects.
-
-        Claude is called:
-        1. Every 50 frames for strategic waypoints (every 5 seconds).
-        2. When an agent hits a wall < 1.2m — but with a 20-frame cooldown per agent,
-           so it only asks Claude ONCE per wall encounter, not every frame.
-        """
+        """Generator: yields frames indefinitely in real-time until the client disconnects."""
         n_total, rng, walk_area, agent_types, positions, headings, role_assignments, role_walk_areas, agent_colors = self._setup_environment()
 
         agent_goals = {}
         claude_wall_last_frame: dict[int, int] = {}
         claude_wall_action: dict[int, int] = {}
+
+        # Path locking state (gx, gy) -> lock_frame
+        locked_cells: dict[tuple[int, int], int] = {}
+        pending_locks: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+
+        # Cycle breaking state
+        pos_history: dict[int, list[tuple[float, float]]] = {aid: [] for aid in range(n_total)}
+        stuck_waypoint: dict[int, tuple[float, float]] = {}
+
+        def to_grid(x, y):
+            return (int(x / LOCK_GRID_SIZE), int(y / LOCK_GRID_SIZE))
 
 
         WALL_TRIGGER_DIST = 1.2   # metres — start asking Claude when this close to a wall
@@ -436,18 +536,44 @@ class SimulationEngine:
                 
                 # --- MARL MOTOR BRAIN ---
                 try:
-                    resp = requests.post(BRAIN_API_URL, json={"states": batch_states}, timeout=2)
-                    actions = resp.json().get("actions", [0] * n_total)
+                    active_aids = [aid for aid in range(n_total) if aid not in stuck_waypoint]
+                    active_states = [batch_states[aid] for aid in active_aids]
+                    
+                    if active_states:
+                        resp = requests.post(BRAIN_API_URL, json={"states": active_states}, timeout=1)
+                        motor_actions = resp.json().get("actions", [0] * len(active_aids))
+                        actions = [0] * n_total
+                        for i, aid in enumerate(active_aids):
+                            actions[aid] = motor_actions[i]
+                    else:
+                        actions = [0] * n_total
                 except Exception:
                     actions = [0] * n_total
 
 
-                # --- APPLY ACTIONS + CLAUDE WALL OVERRIDE ---
+                # --- APPLY ACTIONS + CLAUDE WALL OVERRIDE + CYCLE BREAKING ---
                 for aid, action in enumerate(actions):
                     x, y = positions[aid]
                     heading = headings[aid]
                     ray_front, ray_left, ray_right = per_agent_rays[aid]
 
+                    # --- CYCLE BREAKING OVERRIDE ---
+                    if aid in stuck_waypoint:
+                        wx, wy = stuck_waypoint[aid]
+                        dx_w, dy_w = wx - x, wy - y
+                        dist_sq_w = dx_w**2 + dy_w**2
+                        
+                        if dist_sq_w < 0.25: # 0.5m dist
+                            print(f"\033[92m✅ [CYCLE BREAK] Agent {aid} reached escape waypoint!\033[0m", flush=True)
+                            del stuck_waypoint[aid]
+                        else:
+                            target_h = math.atan2(dy_w, dx_w)
+                            diff = target_h - heading
+                            while diff < -math.pi: diff += 2 * math.pi
+                            while diff > math.pi: diff -= 2 * math.pi
+                            heading += max(-TURN_RATE, min(TURN_RATE, diff))
+                            action = 0 # Force move forward
+                    
                     #  WALL DETECTED — ask Claude in background, use heuristic immediately
                     if ray_front < WALL_TRIGGER_DIST:
                         frames_since_last_call = frame - claude_wall_last_frame.get(aid, -9999)
@@ -491,12 +617,58 @@ class SimulationEngine:
                     dy = math.sin(heading) * speed
                     nx, ny = x + dx, y + dy
 
-                    # --- MOVEMENT LOGIC ---
-                    if role_walk_areas[aid].contains(Point(nx, ny)):
+                    # --- MOVEMENT LOGIC (Wall + Path Locking) ---
+                    new_pt = Point(nx, ny)
+                    in_walk_area = role_walk_areas[aid].contains(new_pt)
+                    is_locked = to_grid(nx, ny) in locked_cells
+
+                    if in_walk_area and not is_locked:
                         positions[aid] = [nx, ny]
                         headings[aid] = heading
                     else:
+                        # Collision: turn around
                         headings[aid] = heading + math.pi + rng.uniform(-0.5, 0.5)
+
+                    # --- PHYSICAL UNSTUCKING ---
+                    agent_pt = Point(positions[aid][0], positions[aid][1])
+                    if not role_walk_areas[aid].contains(agent_pt):
+                        cp, _ = nearest_points(role_walk_areas[aid], agent_pt)
+                        push_dir = math.atan2(cp.y - agent_pt.y, cp.x - agent_pt.x)
+                        positions[aid] = [cp.x + math.cos(push_dir)*0.05, cp.y + math.sin(push_dir)*0.05]
+                    # Update path locking logic
+                    if frame % LOCK_INTERVAL == 0 and action != 3: 
+                        pending_locks[aid].append((positions[aid][0], positions[aid][1]))
+
+                    # Commit pending locks if moved far enough away
+                    still_pending = []
+                    for px, py in pending_locks[aid]:
+                        dist_sq = (positions[aid][0] - px)**2 + (positions[aid][1] - py)**2
+                        if dist_sq >= LOCK_SAFE_DIST_SQ:
+                            locked_cells[to_grid(px, py)] = frame
+                        else:
+                            still_pending.append((px, py))
+                    pending_locks[aid] = still_pending
+
+                    # --- EXPIRE OLD LOCKS ---
+                    locked_cells = {grid: l_frame for grid, l_frame in locked_cells.items() if frame - l_frame < LOCK_TTL}
+
+                    # --- CYCLE DETECTION ---
+                    pos_history[aid].append((positions[aid][0], positions[aid][1]))
+                    if len(pos_history[aid]) > STUCK_WINDOW:
+                        pos_history[aid].pop(0)
+                        sx, sy = pos_history[aid][0]
+                        displacement = math.sqrt((positions[aid][0] - sx)**2 + (positions[aid][1] - sy)**2)
+                        
+                        if displacement < STUCK_THRESHOLD and aid not in stuck_waypoint:
+                            print(f"\033[91m🔄 [CYCLE DETECT] Agent {aid} stuck ({displacement:.2f}m)! Searching for door/escape...\033[0m", flush=True)
+                            try:
+                                # Furthest sample pick
+                                sample_pts = [list(_sample_inside(role_walk_areas[aid], rng)) for _ in range(10)]
+                                dist_pts = [(math.sqrt((px-x)**2 + (py-y)**2), (px, py)) for px, py in sample_pts]
+                                stuck_waypoint[aid] = max(dist_pts, key=lambda d: d[0])[1]
+                            except:
+                                stuck_waypoint[aid] = list(_sample_inside(walk_area, rng))
+                            pos_history[aid] = []
 
                     frame_data[str(aid)] = {
                         "pos": [round(positions[aid][0], 4), round(positions[aid][1], 4)],
