@@ -125,6 +125,20 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
               ❤️ {likes}
             </button>
 
+            <button
+  onClick={(e) => {
+    e.stopPropagation();
+    window.location.href = `/edit/${template.id}`;
+  }}
+  className="text-xs bg-yellow-500 px-2 py-1 rounded"
+>
+  Edit
+</button>
+
+
+
+            
+
             <span>👁 120</span>
 
           </div>
