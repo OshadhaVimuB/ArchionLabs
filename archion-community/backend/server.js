@@ -133,6 +133,27 @@ app.post("/upload-model", upload.fields([
       });
     }
 });
+app.put("/templates/:id", upload.single("thumbnail"), (req, res) => {
+
+  const id = parseInt(req.params.id);
+  const template = templates.find(t => t.id === id);
+
+  if (!template) {
+    return res.status(404).json({ message: "Template not found" });
+  }
+
+  // update title
+  if (req.body.title) {
+    template.title = req.body.title;
+  }
+
+  // update thumbnail if new one uploaded
+  if (req.file) {
+    template.thumbnailUrl = "/thumbnails/" + req.file.filename;
+  }
+
+  res.json(template);
+});
 
 
 app.listen(5000, () => {
