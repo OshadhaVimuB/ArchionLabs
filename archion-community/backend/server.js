@@ -147,6 +147,10 @@ app.put("/templates/:id", upload.single("thumbnail"), (req, res) => {
     template.title = req.body.title;
   }
 
+  if(req.body.author){
+    template.author = req.body.author;
+  }
+
   // update thumbnail if new one uploaded
   if (req.file) {
     template.thumbnailUrl = "/thumbnails/" + req.file.filename;
