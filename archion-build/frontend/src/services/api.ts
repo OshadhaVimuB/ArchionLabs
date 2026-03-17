@@ -86,9 +86,10 @@ export async function extractFloorPlan(
     file_name: string,
     mime_type: string,
     file_data: string,
+    model?: string,
 ): Promise<GenerateResponse> {
     return fetchApi<GenerateResponse>("/generate/extract-floorplan", {
         method: "POST",
-        body: JSON.stringify({ file_name, mime_type, file_data }),
+        body: JSON.stringify({ file_name, mime_type, file_data, model }),
     });
 }

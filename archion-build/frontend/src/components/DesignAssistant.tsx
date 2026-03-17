@@ -19,6 +19,7 @@ import {
 
 const AI_MODELS = [
     { value: "claude-3-haiku-20240307", label: "Claude 3.5 Haiku" },
+    { value: "claude-sonnet-4-6", label: "Claude 4.6 Sonnet" },
 ];
 
 export default function DesignAssistant() {

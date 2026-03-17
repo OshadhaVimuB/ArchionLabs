@@ -62,6 +62,10 @@ class ExtractRequest(BaseModel):
     file_name: str = Field(..., description="Original file name")
     mime_type: str = Field(..., description="MIME type of the file")
     file_data: str = Field(..., description="Base64 encoded file data")
+    model: str | None = Field(
+        None,
+        description="The AI model to use for extraction",
+    )
 
 
 class ModelRequest(BaseModel):
@@ -180,7 +184,8 @@ async def extract_floorplan(
     Extract a floor plan from an uploaded file (Image/PDF/DXF).
     """
     try:
-        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=ANTHROPIC_MODEL)
+        model_to_use = request.model if request.model else ANTHROPIC_MODEL
+        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=model_to_use)
 
         base64_img = None
         img_media_type = "image/png"  # default for converted images
@@ -281,7 +286,9 @@ async def extract_floorplan(
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Floor plan extraction failed: {e}", exc_info=True)
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Floor plan extraction failed:\n{error_details}")
         raise HTTPException(
             status_code=500,
             detail=f"Floor plan extraction failed: {str(e)}",
