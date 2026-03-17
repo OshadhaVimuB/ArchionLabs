@@ -237,7 +237,7 @@ def analyze_spatial_context(
 
 
 def format_spatial_context_for_prompt(ctx: SpatialContext) -> str:
-    """Return a compact spatial analysis block for the Gemini prompt."""
+    """Return a compact spatial analysis block for the Claude prompt."""
     lines: list[str] = ["=== SPATIAL ANALYSIS ==="]
 
     lines.append(

@@ -1,6 +1,6 @@
 """
-LLM Brain — Gemini IS the MARL agent policy. This module defines the LLMBrain class,
-which uses Google Gemini to decide actions for all agents in the building evacuation simulation. 
+LLM Brain — Claude IS the MARL agent policy. This module defines the LLMBrain class,
+which uses Anthropic Claude to decide actions for all agents in the building evacuation simulation. 
 
 """
 
@@ -20,11 +20,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 try:
-    from google import genai as _genai_mod
-    from google.genai import types as _genai_types
-    _GENAI_AVAILABLE = True
+    import anthropic
+    _ANTHROPIC_AVAILABLE = True
 except ImportError:
-    _GENAI_AVAILABLE = False
+    _ANTHROPIC_AVAILABLE = False
 
 _VALID_ACTIONS = {"move_forward", "turn_left", "turn_right", "explore_alternative", "wait"}
 
@@ -32,29 +31,31 @@ MAX_CALLS_PER_RUN = 12
 
 
 class LLMBrain:
-    """Gemini as the actor policy for MARL building navigation."""
+    """Claude as the actor policy for MARL building navigation."""
 
-    _MODEL = "gemini-2.5-flash"
+    _MODEL = "claude-3-haiku-20240307"
 
     def __init__(self, api_key: Optional[str] = None):
-        if not _GENAI_AVAILABLE:
-            raise ImportError("google-genai not installed. Run: pip install google-genai")
+        if not _ANTHROPIC_AVAILABLE:
+            raise ImportError("anthropic not installed. Run: pip install anthropic")
 
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
-            raise ValueError("GEMINI_API_KEY not set in backend/.env")
+            raise ValueError("ANTHROPIC_API_KEY not set in backend/.env")
 
-        self._client = _genai_mod.Client(api_key=self.api_key)
+        self._client = anthropic.Anthropic(api_key=self.api_key)
 
         try:
-            resp = self._client.models.generate_content(
+            # Test connectivity
+            resp = self._client.messages.create(
                 model=self._MODEL,
-                contents="Reply OK.",
+                max_tokens=10,
+                messages=[{"role": "user", "content": "Reply OK."}]
             )
-            reply = (resp.text or "").strip()
+            reply = "".join([c.text for c in resp.content if hasattr(c, "text")]).strip()
             print(f"[LLMBrain] Ready — model={self._MODEL}  test={reply!r}")
         except Exception as exc:
-            raise RuntimeError(f"Gemini connection failed: {exc}") from exc
+            raise RuntimeError(f"Claude connection failed: {exc}") from exc
 
         self.api_calls: int = 0
         self._errors: List[str] = []
@@ -68,7 +69,7 @@ class LLMBrain:
         total_frames: int,
         goal: List[float],
     ) -> Dict[str, str]:
-        """Query Gemini for all agents at once.
+        """Query Claude for all agents at once.
 
         Parameters
         ----------
@@ -95,9 +96,9 @@ class LLMBrain:
                 f'"heading":{s["heading_deg"]:.0f}}}'
             )
 
-        prompt = f"""You are the collective intelligence of a building evacuation simulation.
-
-Simulation: frame {frame}/{total_frames}
+        system_prompt = "You are the collective intelligence of a building evacuation simulation."
+        
+        user_prompt = f"""Simulation: frame {frame}/{total_frames}
 Exit goal: [{goal[0]:.1f}, {goal[1]:.1f}]
 Agents ({len(agent_states)} total):
 [
@@ -123,19 +124,14 @@ Include every agent id."""
 
         for attempt in range(2):
             try:
-                response = self._client.models.generate_content(
+                response = self._client.messages.create(
                     model=self._MODEL,
-                    contents=prompt,
-                    config=_genai_types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.8,
-                        max_output_tokens=800,
-                        thinking_config=_genai_types.ThinkingConfig(
-                            thinking_budget=0
-                        ),
-                    ),
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                    max_tokens=1000,
+                    temperature=0.8
                 )
-                raw = (response.text or "").strip()
+                raw = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
 
                 text = re.sub(r"```(?:json)?|```", "", raw).strip()
                 m = re.search(r"\{[\s\S]+\}", text)
@@ -157,7 +153,7 @@ Include every agent id."""
                 return result
 
             except json.JSONDecodeError as exc:
-                raw_preview = (response.text or "")[:120] if response else "no response"
+                raw_preview = raw[:120] if 'raw' in locals() else "no response"
                 print(f"[LLMBrain] Batch JSON error (attempt {attempt+1}): {exc}")
                 print(f"[LLMBrain] Raw preview: {raw_preview!r}")
                 self._errors.append(f"json:{exc}")
@@ -182,7 +178,7 @@ Include every agent id."""
         other_agents: List = [],
         decision_context: str = "navigation",
     ) -> Dict:
-        """Single-agent Gemini decision (kept for compliance AI consultant)."""
+        """Single-agent Claude decision (kept for compliance AI consultant)."""
         if self.api_calls >= MAX_CALLS_PER_RUN:
             return self._fallback("rate_limit_cap")
 
@@ -195,9 +191,8 @@ Include every agent id."""
             goal_position[0] - agent_position[0],
         ))
 
-        prompt = f"""Pedestrian agent navigating a building to the exit.
-
-Position: ({agent_position[0]:.2f}, {agent_position[1]:.2f})
+        system_prompt = "You are a pedestrian agent navigating a building to the exit."
+        user_prompt = f"""Position: ({agent_position[0]:.2f}, {agent_position[1]:.2f})
 Exit: ({goal_position[0]:.2f}, {goal_position[1]:.2f})  dist={dist:.1f}m  bearing={bearing:.0f}°
 Nearby walls: {len(nearby_obstacles)}
 Other agents nearby: {len(other_agents)}
@@ -210,19 +205,14 @@ Output ONLY valid JSON (no markdown):
 
         for attempt in range(2):
             try:
-                response = self._client.models.generate_content(
+                response = self._client.messages.create(
                     model=self._MODEL,
-                    contents=prompt,
-                    config=_genai_types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.7,
-                        max_output_tokens=200,
-                        thinking_config=_genai_types.ThinkingConfig(
-                            thinking_budget=0
-                        ),
-                    ),
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                    max_tokens=200,
+                    temperature=0.7
                 )
-                raw  = (response.text or "").strip()
+                raw = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
                 text = re.sub(r"```(?:json)?|```", "", raw).strip()
                 m    = re.search(r"\{[\s\S]+\}", text)
                 text = m.group(0) if m else text

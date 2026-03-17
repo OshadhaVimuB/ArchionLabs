@@ -464,7 +464,7 @@ def classify_deficiency_level(
 
 
 def format_regulation_block(violation_type: str, building_type: str) -> str:
-    """Return a compact regulatory context block for the Gemini prompt."""
+    """Return a compact regulatory context block for the Claude prompt."""
     reg = get_regulation_context(violation_type, building_type)
     safety = get_safety_impact(violation_type)
 
@@ -491,7 +491,7 @@ def format_regulation_block(violation_type: str, building_type: str) -> str:
 
 
 def format_construction_context() -> str:
-    """Return a compact construction context block for the Gemini prompt."""
+    """Return a compact construction context block for the Claude prompt."""
     ctx = CONSTRUCTION_CONTEXT
     return (
         "=== SRI LANKAN CONSTRUCTION CONTEXT ===\n"

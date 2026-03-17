@@ -6,7 +6,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-# Load .env file so GEMINI_API_KEY and other secrets are available
+# Load .env file so ANTHROPIC_API_KEY and other secrets are available
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -26,8 +26,8 @@ app = FastAPI(title="Archion Sim API")
 UPLOADS_DIR = Path(__file__).parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-for f in UPLOADS_DIR.iterdir():
-    f.unlink(missing_ok=True)
+# for f in UPLOADS_DIR.iterdir():
+#     f.unlink(missing_ok=True)
 
 # In-memory simulation state
 _sim_lock = threading.Lock()

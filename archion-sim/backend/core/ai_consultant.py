@@ -21,7 +21,8 @@ def _extract_json(text: str) -> str:
         return match.group(1).strip()
     return text
 
-    # system prompt
+
+# system prompt
 _SYSTEM_PROMPT = """\
 You are a senior Sri Lankan structural architect with 20+ years of experience \
 in building compliance, accessibility design, and construction management. \
@@ -84,33 +85,31 @@ _SEVERITY_DEPTH: dict[str, str] = {
     ),
 }
 
-#AI Consultant
-_MODEL = "gemini-2.5-flash"
+# AI Consultant
+_MODEL = "claude-3-haiku-20240307"
 
 
 class AIConsultant:
-    """Hybrid AI compliance consultant using parameter-based Gemini prompting."""
+    """Hybrid AI compliance consultant using parameter-based Claude prompting."""
 
     def __init__(self) -> None:
-        from google import genai
-        from google.genai import types as genai_types
+        import anthropic
 
-        api_key = os.getenv("GEMINI_API_KEY", "")
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
         if not api_key:
-            raise RuntimeError("GEMINI_API_KEY not set in environment")
+            raise RuntimeError("ANTHROPIC_API_KEY not set in environment")
 
-        self._client = genai.Client(api_key=api_key)
-        self._types = genai_types
+        self._client = anthropic.Anthropic(api_key=api_key)
         self._max_retries = 2
         self._retry_base_delay = 1.0
         self._cache: dict[str, dict] = {}
-        print(f"[AI Consultant] Initialized — model: {_MODEL} (google-genai SDK)")
+        print(f"[AI Consultant] Initialized — model: {_MODEL} (anthropic SDK)")
 
     def clear_cache(self) -> None:
         self._cache.clear()
 
-# Promt contruction
-def _build_prompt(
+    # Promt contruction
+    def _build_prompt(
         self,
         violation: dict,
         building_context: dict,
@@ -175,15 +174,15 @@ def _build_prompt(
 
         return prompt
 
-# single violation advice
-def get_compliance_advice(
+    # single violation advice
+    def get_compliance_advice(
         self,
         violation: dict,
         building_context: dict,
         wall_segments: list | None = None,
         boundary_coords: list | None = None,
     ) -> dict:
-        """Get AI recommendation for a single violation.
+        """Get AI recommendation for a single violation using Claude.
 
         Returns the cached response if the violation was already processed.
         """
@@ -209,14 +208,6 @@ def get_compliance_advice(
         prompt = self._build_prompt(
             violation, building_context, wall_segments, boundary_coords
         )
-        gen_config = self._types.GenerateContentConfig(
-            system_instruction=_SYSTEM_PROMPT,
-            temperature=0.25,
-            top_p=0.85,
-            max_output_tokens=4096,
-            response_mime_type="application/json",
-            thinking_config=self._types.ThinkingConfig(thinking_budget=0),
-        )
 
         response = None
         for attempt in range(self._max_retries + 1):
@@ -226,23 +217,25 @@ def get_compliance_advice(
                     print(f"[AI Consultant] Retry {attempt}/{self._max_retries} (delay {delay:.1f}s)")
                     time.sleep(delay)
 
-                response = self._client.models.generate_content(
-                    model=_MODEL, contents=prompt, config=gen_config
+                response = self._client.messages.create(
+                    model=_MODEL,
+                    system=_SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=4096,
+                    temperature=0.25,
                 )
                 elapsed = time.time() - start
-                text = _extract_json(response.text)
+                
+                raw_text = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
+                text = _extract_json(raw_text)
                 recommendation = json.loads(text)
                 recommendation = validate_and_score(recommendation, violation, kb_cost_range)
 
-                usage = getattr(response, "usage_metadata", None)
-                if usage:
-                    print(
-                        f"[AI Consultant] Done in {elapsed:.1f}s "
-                        f"(in={getattr(usage, 'prompt_token_count', '?')} "
-                        f"out={getattr(usage, 'candidates_token_count', '?')} tokens)"
-                    )
-                else:
-                    print(f"[AI Consultant] Done in {elapsed:.1f}s")
+                print(
+                    f"[AI Consultant] Done in {elapsed:.1f}s "
+                    f"(in={response.usage.input_tokens} "
+                    f"out={response.usage.output_tokens} tokens)"
+                )
 
                 self._cache[vid] = recommendation
                 return recommendation
@@ -251,7 +244,8 @@ def get_compliance_advice(
                 print(f"[AI Consultant] Non-JSON on attempt {attempt + 1}")
                 if attempt < self._max_retries:
                     continue
-                raw = _extract_json(response.text) if response else ""
+                raw_text = "".join([c.text for c in response.content if hasattr(c, "text")]).strip() if response else ""
+                raw = _extract_json(raw_text)
                 reg = get_regulation_context(vtype, building_type)
                 fb = build_fallback_recommendation(
                     violation=violation, building_type=building_type,
@@ -268,8 +262,8 @@ def get_compliance_advice(
             except Exception as exc:
                 exc_str = str(exc)
                 print(f"[AI Consultant] Error attempt {attempt + 1}: {exc_str[:120]}")
-                if "429" in exc_str or "quota" in exc_str.lower() or "resource_exhausted" in exc_str.lower():
-                    print(f"[AI Consultant] Quota limit — falling back immediately")
+                if "429" in exc_str or "quota" in exc_str.lower() or "overloaded" in exc_str.lower():
+                    print(f"[AI Consultant] Quota or Overload — falling back immediately")
                     reg = get_regulation_context(vtype, building_type)
                     return build_fallback_recommendation(
                         violation=violation, building_type=building_type,
@@ -300,14 +294,14 @@ def get_compliance_advice(
         )
 
     # Batch processing
-def get_batch_compliance_advice(
+    def get_batch_compliance_advice(
         self,
         violations: list[dict],
         building_context: dict,
         wall_segments: list | None = None,
         boundary_coords: list | None = None,
     ) -> dict[str, dict]:
-        """Process multiple violations, sorted by severity.
+        """Process multiple violations with Claude, sorted by severity.
 
         Returns ``{violation_id: recommendation}`` dict.
         """
@@ -326,15 +320,6 @@ def get_batch_compliance_advice(
         results: dict[str, dict] = {}
 
         building_type = building_context.get("building_type", "residential")
-
-        gen_config = self._types.GenerateContentConfig(
-            system_instruction=_SYSTEM_PROMPT,
-            temperature=0.25,
-            top_p=0.85,
-            max_output_tokens=4096,
-            response_mime_type="application/json",
-            thinking_config=self._types.ThinkingConfig(thinking_budget=0),
-        )
 
         from core.validator import validate_and_score, build_fallback_recommendation
         from core.knowledge_base import get_cost_range, classify_deficiency_level, get_time_estimate, get_regulation_context
@@ -367,10 +352,17 @@ def get_batch_compliance_advice(
                 try:
                     if attempt > 0:
                         time.sleep(self._retry_base_delay * (2 ** (attempt - 1)))
-                    response = self._client.models.generate_content(
-                        model=_MODEL, contents=prompt, config=gen_config
+                    
+                    response = self._client.messages.create(
+                        model=_MODEL,
+                        system=_SYSTEM_PROMPT,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=4096,
+                        temperature=0.25,
                     )
-                    recommendation = json.loads(_extract_json(response.text))
+                    
+                    raw_text = "".join([c.text for c in response.content if hasattr(c, "text")]).strip()
+                    recommendation = json.loads(_extract_json(raw_text))
                     recommendation = validate_and_score(
                         recommendation, violation, kb_cost_range
                     )
@@ -391,8 +383,8 @@ def get_batch_compliance_advice(
                     results[vid] = fb
                 except Exception as exc:
                     exc_str = str(exc)
-                    if "429" in exc_str or "quota" in exc_str.lower() or "resource_exhausted" in exc_str.lower():
-                        print(f"[AI Consultant] Quota limit hit — stopping batch")
+                    if "429" in exc_str or "quota" in exc_str.lower() or "overloaded" in exc_str.lower():
+                        print(f"[AI Consultant] Quota or Overload hit — stopping batch")
                         reg = get_regulation_context(vtype, building_type)
                         fb = build_fallback_recommendation(
                             violation, building_type, kb_cost_range,
@@ -417,8 +409,9 @@ def get_batch_compliance_advice(
         elapsed = time.time() - batch_start
         print(f"[AI Consultant] Batch done: {len(results)} recs in {elapsed:.1f}s")
         return results
-    
-    # Module level singleton
+
+
+# Module level singleton
 _consultant: AIConsultant | None = None
 
 
