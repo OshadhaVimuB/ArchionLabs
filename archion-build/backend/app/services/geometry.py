@@ -97,17 +97,23 @@ class LayoutSolver:
         Each dict in *rooms* must contain at minimum:
         - ``type``  — a valid ``RoomType`` value string (e.g. ``"bedroom"``)
         - ``name``  — a display name (e.g. ``"Bedroom 1"``)
+
+        Optionally:
+        - ``area_hint``  — target area in m² (used to compute dimensions)
         """
-        # 1. Parse input into (RoomType, name) tuples
+        # 1. Parse input into (RoomType, name, area_hint) tuples
         parsed = self._parse_room_specs(rooms)
 
         # 2. Sort by priority tier
         parsed.sort(key=lambda r: PRIORITY_TIERS.get(r[0], 99))
 
-        # 3. Compute randomised dimensions for each room
+        # 3. Compute dimensions for each room (area-aware or randomised)
         room_dims: List[Tuple[RoomType, str, float, float]] = []
-        for room_type, name in parsed:
-            w, h = self._randomised_size(room_type)
+        for room_type, name, area_hint in parsed:
+            if area_hint and area_hint > 0:
+                w, h = self._size_from_area(room_type, area_hint)
+            else:
+                w, h = self._randomised_size(room_type)
             room_dims.append((room_type, name, w, h))
 
         # 4. Place rooms using strip-packing
@@ -117,6 +123,9 @@ class LayoutSolver:
         building_bbox = self._compute_building_bbox(placed_rooms)
         walls = self._generate_walls(placed_rooms, building_bbox)
         doors = self._generate_doors(placed_rooms)
+        exterior_door = self._generate_entrance_door(placed_rooms, building_bbox)
+        if exterior_door:
+            doors.append(exterior_door)
         windows = self._generate_windows(walls)
 
         # 6. Assemble the FloorPlan
@@ -143,21 +152,22 @@ class LayoutSolver:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_room_specs(rooms: List[dict]) -> List[Tuple[RoomType, str]]:
-        """Convert raw dicts to ``(RoomType, name)`` tuples."""
-        parsed: List[Tuple[RoomType, str]] = []
+    def _parse_room_specs(rooms: List[dict]) -> List[Tuple[RoomType, str, Optional[float]]]:
+        """Convert raw dicts to ``(RoomType, name, area_hint)`` tuples."""
+        parsed: List[Tuple[RoomType, str, Optional[float]]] = []
         for spec in rooms:
             raw_type = spec.get("type", "other")
             name = spec.get("name", raw_type.replace("_", " ").title())
+            area_hint = spec.get("area_hint", None)
             try:
                 room_type = RoomType(raw_type)
             except ValueError:
                 room_type = RoomType.OTHER
-            parsed.append((room_type, name))
+            parsed.append((room_type, name, area_hint))
         return parsed
 
     # ------------------------------------------------------------------
-    # Dimension randomisation
+    # Dimension computation
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -167,6 +177,22 @@ class LayoutSolver:
         factor_w = 1.0 + random.uniform(-RANDOMIZATION_FACTOR, RANDOMIZATION_FACTOR)
         factor_h = 1.0 + random.uniform(-RANDOMIZATION_FACTOR, RANDOMIZATION_FACTOR)
         return round(base_w * factor_w, 2), round(base_h * factor_h, 2)
+
+    @staticmethod
+    def _size_from_area(room_type: RoomType, area: float) -> Tuple[float, float]:
+        """
+        Compute room width and height from a target area,
+        preserving the room type's natural aspect ratio.
+        """
+        base_w, base_h = STANDARD_ROOM_SIZES.get(room_type, (3.0, 3.0))
+        aspect = base_w / base_h if base_h > 0 else 1.0
+        # area = w * h, and w = aspect * h → area = aspect * h² → h = sqrt(area / aspect)
+        h = (area / aspect) ** 0.5
+        w = aspect * h
+        # Clamp to reasonable bounds (1m to 15m per side)
+        w = max(1.0, min(15.0, w))
+        h = max(1.0, min(15.0, h))
+        return round(w, 2), round(h, 2)
 
     # ------------------------------------------------------------------
     # Strip-packing placement
@@ -317,6 +343,54 @@ class LayoutSolver:
                 )
 
         return doors
+
+    @staticmethod
+    def _generate_entrance_door(
+        rooms: List[Room], building_bbox: BoundingBox
+    ) -> Optional[Door]:
+        """
+        Place an exterior door on the entrance room's exterior wall.
+        If no entrance room exists, returns None.
+        """
+        entrance_rooms = [r for r in rooms if r.room_type == RoomType.ENTRANCE]
+        if not entrance_rooms:
+            return None
+
+        entrance = entrance_rooms[0]
+        rmin = entrance.bounding_box.min_point
+        rmax = entrance.bounding_box.max_point
+        bmin = building_bbox.min_point
+        eps = 0.01
+
+        # Prefer bottom edge as exterior entrance, then left edge
+        if abs(rmin.y - bmin.y) < eps:
+            # Bottom is exterior
+            mid = Point2D(
+                x=round((rmin.x + rmax.x) / 2, 2),
+                y=rmin.y,
+            )
+            return Door(
+                position=mid,
+                width=DOOR_WIDTH,
+                wall_start=Point2D(x=rmin.x, y=rmin.y),
+                wall_end=Point2D(x=rmax.x, y=rmin.y),
+                is_exterior=True,
+            )
+        if abs(rmin.x - bmin.x) < eps:
+            # Left is exterior
+            mid = Point2D(
+                x=rmin.x,
+                y=round((rmin.y + rmax.y) / 2, 2),
+            )
+            return Door(
+                position=mid,
+                width=DOOR_WIDTH,
+                wall_start=Point2D(x=rmin.x, y=rmin.y),
+                wall_end=Point2D(x=rmin.x, y=rmax.y),
+                is_exterior=True,
+            )
+
+        return None
 
     # ------------------------------------------------------------------
     # Window generation
