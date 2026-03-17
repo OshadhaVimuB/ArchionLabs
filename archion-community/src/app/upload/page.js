@@ -47,11 +47,12 @@ export default function UploadTemplate() {
 
   // THUMBNAIL HANDLER
   function handleThumbnailChange(e) {
+    const selected = e.target.files[0];
     if (selected.size > 5 * 1024 * 1024) {
       alert("Thumbnail must be smaller than 5MB");
       return;
 }
-    const selected = e.target.files[0];
+    
     if (!selected) return;
 
     const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
