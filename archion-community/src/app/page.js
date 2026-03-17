@@ -13,7 +13,7 @@ export default function Home() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState("recent");
 
   useEffect(() => {
 
@@ -50,11 +50,54 @@ export default function Home() {
 
       const res = await fetch("http://localhost:5000/templates");
       const data = await res.json();
-      setTemplates(data);
+      setTemplates(data.templates);
 
     } else {
       setDeleteMode(true);
     }
+
+    let filteredTemplates = [...templates];
+
+// 🔍 search filter
+if (searchTerm) {
+  filteredTemplates = filteredTemplates.filter((t) =>
+    t.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}
+
+// 📅 date filter
+if (selectedDate) {
+  filteredTemplates = filteredTemplates.filter((t) =>
+    t.createdAt.startsWith(selectedDate)
+  );
+}
+
+// ⭐ sorting filters
+if (filter === "top") {
+  filteredTemplates.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+}
+
+if (filter === "recent") {
+  filteredTemplates.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+}
+
+if (filter === "trending") {
+  filteredTemplates.sort((a, b) => {
+    const scoreA =
+      (a.likes || 0) -
+      (Date.now() - new Date(a.createdAt)) / 10000000;
+
+    const scoreB =
+      (b.likes || 0) -
+      (Date.now() - new Date(b.createdAt)) / 10000000;
+
+    return scoreB - scoreA;
+  });
+}
+
+
 
   };
 
@@ -99,7 +142,7 @@ export default function Home() {
       <div className="px-8">
 
         <TemplateGrid
-          templates={templates}
+          templates={filteredTemplates}
           searchTerm={searchTerm}
           deleteMode={deleteMode}
           selectedIds={selectedIds}
