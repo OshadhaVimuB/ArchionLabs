@@ -212,7 +212,8 @@ export default function EditorToolbar() {
                     const response = await extractFloorPlan(
                         file.name,
                         file.type || (isDxf ? 'application/dxf' : 'application/octet-stream'),
-                        base64Data
+                        base64Data,
+                        "claude-sonnet-4-6"
                     );
 
                     setFloorPlan(response.floorplan);

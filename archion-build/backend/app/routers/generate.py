@@ -62,6 +62,10 @@ class ExtractRequest(BaseModel):
     file_name: str = Field(..., description="Original file name")
     mime_type: str = Field(..., description="MIME type of the file")
     file_data: str = Field(..., description="Base64 encoded file data")
+    model: str | None = Field(
+        None,
+        description="The AI model to use for extraction",
+    )
 
 
 class ModelRequest(BaseModel):
@@ -115,19 +119,37 @@ async def generate_floorplan(
             room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []
             summary = "Updated floor plan based on your request."
         else:
-            # Generate from scratch
-            room_requirements = parser.parse(request.prompt)
-            logger.info(f"Parsed {len(room_requirements)} rooms from prompt")
+            floorplan_dict = None
 
-            solver = LayoutSolver()
-            floorplan = solver.solve(room_requirements)
+            # For powerful models, try direct LLM generation first
+            if "sonnet" in model_to_use.lower() or "opus" in model_to_use.lower():
+                logger.info(f"Attempting direct LLM generation with {model_to_use}")
+                direct_result = parser.generate_full_floorplan(request.prompt)
+                if direct_result:
+                    floorplan_dict = direct_result
+                    logger.info("Direct LLM generation succeeded")
+
+            # Fallback: parse rooms then use LayoutSolver
+            if floorplan_dict is None:
+                logger.info("Using IntentParser → LayoutSolver pipeline")
+                room_requirements = parser.parse(request.prompt)
+                logger.info(f"Parsed {len(room_requirements)} rooms from prompt")
+
+                solver = LayoutSolver()
+                floorplan = solver.solve(room_requirements)
+                floorplan_dict = floorplan.model_dump()
+
+            floorplan = FloorPlan(**floorplan_dict)
             floorplan_dict = floorplan.model_dump()
 
-            room_names = [r["name"] for r in room_requirements]
+            room_names = [r.name for r in floorplan.levels[0].rooms] if floorplan.levels and floorplan.levels[0].rooms else []
+            total_area = floorplan.total_area or sum(
+                r.area for level in floorplan.levels for r in level.rooms if r.area
+            )
             summary = (
-                f"Generated a floor plan with {len(room_requirements)} rooms: "
+                f"Generated a floor plan with {len(room_names)} rooms: "
                 f"{', '.join(room_names)}. "
-                f"Total area: {floorplan.total_area:.1f} m²."
+                f"Total area: {total_area:.1f} m²."
             )
 
         # 3. Persist project
@@ -180,7 +202,8 @@ async def extract_floorplan(
     Extract a floor plan from an uploaded file (Image/PDF/DXF).
     """
     try:
-        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=ANTHROPIC_MODEL)
+        model_to_use = request.model if request.model else ANTHROPIC_MODEL
+        parser = IntentParser(api_key=ANTHROPIC_API_KEY, model=model_to_use)
 
         base64_img = None
         img_media_type = "image/png"  # default for converted images
@@ -281,7 +304,9 @@ async def extract_floorplan(
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Floor plan extraction failed: {e}", exc_info=True)
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Floor plan extraction failed:\n{error_details}")
         raise HTTPException(
             status_code=500,
             detail=f"Floor plan extraction failed: {str(e)}",
