@@ -388,8 +388,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Building type selector — shown when ready to simulate */}
-          {phase === "processing" && (
+          {/* Building type selector — shown during configuration */}
+          {phase === "configuring" && (
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-card/90 backdrop-blur-md px-3 py-2">
               <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
                 Building Type
@@ -400,7 +400,7 @@ export default function Home() {
                 className="rounded bg-secondary border border-border text-xs text-secondary-foreground px-2 py-1 focus:outline-none focus:border-primary"
               >
                 <option value="residential">Residential</option>
-                <option value="public_buildings">Public Buildings</option>
+                <option value="office">Office</option>
                 <option value="hospital">Hospital</option>
                 <option value="educational">Educational</option>
                 <option value="commercial">Commercial</option>
