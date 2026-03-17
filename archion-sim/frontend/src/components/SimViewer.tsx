@@ -776,8 +776,76 @@ function HeatmapOverlay({
   );
 }
 
-// Note: the main SimViewer component is defined at the end to ensure all sub-components are available. 
-// SimViewer — public component
+// PaintedAreas — renders highlighted cells for all roles
+function PaintedAreas({ roles, spacing }: { roles: RoleConfig[]; spacing: number }) {
+  const cells = useMemo(() => {
+    return roles.flatMap((role) =>
+      role.areas.map(([x, y]) => ({
+        id: `${role.id}-${x}-${y}`,
+        position: [x, 0.01, -y] as [number, number, number],
+        color: role.color,
+      }))
+    );
+  }, [roles]);
+
+  return (
+    <group>
+      {cells.map((cell) => (
+        <mesh key={cell.id} position={cell.position} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[spacing * 0.9, spacing * 0.9]} />
+          <meshBasicMaterial color={cell.color} transparent opacity={0.6} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// GridPainter — invisible interactive surface to capture clicks for painting
+function GridPainter({
+  boundaries,
+  spacing,
+  onPaint,
+}: {
+  boundaries: number[][];
+  spacing: number;
+  onPaint: (x: number, y: number) => void;
+}) {
+  // Create a large interactive plane that covers the building bounds
+  const plane = useMemo(() => {
+    if (boundaries.length === 0) return null;
+    const xs = boundaries.map((p) => p[0]);
+    const ys = boundaries.map((p) => p[1]);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const width = (maxX - minX) * 2 + 20;
+    const height = (maxY - minY) * 2 + 20;
+    const cx = (minX + maxX) / 2;
+    const cz = -(minY + maxY) / 2;
+    return { width, height, position: [cx, 0.005, cz] as [number, number, number] };
+  }, [boundaries]);
+
+  if (!plane) return null;
+
+  return (
+    <mesh
+      position={plane.position}
+      rotation={[-Math.PI / 2, 0, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        const { x, z } = e.point;
+        // Snap to grid based on spacing
+        const gridX = Math.round(x / spacing) * spacing;
+        const gridY = Math.round(-z / spacing) * spacing;
+        onPaint(gridX, gridY);
+      }}
+    >
+      <planeGeometry args={[plane.width, plane.height]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
 
 interface SimViewerProps {
   boundaries: number[][];              // buffered (for navigation)
@@ -820,13 +888,43 @@ export default function SimViewer({
   showHeatmap = false,
   onToggleHeatmap,
   viewMode = "3d",
+  roles = [],
+  setRoles,
+  activeRoleId,
 }: SimViewerProps) {
   const isProcessing = phase === "uploading";
+  const isConfiguring = phase === "configuring";
   const hasModel = !!(modelUrl && modelFormat);
   const controlsRef = useRef<any>(null);
 
   // Use raw boundaries for rendering (exact wall positions), fall back to buffered
   const renderBounds = rawBoundaries?.length > 0 ? rawBoundaries : boundaries;
+
+  // Fixed spacing for painting to match backend logic (1.0m cells)
+  const paintSpacing = 1.0;
+
+  // Adaptive spacing logic (only for BoundaryGrid visual lines)
+  const gridSpacing = useMemo(() => {
+    if (renderBounds.length < 3) return 1;
+    const xs = renderBounds.map(p => p[0]);
+    const ys = renderBounds.map(p => p[1]);
+    const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1);
+    return span < 5 ? 0.5 : span < 20 ? 1 : 2;
+  }, [renderBounds]);
+
+  const handleCellToggle = (x: number, y: number) => {
+    if (!activeRoleId || !setRoles) return;
+    setRoles(prev => prev.map(role => {
+      if (role.id !== activeRoleId) return role;
+      
+      const exists = role.areas.some(a => Math.abs(a[0] - x) < 0.1 && Math.abs(a[1] - y) < 0.1);
+      const newAreas = exists 
+        ? role.areas.filter(a => !(Math.abs(a[0] - x) < 0.1 && Math.abs(a[1] - y) < 0.1))
+        : [...role.areas, [x, y]];
+      
+      return { ...role, areas: newAreas };
+    }));
+  };
 
   return (
     <div className="relative w-full h-full">
@@ -839,20 +937,30 @@ export default function SimViewer({
         <directionalLight position={[5, 10, 5]} intensity={1.0} castShadow />
         <hemisphereLight args={["#334155", "#0f172a", 0.3]} />
 
-        {/* 3D Model — when uploaded, this IS the visual.
-            No blue floor/wall overlay is rendered on top. */}
+        {/* 3D Model or Fallback Walls */}
         {hasModel ? (
           <ModelRenderer url={modelUrl} format={modelFormat} centerOffset={centerOffset} />
         ) : (
           <>
-            {/* Fallback: boundary-derived floor and walls when no 3D model */}
             <FloorPlane boundaries={renderBounds} />
             <Walls boundaries={renderBounds} />
             {obstacles.length > 0 && <ObstacleWalls obstacles={obstacles} />}
           </>
         )}
 
-        {/* Agents (InstancedMesh) */}
+        {/* Painted Areas (Role-based) */}
+        <PaintedAreas roles={roles} spacing={paintSpacing} />
+
+        {/* Interactive Grid (only when painting) */}
+        {isConfiguring && activeRoleId && (
+          <GridPainter 
+            boundaries={renderBounds} 
+            spacing={paintSpacing} 
+            onPaint={handleCellToggle} 
+          />
+        )}
+
+        {/* Agents */}
         <AgentSwarm
           trajectories={trajectories}
           frameRef={frameRef}
