@@ -15,6 +15,9 @@ matplotlib
 # Environment
 python-dotenv
 
+# JWT auth
+python-jose[cryptography]
+
 # LLM (Anthropic Claude)
 anthropic
 

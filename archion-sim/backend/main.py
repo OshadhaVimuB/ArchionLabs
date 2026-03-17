@@ -10,7 +10,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
@@ -19,6 +19,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from core.geometry import process_model
 from sim.engine import SimulationEngine
+from auth import get_current_user
 
 app = FastAPI(title="Archion Sim API")
 
@@ -80,7 +81,7 @@ async def health_check():
 
 
 @app.post("/api/process-model")
-async def process_model_endpoint(file: UploadFile = File(...)):
+async def process_model_endpoint(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     global _cached_geometry
 
     suffix = Path(file.filename or "").suffix.lower()
@@ -355,7 +356,7 @@ def _run_simulation_background(req: SimulationRequest):
 
 @app.post("/api/simulation/start")
 @app.post("/api/start-simulation")
-async def start_simulation_endpoint(req: SimulationRequest):
+async def start_simulation_endpoint(req: SimulationRequest, user_id: str = Depends(get_current_user)):
     global _sim_status, _sim_trajectories, _sim_error
     global _compliance_status, _compliance_report, _compliance_error
     global _sim_exit_pos, _analytics_data
@@ -506,7 +507,7 @@ async def get_trajectories():
 # ----- Analytics endpoints -----
 
 @app.get("/api/analytics")
-async def get_analytics():
+async def get_analytics(user_id: str = Depends(get_current_user)):
     global _analytics_data
     with _analytics_lock:
         if _analytics_data is not None:
@@ -545,7 +546,7 @@ class ReportRequest(BaseModel):
 
 
 @app.post("/api/generate-report")
-async def generate_report(req: ReportRequest | None = None):
+async def generate_report(req: ReportRequest | None = None, user_id: str = Depends(get_current_user)):
     project_name = req.project_name if req else "Building Compliance Audit"
 
     # Ensure analytics are computed first

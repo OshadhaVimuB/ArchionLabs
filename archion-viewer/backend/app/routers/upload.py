@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_user
 from app.services.upload_service import save_upload
 
 router = APIRouter(prefix="/upload", tags=["upload"])
@@ -28,6 +29,7 @@ async def upload_model(
         File(description="Texture image files (.jpg, .png, .tga …) that accompany the MTL"),
     ] = None,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Upload a 3D model to persistent server-side storage.

@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 app.use(cors());
@@ -11,8 +12,44 @@ const modelsPath = path.resolve(__dirname, "../public/models");
 app.use("/models", express.static(modelsPath));
 console.log("Serving models from:", modelsPath);
 
-const generateThumbnail = require("./generateThumbnail");
+let generateThumbnail;
+try {
+  generateThumbnail = require("./generateThumbnail");
+} catch (err) {
+  console.warn("⚠ Thumbnail generation disabled (puppeteer not installed)");
+  generateThumbnail = async () => {};
+}
 
+// ------------------------------------------------------------------
+// Supabase JWT Authentication Middleware
+// ------------------------------------------------------------------
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "";
+
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization header" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!SUPABASE_JWT_SECRET) {
+    return res.status(500).json({ error: "SUPABASE_JWT_SECRET is not configured" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SUPABASE_JWT_SECRET, { algorithms: ["HS256"] });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+// ------------------------------------------------------------------
+// File upload configuration
+// ------------------------------------------------------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, "../public/models"));
@@ -34,7 +71,7 @@ let templates = [
  
 ];
 
-// GET templates
+// GET templates (public)
 app.get("/templates", (req, res) => {
 
   const page = parseInt(req.query.page) || 1;
@@ -52,6 +89,8 @@ app.get("/templates", (req, res) => {
  
 
 });
+
+// GET single template (public)
 app.get("/templates/:id", (req, res) => {
 
   const id = parseInt(req.params.id);
@@ -65,15 +104,16 @@ app.get("/templates/:id", (req, res) => {
   res.json(template);
 
 });
-// DELETE template
-app.delete("/templates/:id", (req, res) => {
+
+// DELETE template (protected)
+app.delete("/templates/:id", authMiddleware, (req, res) => {
   const id = parseInt(req.params.id);
   templates = templates.filter(t => t.id !== id);
   res.json({ message: "Deleted successfully" });
 });
 
-// POST new template
-app.post("/upload-model", upload.single("model"), async(req, res) => {
+// POST new template (protected)
+app.post("/upload-model", authMiddleware, upload.single("model"), async(req, res) => {
   const modelPath = "/models/" + req.file.filename;
 
   const thumbnailFile = req.file.filename.replace(".glb", ".png");
@@ -89,6 +129,7 @@ app.post("/upload-model", upload.single("model"), async(req, res) => {
     id: Date.now(),
     title: req.body.title,
     author: req.body.author,
+    userId: req.user.sub,  // Supabase user ID
     modelUrl: "/models/" + req.file.filename,
     createdAt: new Date().toISOString()
   };

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.config import UPLOAD_DIR
 from app.database import get_db
+from app.auth import get_current_user
 from app.models.db_models import ShareToken
 from app.services import share_service
 
@@ -71,7 +72,7 @@ def _share_to_dict(share: ShareToken) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("", status_code=201, summary="Create a share link")
-def create_share(body: CreateShareRequest, db: Session = Depends(get_db)):
+def create_share(body: CreateShareRequest, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     """
     Generate a new share token for a previously uploaded model.
 
@@ -90,7 +91,7 @@ def create_share(body: CreateShareRequest, db: Session = Depends(get_db)):
 
 
 @router.get("", summary="List active share links")
-def list_shares(db: Session = Depends(get_db)):
+def list_shares(db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     """Return all non-revoked share tokens, newest first."""
     return [_share_to_dict(s) for s in share_service.list_shares(db)]
 
@@ -176,6 +177,6 @@ def get_shared_mtl(
 
 
 @router.delete("/{token}", status_code=204, summary="Revoke a share link")
-def revoke_share(token: str, db: Session = Depends(get_db)):
+def revoke_share(token: str, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     """Permanently revoke a share token so it can no longer be used."""
     share_service.revoke_share(db=db, token=token)
