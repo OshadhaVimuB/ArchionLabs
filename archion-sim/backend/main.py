@@ -69,7 +69,7 @@ app.add_middleware(
 ALLOWED_EXTENSIONS = {".obj", ".glb", ".gltf"}
 
 _VALID_BUILDING_TYPES = [
-    "residential", "public_buildings", "hospital",
+    "residential", "office", "hospital",
     "educational", "commercial", "industrial",
 ]
 
@@ -186,20 +186,39 @@ class AIConsultantRequest(BaseModel):
 async def ai_consultant(req: AIConsultantRequest):
     from datetime import datetime, timezone
 
+    print(f"[AI Consultant] Request for violation_id: '{req.violation_id}'")
+
     # Find the violation in the current report
     with _compliance_lock:
         report = _compliance_report
 
     if not report or "violations" not in report:
+        print("[AI Consultant] Error: No compliance report available")
         raise HTTPException(status_code=400, detail="No compliance report available")
 
+    # 1. Primary search: by ID
     violation = None
     for v in report["violations"]:
         if v["id"] == req.violation_id:
             violation = v
             break
 
+    # 2. Secondary search: by type and coordinate if ID fails (IDs are non-persistent across runs)
+    if violation is None and req.violation_id:
+        print(f"[AI Consultant] ID '{req.violation_id}' not found. Attempting fuzzy match...")
+        # Check if the ID contains type info (e.g. "corridor_width_0")
+        parts = req.violation_id.rsplit('_', 1)
+        vtype_target = parts[0] if len(parts) > 1 else None
+        
+        for v in report["violations"]:
+            if vtype_target and v.get("type") == vtype_target:
+                # If types match, it's a candidate
+                violation = v
+                print(f"[AI Consultant] Fuzzy match found: {v['id']}")
+                break
+
     if violation is None:
+        print(f"[AI Consultant] Error: Violation '{req.violation_id}' not found in current report")
         raise HTTPException(status_code=404, detail=f"Violation '{req.violation_id}' not found")
 
     # Merge building context with defaults from cached geometry
@@ -208,6 +227,7 @@ async def ai_consultant(req: AIConsultantRequest):
         "total_floor_area_sqm": (_cached_geometry or {}).get("floor_area", 0),
     }
     context.update(req.building_context)
+    building_type = context.get("building_type", "residential")
 
     # Extract geometry for spatial analysis
     wall_segments = (_cached_geometry or {}).get("wall_segments", [])
@@ -224,26 +244,37 @@ async def ai_consultant(req: AIConsultantRequest):
             boundary_coords=boundary_coords,
         )
 
+        if not recommendation:
+            raise ValueError("AI Consultant returned empty or invalid recommendation")
+
         return {
             "status": "success",
-            "violation_id": req.violation_id,
+            "violation_id": violation["id"],
             "ai_recommendation": recommendation,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as exc:
+        print(f"[AI Consultant] AI processing failed: {exc}")
         traceback.print_exc()
+        
         # Build a clean fallback from knowledge base
         from core.validator import build_fallback_recommendation
         from core.knowledge_base import (
             get_cost_range, classify_deficiency_level, get_time_estimate,
             get_regulation_context,
         )
-        vtype = violation.get("type", "")
-        measured = float(violation.get("measured_value", 0.0))
-        required = float(violation.get("required_value", 0.0))
-        building_type = context.get("building_type", "residential")
+        
+        vtype = violation.get("type", "unknown")
+        try:
+            measured = float(violation.get("measured_value", 0.0))
+            required = float(violation.get("required_value", 0.0))
+        except (ValueError, TypeError):
+            measured = 0.0
+            required = 0.0
+            
         deficiency_level = classify_deficiency_level(measured, required, vtype)
         reg = get_regulation_context(vtype, building_type)
+        
         fallback = build_fallback_recommendation(
             violation=violation,
             building_type=building_type,
@@ -254,7 +285,7 @@ async def ai_consultant(req: AIConsultantRequest):
         )
         return {
             "status": "error",
-            "violation_id": req.violation_id,
+            "violation_id": violation["id"],
             "error_type": "api_unavailable",
             "fallback_recommendation": fallback,
         }
@@ -320,21 +351,13 @@ def _run_simulation_background(req: SimulationRequest):
             _compliance_status = "running"
 
         try:
-            from core.compliance import ComplianceChecker
+            from core.filtered_rules import run_context_aware_audit
 
-            checker = ComplianceChecker(_compliance_building_type)
             geom = _cached_geometry
-
             if geom is None:
                 raise ValueError("No geometry data cached — upload a model first")
 
-            report = checker.run_full_audit(
-                wall_segments=geom["wall_segments"],
-                boundary_coords=geom["boundary_coords"],
-                mesh_vertices=geom.get("mesh_vertices"),
-                trajectories=result,
-                floor_area=geom.get("floor_area", 0.0),
-            )
+            report = run_context_aware_audit(geom, _compliance_building_type, trajectories=result)
 
             with _compliance_lock:
                 _compliance_report = report.model_dump()
@@ -454,18 +477,15 @@ async def stream_simulation_endpoint(
             # Run compliance audit immediately after sim completes streaming
             with _compliance_lock:
                 _compliance_status = "running"
-            from core.compliance import ComplianceChecker
+            from core.filtered_rules import run_context_aware_audit
             try:
-                checker = ComplianceChecker(_compliance_building_type)
                 geom = _cached_geometry
                 if geom:
-                    print("[event_generator] Starting run_full_audit...")
-                    report = checker.run_full_audit(
-                        wall_segments=geom["wall_segments"],
-                        boundary_coords=geom["boundary_coords"],
-                        mesh_vertices=geom.get("mesh_vertices"),
-                        trajectories=_sim_trajectories,
-                        floor_area=geom.get("floor_area", 0.0),
+                    print("[event_generator] Starting context-aware audit via filtered_rules...")
+                    report = run_context_aware_audit(
+                        geom, 
+                        _compliance_building_type, 
+                        trajectories=_sim_trajectories
                     )
                     with _compliance_lock:
                         _compliance_report = report.model_dump()
