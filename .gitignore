@@ -93,3 +93,4 @@ archion-build/prompt.md
 *.local
 .vercel
 .turbo
+.agent
