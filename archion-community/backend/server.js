@@ -103,6 +103,12 @@ app.post("/upload-model", upload.fields([
       if (req.files["thumbnail"]) {
         const thumbnailFile = req.files["thumbnail"][0];
         thumbnailUrl = "/thumbnails/" + thumbnailFile.filename;
+
+        if (!["image/png", "image/jpeg"].includes(thumbnailFile.mimetype)) {
+    return res.status(400).json({ error: "Invalid thumbnail type" });
+  }
+
+
       }
 
       const newTemplate = {
