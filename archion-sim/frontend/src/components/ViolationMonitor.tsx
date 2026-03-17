@@ -266,9 +266,11 @@ function ViolationCard({
                 setAiRec(data.fallback_recommendation);
                 setExpanded(true);
             } else {
-                setAiError("Failed to get recommendation");
+                const errorMsg = data.detail || data.error || "Failed to get recommendation";
+                setAiError(errorMsg);
             }
-        } catch {
+        } catch (err) {
+            console.error("AI Fetch error:", err);
             setAiError("AI service unavailable. Please try again.");
         } finally {
             setAiLoading(false);

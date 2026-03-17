@@ -314,162 +314,205 @@ function StaticAgents({ boundaries }: { boundaries: number[][] }) {
 
 
 const LERP_SPEED = 10;
-const MAX_AGENTS = 100;
-const CONFLICT_ZONE_RADIUS_SQ = 2.0 * 2.0; // 2m radius, squared
+const CONFLICT_ZONE_RADIUS_SQ = 2.0 * 2.0;
 
-const _standardColor = new THREE.Color("#3b82f6");
+const _standardColor = new THREE.Color("#2563eb");
 const _specialistColor = new THREE.Color("#eab308");
-const _conflictColor = new THREE.Color("#f97316");
+const _conflictColor = new THREE.Color("#ef4444");
 
-// Pre-built geometries (human-shaped capsules sitting on floor)
-const _standardGeo = new THREE.CapsuleGeometry(0.1, 0.8, 4, 8);
-_standardGeo.translate(0, 0.1 + 0.4, 0);
+// Procedural 3D Walkable Human component
+const WalkingAgent = ({
+  id,
+  trajectories,
+  frameRef,
+  frameKeys,
+  violations,
+}: {
+  id: string;
+  trajectories: Trajectories;
+  frameRef: React.MutableRefObject<number>;
+  frameKeys: string[];
+  violations: Violation[];
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const bodyGroupRef = useRef<THREE.Group>(null);
+  const legLRef = useRef<THREE.Group>(null);
+  const legRRef = useRef<THREE.Group>(null);
+  const armLRef = useRef<THREE.Group>(null);
+  const armRRef = useRef<THREE.Group>(null);
 
-const _specialistGeo = new THREE.CapsuleGeometry(0.035, 0.12, 4, 8);
-_specialistGeo.translate(0, 0.035 + 0.06, 0);
+  const cycleRef = useRef(Math.random() * Math.PI * 2);
+  const currentPos = useRef(new THREE.Vector3());
+  const currentRotation = useRef(0);
+  const isVisible = useRef(false);
+
+  // Material and geometry reused per agent
+  const [material] = useMemo(() => [new THREE.MeshStandardMaterial({
+    roughness: 0.7,
+    metalness: 0.2
+  })], []);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    const frameIdx = Math.min(frameRef.current, frameKeys.length - 1);
+    const frameKey = frameKeys[frameIdx];
+    const frameData = trajectories[frameKey];
+    const agentData = frameData?.[id];
+
+    if (!agentData) {
+      if (isVisible.current) {
+        groupRef.current.visible = false;
+        isVisible.current = false;
+      }
+      return;
+    }
+
+    if (!isVisible.current) {
+      groupRef.current.visible = true;
+      isVisible.current = true;
+      // Initialize position on first appear
+      currentPos.current.set(agentData.pos[0], 0, -agentData.pos[1]);
+    }
+
+    const targetX = agentData.pos[0];
+    const targetZ = -agentData.pos[1];
+
+    // Smooth movement lerp
+    const t = 1 - Math.exp(-LERP_SPEED * delta);
+    const dx = targetX - currentPos.current.x;
+    const dz = targetZ - currentPos.current.z;
+    const speed = Math.sqrt(dx * dx + dz * dz);
+
+    currentPos.current.x += dx * t;
+    currentPos.current.z += dz * t;
+    groupRef.current.position.set(currentPos.current.x, 0, currentPos.current.z);
+
+    // Rotation and Animation cycle
+    if (speed > 0.005) {
+      const targetRotation = Math.atan2(dx, dz);
+      let diff = targetRotation - currentRotation.current;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      currentRotation.current += diff * t;
+      groupRef.current.rotation.y = currentRotation.current;
+
+      cycleRef.current += speed * 12 * delta;
+    }
+
+    const cycle = cycleRef.current;
+    const stride = Math.sin(cycle) * 0.6;
+    const armSwing = Math.sin(cycle + Math.PI) * 0.6;
+    const bob = Math.abs(Math.sin(cycle)) * 0.03;
+
+    // Apply procedural animation transforms
+    if (bodyGroupRef.current) bodyGroupRef.current.position.y = 0.8 + bob;
+    if (legLRef.current) legLRef.current.rotation.x = stride;
+    if (legRRef.current) legRRef.current.rotation.x = -stride;
+    if (armLRef.current) armLRef.current.rotation.x = armSwing;
+    if (armRRef.current) armRRef.current.rotation.x = -armSwing;
+
+    // Dynamic coloring based on role and conflict
+    let inConflict = false;
+    for (const v of violations) {
+      const vX = v.coordinate.x;
+      const vZ = -v.coordinate.y;
+      const dSq = (currentPos.current.x - vX) ** 2 + (currentPos.current.z - vZ) ** 2;
+      if (dSq < CONFLICT_ZONE_RADIUS_SQ) {
+        inConflict = true;
+        break;
+      }
+    }
+
+    const targetColor = inConflict
+      ? _conflictColor
+      : (agentData.type === "specialist" ? _specialistColor : _standardColor);
+
+    if (!material.color.equals(targetColor)) {
+      material.color.copy(targetColor);
+      material.emissive.copy(targetColor).multiplyScalar(0.2);
+    }
+  });
+
+  return (
+    <group ref={groupRef} visible={false}>
+      {/* Body Part Hierarchy */}
+      <group ref={bodyGroupRef}>
+        {/* Torso */}
+        <mesh position={[0, 0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.07, 0.5, 4, 8]} />
+        </mesh>
+        {/* Head */}
+        <mesh position={[0, 0.75, 0]} castShadow material={material}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+        </mesh>
+        {/* Arm L */}
+        <group ref={armLRef} position={[-0.12, 0.6, 0]}>
+          <mesh position={[0, -0.2, 0]} castShadow material={material}>
+            <capsuleGeometry args={[0.04, 0.4, 4, 8]} />
+          </mesh>
+        </group>
+        {/* Arm R */}
+        <group ref={armRRef} position={[0.12, 0.6, 0]}>
+          <mesh position={[0, -0.2, 0]} castShadow material={material}>
+            <capsuleGeometry args={[0.04, 0.4, 4, 8]} />
+          </mesh>
+        </group>
+      </group>
+      {/* Leg L */}
+      <group ref={legLRef} position={[-0.07, 0.8, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.05, 0.7, 4, 8]} />
+        </mesh>
+      </group>
+      {/* Leg R */}
+      <group ref={legRRef} position={[0.07, 0.8, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow material={material}>
+          <capsuleGeometry args={[0.05, 0.7, 4, 8]} />
+        </mesh>
+      </group>
+    </group>
+  );
+};
 
 function AgentSwarm({
   trajectories,
   frameRef,
-  violations,
+  violations = [],
 }: {
   trajectories: Trajectories | null;
   frameRef: React.MutableRefObject<number>;
   violations?: Violation[];
 }) {
-  const standardRef = useRef<THREE.InstancedMesh>(null);
-  const specialistRef = useRef<THREE.InstancedMesh>(null);
-
-  const displayPosRef = useRef<Record<string, [number, number]>>({});
-  const lastFrameIdx = useRef(-1);
-  const agentsRef = useRef<
-    Record<string, { pos: [number, number]; type: "standard" | "specialist" }>
-  >({});
-
   const frameKeys = useMemo(
     () => trajectories ? Object.keys(trajectories).sort((a, b) => Number(a) - Number(b)) : [],
     [trajectories],
   );
 
-  // Pre-compute violation positions in Three.js XZ coords
-  const violationXZ = useMemo(() => {
-    if (!violations || violations.length === 0) return [];
-    return violations.map((v) => [v.coordinate.x, -v.coordinate.y] as [number, number]);
-  }, [violations]);
+  // Stable set of all agent IDs that appear in the sim
+  const allAgentIds = useMemo(() => {
+    if (!trajectories) return [];
+    const ids = new Set<string>();
+    Object.values(trajectories).forEach(frame => {
+      Object.keys(frame).forEach(id => ids.add(id));
+    });
+    return Array.from(ids);
+  }, [trajectories]);
 
-  const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
-  const tempColor = useMemo(() => new THREE.Color(), []);
-
-  useFrame((_, delta) => {
-    if (trajectories) {
-      const idx = Math.min(frameRef.current, frameKeys.length - 1);
-      const key = frameKeys[idx];
-      if (key && trajectories[key]) {
-        if (idx !== lastFrameIdx.current) {
-          const jumped = Math.abs(idx - lastFrameIdx.current) > 2;
-          lastFrameIdx.current = idx;
-          agentsRef.current = trajectories[key] as typeof agentsRef.current;
-          if (jumped) displayPosRef.current = {};
-        }
-      }
-    }
-
-    const agents = agentsRef.current;
-    const ids = Object.keys(agents);
-    const t = 1 - Math.exp(-LERP_SPEED * delta);
-
-    // Partition by type
-    const stdIds: string[] = [];
-    const specIds: string[] = [];
-    for (const id of ids) {
-      if (agents[id].type === "specialist") specIds.push(id);
-      else stdIds.push(id);
-    }
-
-    // Conflict zone check (squared distance, no sqrt)
-    const inConflict = (x: number, z: number): boolean => {
-      for (const [vx, vz] of violationXZ) {
-        const dx = x - vx;
-        const dz = z - vz;
-        if (dx * dx + dz * dz <= CONFLICT_ZONE_RADIUS_SQ) return true;
-      }
-      return false;
-    };
-
-    // Update standard InstancedMesh
-    if (standardRef.current) {
-      standardRef.current.count = stdIds.length;
-      for (let i = 0; i < stdIds.length; i++) {
-        const id = stdIds[i];
-        const agent = agents[id];
-        const targetX = agent.pos[0];
-        const targetZ = -agent.pos[1];
-
-        if (!displayPosRef.current[id]) displayPosRef.current[id] = [targetX, targetZ];
-        const prev = displayPosRef.current[id];
-        const nx = prev[0] + (targetX - prev[0]) * t;
-        const nz = prev[1] + (targetZ - prev[1]) * t;
-        displayPosRef.current[id] = [nx, nz];
-
-        tempMatrix.makeTranslation(nx, 0.05, nz);
-        standardRef.current.setMatrixAt(i, tempMatrix);
-
-        tempColor.copy(inConflict(nx, nz) ? _conflictColor : _standardColor);
-        standardRef.current.setColorAt(i, tempColor);
-      }
-      standardRef.current.instanceMatrix.needsUpdate = true;
-      if (standardRef.current.instanceColor)
-        standardRef.current.instanceColor.needsUpdate = true;
-    }
-
-    // Update specialist InstancedMesh
-    if (specialistRef.current) {
-      specialistRef.current.count = specIds.length;
-      for (let i = 0; i < specIds.length; i++) {
-        const id = specIds[i];
-        const agent = agents[id];
-        const targetX = agent.pos[0];
-        const targetZ = -agent.pos[1];
-
-        if (!displayPosRef.current[id]) displayPosRef.current[id] = [targetX, targetZ];
-        const prev = displayPosRef.current[id];
-        const nx = prev[0] + (targetX - prev[0]) * t;
-        const nz = prev[1] + (targetZ - prev[1]) * t;
-        displayPosRef.current[id] = [nx, nz];
-
-        tempMatrix.makeTranslation(nx, 0.05, nz);
-        specialistRef.current.setMatrixAt(i, tempMatrix);
-
-        tempColor.copy(inConflict(nx, nz) ? _conflictColor : _specialistColor);
-        specialistRef.current.setColorAt(i, tempColor);
-      }
-      specialistRef.current.instanceMatrix.needsUpdate = true;
-      if (specialistRef.current.instanceColor)
-        specialistRef.current.instanceColor.needsUpdate = true;
-    }
-  });
+  if (!trajectories) return null;
 
   return (
     <group>
-      <instancedMesh
-        ref={standardRef}
-        args={[_standardGeo, undefined!, MAX_AGENTS]}
-        frustumCulled={false}
-      >
-        <meshStandardMaterial color="#ffffff" />
-      </instancedMesh>
-      <instancedMesh
-        ref={specialistRef}
-        args={[_specialistGeo, undefined!, MAX_AGENTS]}
-        frustumCulled={false}
-      >
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#eab308"
-          emissiveIntensity={0.6}
-          toneMapped={false}
+      {allAgentIds.map((id) => (
+        <WalkingAgent
+          key={id}
+          id={id}
+          trajectories={trajectories}
+          frameRef={frameRef}
+          frameKeys={frameKeys}
+          violations={violations}
         />
-      </instancedMesh>
+      ))}
     </group>
   );
 }
@@ -733,8 +776,76 @@ function HeatmapOverlay({
   );
 }
 
-// Note: the main SimViewer component is defined at the end to ensure all sub-components are available. 
-// SimViewer — public component
+// PaintedAreas — renders highlighted cells for all roles
+function PaintedAreas({ roles, spacing }: { roles: RoleConfig[]; spacing: number }) {
+  const cells = useMemo(() => {
+    return roles.flatMap((role) =>
+      role.areas.map(([x, y]) => ({
+        id: `${role.id}-${x}-${y}`,
+        position: [x, 0.01, -y] as [number, number, number],
+        color: role.color,
+      }))
+    );
+  }, [roles]);
+
+  return (
+    <group>
+      {cells.map((cell) => (
+        <mesh key={cell.id} position={cell.position} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[spacing * 0.9, spacing * 0.9]} />
+          <meshBasicMaterial color={cell.color} transparent opacity={0.6} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// GridPainter — invisible interactive surface to capture clicks for painting
+function GridPainter({
+  boundaries,
+  spacing,
+  onPaint,
+}: {
+  boundaries: number[][];
+  spacing: number;
+  onPaint: (x: number, y: number) => void;
+}) {
+  // Create a large interactive plane that covers the building bounds
+  const plane = useMemo(() => {
+    if (boundaries.length === 0) return null;
+    const xs = boundaries.map((p) => p[0]);
+    const ys = boundaries.map((p) => p[1]);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const width = (maxX - minX) * 2 + 20;
+    const height = (maxY - minY) * 2 + 20;
+    const cx = (minX + maxX) / 2;
+    const cz = -(minY + maxY) / 2;
+    return { width, height, position: [cx, 0.005, cz] as [number, number, number] };
+  }, [boundaries]);
+
+  if (!plane) return null;
+
+  return (
+    <mesh
+      position={plane.position}
+      rotation={[-Math.PI / 2, 0, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        const { x, z } = e.point;
+        // Snap to grid based on spacing
+        const gridX = Math.round(x / spacing) * spacing;
+        const gridY = Math.round(-z / spacing) * spacing;
+        onPaint(gridX, gridY);
+      }}
+    >
+      <planeGeometry args={[plane.width, plane.height]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
 
 interface SimViewerProps {
   boundaries: number[][];              // buffered (for navigation)
@@ -777,13 +888,43 @@ export default function SimViewer({
   showHeatmap = false,
   onToggleHeatmap,
   viewMode = "3d",
+  roles = [],
+  setRoles,
+  activeRoleId,
 }: SimViewerProps) {
-  const isProcessing = phase === "simulating" || phase === "uploading";
+  const isProcessing = phase === "uploading";
+  const isConfiguring = phase === "configuring";
   const hasModel = !!(modelUrl && modelFormat);
   const controlsRef = useRef<any>(null);
 
   // Use raw boundaries for rendering (exact wall positions), fall back to buffered
   const renderBounds = rawBoundaries?.length > 0 ? rawBoundaries : boundaries;
+
+  // Fixed spacing for painting to match backend logic (1.0m cells)
+  const paintSpacing = 1.0;
+
+  // Adaptive spacing logic (only for BoundaryGrid visual lines)
+  const gridSpacing = useMemo(() => {
+    if (renderBounds.length < 3) return 1;
+    const xs = renderBounds.map(p => p[0]);
+    const ys = renderBounds.map(p => p[1]);
+    const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1);
+    return span < 5 ? 0.5 : span < 20 ? 1 : 2;
+  }, [renderBounds]);
+
+  const handleCellToggle = (x: number, y: number) => {
+    if (!activeRoleId || !setRoles) return;
+    setRoles(prev => prev.map(role => {
+      if (role.id !== activeRoleId) return role;
+      
+      const exists = role.areas.some(a => Math.abs(a[0] - x) < 0.1 && Math.abs(a[1] - y) < 0.1);
+      const newAreas = exists 
+        ? role.areas.filter(a => !(Math.abs(a[0] - x) < 0.1 && Math.abs(a[1] - y) < 0.1))
+        : [...role.areas, [x, y]];
+      
+      return { ...role, areas: newAreas };
+    }));
+  };
 
   return (
     <div className="relative w-full h-full">
@@ -796,20 +937,30 @@ export default function SimViewer({
         <directionalLight position={[5, 10, 5]} intensity={1.0} castShadow />
         <hemisphereLight args={["#334155", "#0f172a", 0.3]} />
 
-        {/* 3D Model — when uploaded, this IS the visual.
-            No blue floor/wall overlay is rendered on top. */}
+        {/* 3D Model or Fallback Walls */}
         {hasModel ? (
           <ModelRenderer url={modelUrl} format={modelFormat} centerOffset={centerOffset} />
         ) : (
           <>
-            {/* Fallback: boundary-derived floor and walls when no 3D model */}
             <FloorPlane boundaries={renderBounds} />
             <Walls boundaries={renderBounds} />
             {obstacles.length > 0 && <ObstacleWalls obstacles={obstacles} />}
           </>
         )}
 
-        {/* Agents (InstancedMesh) */}
+        {/* Painted Areas (Role-based) */}
+        <PaintedAreas roles={roles} spacing={paintSpacing} />
+
+        {/* Interactive Grid (only when painting) */}
+        {isConfiguring && activeRoleId && (
+          <GridPainter 
+            boundaries={renderBounds} 
+            spacing={paintSpacing} 
+            onPaint={handleCellToggle} 
+          />
+        )}
+
+        {/* Agents */}
         <AgentSwarm
           trajectories={trajectories}
           frameRef={frameRef}
@@ -882,9 +1033,7 @@ export default function SimViewer({
           <div className="flex flex-col items-center gap-3 rounded-xl bg-zinc-900/80 px-8 py-6 border border-zinc-700">
             <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
             <p className="text-sm font-medium text-zinc-300">
-              {phase === "simulating"
-                ? "Calculating Physics…"
-                : "Processing Model…"}
+              Processing Model…
             </p>
           </div>
         </div>
