@@ -16,6 +16,7 @@ import io
 
 from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
 from app.database import get_db
+from app.auth import get_current_user
 from app.models.db_models import Project, ChatHistory
 from app.services.geometry import LayoutSolver
 from app.services.claude_intent import IntentParser
@@ -86,6 +87,38 @@ class CadQueryResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Endpoint — List User Projects
+# ---------------------------------------------------------------------------
+
+
+@router.get("/projects")
+async def list_projects(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Return all projects belonging to the authenticated user.
+    """
+    projects = (
+        db.query(Project)
+        .filter(Project.user_id == user_id)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
+    return {
+        "projects": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in projects
+        ]
+    }
+
+
+# ---------------------------------------------------------------------------
 # Endpoint — Floor Plan Generation
 # ---------------------------------------------------------------------------
 
@@ -94,6 +127,7 @@ class CadQueryResponse(BaseModel):
 async def generate_floorplan(
     request: GenerateRequest,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Generate a floor plan from a natural language description.
@@ -154,6 +188,7 @@ async def generate_floorplan(
 
         # 3. Persist project
         project = Project(
+            user_id=user_id,
             name=f"Plan — {room_names[0] if room_names else 'Custom'}",
             description=request.prompt,
             floorplan_data=floorplan_dict,
@@ -197,6 +232,7 @@ async def generate_floorplan(
 async def extract_floorplan(
     request: ExtractRequest,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Extract a floor plan from an uploaded file (Image/PDF/DXF).
@@ -272,6 +308,7 @@ async def extract_floorplan(
 
         # 3. Persist project
         project = Project(
+            user_id=user_id,
             name=f"Extracted Plan — {request.file_name}",
             description=f"Extracted from {request.file_name}",
             floorplan_data=floorplan_dict,
@@ -322,6 +359,7 @@ async def extract_floorplan(
 async def generate_threejs(
     request: ModelRequest,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Generate a Three.js JSON mesh description from a persisted project.
@@ -353,6 +391,7 @@ async def generate_threejs(
 async def generate_cadquery(
     request: ModelRequest,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Generate a CadQuery Python script from a persisted project.

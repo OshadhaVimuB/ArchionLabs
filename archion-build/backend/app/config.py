@@ -13,8 +13,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load .env file from the backend root
 load_dotenv(BASE_DIR / ".env")
 
-# Database
+# Database — set to Supabase Postgres connection string in production
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'archion.db'}")
+
+# Supabase JWT Secret — used to verify access tokens from the frontend
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 
 # CORS
 CORS_ORIGINS = os.getenv(

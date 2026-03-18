@@ -19,6 +19,9 @@ CORS_ORIGINS: list[str] = os.getenv(
 
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./archion_viewer.db")
 
+# Supabase JWT Secret — used to verify access tokens from the frontend
+SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "")
+
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 

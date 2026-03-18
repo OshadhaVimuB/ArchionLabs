@@ -5,8 +5,7 @@ SQLAlchemy ORM models for database persistence.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Text, DateTime, Integer
-from sqlalchemy.dialects.sqlite import JSON
+from sqlalchemy import Column, String, Text, DateTime, Integer, JSON
 
 from app.database import Base
 
@@ -24,6 +23,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, nullable=True, index=True)  # Supabase auth user UUID
     name = Column(String(255), nullable=False, default="Untitled Project")
     description = Column(Text, nullable=True)
     floorplan_data = Column(JSON, nullable=True)  # Serialized FloorPlan JSON

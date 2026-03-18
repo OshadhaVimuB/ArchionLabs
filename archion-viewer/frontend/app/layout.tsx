@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Archion Viewer - 3D Floor Plan Viewer",
+  title: "Archion Viewer | ArchionLabs",
   description: "Interactive 3D floor plan visualization with Archion",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
