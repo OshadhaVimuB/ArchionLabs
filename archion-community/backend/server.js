@@ -117,7 +117,10 @@ app.post("/upload-model", upload.fields([
         author: req.body.author || "Unknown",
         modelUrl: "/models/" + modelFile.filename,
         thumbnailUrl: thumbnailUrl,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+
+       likes: 0,
+       views: 0
       };
 
       templates.push(newTemplate);
