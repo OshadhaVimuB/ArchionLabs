@@ -145,7 +145,7 @@ async function handleLike(e) {
 
             
 
-            <span>👁 0</span>
+            <span>👁 {template.views||0}</span>
 
           </div>
 
