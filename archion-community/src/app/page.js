@@ -15,30 +15,25 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [filter, setFilter] = useState("recent");
 
+  // 🔄 LOAD TEMPLATES
   useEffect(() => {
-
-  async function loadTemplates() {
-    try{
-      const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
-      const data = await res.json();
-      console.log("Loaded templates:", data);
-      setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to load templates:", error);
-      setTemplates([]);
+    async function loadTemplates() {
+      try {
+        const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
+        const data = await res.json();
+        setTemplates(data.templates || []);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+        setTemplates([]);
+      }
     }
 
+    loadTemplates();
+  }, [page]);
 
-  }
-
-  loadTemplates();
-
-}, [page]);
-
+  // 🗑 DELETE FUNCTION
   const handleDelete = async () => {
-
     if (deleteMode) {
-
       for (let id of selectedIds) {
         await fetch(`http://localhost:5000/templates/${id}`, {
           method: "DELETE"
@@ -55,51 +50,49 @@ export default function Home() {
     } else {
       setDeleteMode(true);
     }
-
-    let filteredTemplates = [...templates];
-
-// 🔍 search filter
-if (searchTerm) {
-  filteredTemplates = filteredTemplates.filter((t) =>
-    t.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-}
-
-// 📅 date filter
-if (selectedDate) {
-  filteredTemplates = filteredTemplates.filter((t) =>
-    t.createdAt.startsWith(selectedDate)
-  );
-}
-
-// ⭐ sorting filters
-if (filter === "top") {
-  filteredTemplates.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-}
-
-if (filter === "recent") {
-  filteredTemplates.sort(
-    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-  );
-}
-
-if (filter === "trending") {
-  filteredTemplates.sort((a, b) => {
-    const scoreA =
-      (a.likes || 0) -
-      (Date.now() - new Date(a.createdAt)) / 10000000;
-
-    const scoreB =
-      (b.likes || 0) -
-      (Date.now() - new Date(b.createdAt)) / 10000000;
-
-    return scoreB - scoreA;
-  });
-}
-
-
-
   };
+
+  // 🔥 FILTERING LOGIC (CORRECT PLACE)
+  let filteredTemplates = [...templates];
+
+  // 🔍 Search
+  if (searchTerm) {
+    filteredTemplates = filteredTemplates.filter((t) =>
+      t.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  // 📅 Date filter
+  if (selectedDate) {
+    filteredTemplates = filteredTemplates.filter((t) =>
+      t.createdAt.startsWith(selectedDate)
+    );
+  }
+
+  // ⭐ Sorting
+  if (filter === "Top") {
+    filteredTemplates.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+  }
+
+  if (filter === "Recent") {
+    filteredTemplates.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }
+
+  if (filter === "Trending") {
+    filteredTemplates.sort((a, b) => {
+      const scoreA =
+        (a.likes || 0) -
+        (Date.now() - new Date(a.createdAt)) / 10000000;
+
+      const scoreB =
+        (b.likes || 0) -
+        (Date.now() - new Date(b.createdAt)) / 10000000;
+
+      return scoreB - scoreA;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
@@ -121,14 +114,14 @@ if (filter === "trending") {
       {/* BUTTON SECTION */}
       <div className="flex justify-between items-center px-8 mt-6 mb-6">
 
-        {/* LEFT SIDE */}
+        {/* Upload */}
         <Link href="/upload">
           <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-white">
             + Upload Template
           </button>
         </Link>
 
-        {/* RIGHT SIDE */}
+        {/* Delete */}
         <button
           onClick={handleDelete}
           className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
@@ -142,7 +135,7 @@ if (filter === "trending") {
       <div className="px-8">
 
         <TemplateGrid
-          templates={filteredTemplates}
+          templates={filteredTemplates}  // ✅ FIXED
           searchTerm={searchTerm}
           deleteMode={deleteMode}
           selectedIds={selectedIds}
@@ -150,27 +143,29 @@ if (filter === "trending") {
           filter={filter}
         />
 
+        {/* PAGINATION */}
         <div className="flex justify-center gap-4 mt-10">
-<button onClick={() => setPage(page-1)}disabled={page === 1}
-  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
->
-  Previous
-</button>
 
-<span className="px-4 py-2 text-zinc-300">
-  Page {page}
-</span>
-Next
+          <button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+          >
+            Previous
+          </button>
 
-<button onClick={() => setPage(page+1)}
-  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
->
-  Next
-</button>
+          <span className="px-4 py-2 text-zinc-300">
+            Page {page}
+          </span>
 
-</div>
-        
+          <button
+            onClick={() => setPage(page + 1)}
+            className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+          >
+            Next
+          </button>
 
+        </div>
 
       </div>
 

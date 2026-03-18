@@ -47,4 +47,11 @@ node_modules/
 
 models/
 
+*.zip/
+
+thumbnails/
+
+TemplateCard.jsx/
+
+page.js/
 

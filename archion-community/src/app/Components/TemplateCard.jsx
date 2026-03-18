@@ -9,7 +9,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
   const [timeAgo, setTimeAgo] = useState("");
 
   // ❤️ Like system
-  const [likes, setLikes] = useState(template.likes || 42);
+  const [likes, setLikes] = useState(template.likes || 0);
   const [liked, setLiked] = useState(false);
 
   // correct download URL
@@ -139,7 +139,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
 
             
 
-            <span>👁 120</span>
+            <span>👁 0</span>
 
           </div>
 
