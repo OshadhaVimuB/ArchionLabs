@@ -137,6 +137,22 @@ app.post("/templates/:id/like", async (req, res) => {
     res.status(500).json({ error: "Like failed" });
   }
 });
+app.post("/templates/:id/view", async (req, res) => {
+  try {
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    res.status(500).json({ error: "View update failed" });
+  }
+});
+
+
 
 
 
