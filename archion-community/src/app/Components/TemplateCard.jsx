@@ -48,15 +48,21 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     return () => clearInterval(interval);
   }, [template.createdAt]);
 
-  function handleLike(e){
-    e.stopPropagation();
-    if(liked){
-      setLikes(likes - 1);
-    }else{
-      setLikes(likes + 1);
-    }
-    setLiked(!liked);
+async function handleLike(e) {
+  e.stopPropagation();
+
+  try {
+    const res = await fetch(`http://localhost:5000/templates/${template._id}/like`, {
+      method: "POST"
+    });
+
+    const data = await res.json();
+    setLikes(data.likes);
+
+  } catch (err) {
+    console.error(err);
   }
+}
 
   return (
     <div className="relative">
@@ -64,12 +70,12 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
       {deleteMode && (
         <input
           type="checkbox"
-          checked={selectedIds.includes(template.id)}
+          checked={selectedIds.includes(template._id)}
           onChange={(e) => {
             if (e.target.checked) {
-              setSelectedIds([...selectedIds, template.id]);
+              setSelectedIds([...selectedIds, template._id]);
             } else {
-              setSelectedIds(selectedIds.filter(id => id !== template.id));
+              setSelectedIds(selectedIds.filter(id => id !== template._id));
             }
           }}
         />
@@ -77,7 +83,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
 
       <div className="relative bg-zinc-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 cursor-pointer">
 
-        <Link href={`/model/${template.id}`} className="block">
+        <Link href={`/model/${template._id}`} className="block">
 
   <div
     className="h-48 bg-zinc-700 overflow-hidden"
@@ -128,7 +134,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
             <button
   onClick={(e) => {
     e.stopPropagation();
-    window.location.href = `/edit/${template.id}`;
+    window.location.href = `/edit/${template._id}`;
   }}
   className="text-xs bg-yellow-500 px-2 py-1 rounded"
 >
