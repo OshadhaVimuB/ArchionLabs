@@ -51,8 +51,8 @@ export default function Controls({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canRun = phase === "processing";
-  const canPlay = phase === "completed" && totalFrames > 0;
-  const isWorking = phase === "uploading" || phase === "simulating";
+  const canPlay = (phase === "completed" || phase === "simulating") && totalFrames > 0;
+  const isWorking = phase === "uploading";
 
   const formatTime = (f: number) => {
     const secs = f / 10;

@@ -28,21 +28,28 @@ class ComplianceChecker:
         with open(_REGULATIONS_PATH) as f:
             self._data = json.load(f)
 
-        valid_types = list(self._data["building_types"].keys())
-        if building_type not in valid_types:
-            raise ValueError(
-                f"Unknown building type '{building_type}'. Valid: {valid_types}"
-            )
+        # Construct the key based on the selected building type (e.g., "hospital_rules")
+        rule_key = f"{building_type}_rules"
+        
+        # Fallback to residential if the type doesn't exist in JSON
+        if rule_key not in self._data:
+            print(f"[Compliance] Warning: '{rule_key}' not found. Falling back to residential_rules.")
+            rule_key = "residential_rules"
+            self.building_type = "residential"
+        else:
+            self.building_type = building_type
 
-        self.building_type = building_type
-        self.regs = self._data["building_types"][building_type]
-        self.scoring = self._data["compliance_scoring"]
-        self.sim_params = self._data.get("simulation_parameters", {})
+        # Extract only the relevant rules for this specific building type
+        self.regs = self._data[rule_key]
+        
+        # General rules are now stored separately
+        self.scoring = self._data["general_rules"]["compliance_scoring"]
+        self.sim_params = self._data["general_rules"]["simulation_parameters"]
         self._counter = 0
 
-        print(f"[Compliance] Loaded: {self._data['metadata']['standard_name']} "
-              f"v{self._data['metadata']['version']}")
-        print(f"[Compliance] Building type: {building_type}")
+        print(f"[Compliance] Loaded Standard: {self._data['metadata']['standard_name']}")
+        print(f"[Compliance] Active Building Context: {self.building_type.upper()}")
+
 
     # ----- Helpers -----
     def _next_id(self, prefix: str) -> str:

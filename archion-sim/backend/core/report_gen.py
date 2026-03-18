@@ -153,19 +153,50 @@ def _velocity_chart(velocity_timeline: list[dict]) -> Image:
     fig.tight_layout()
     return _fig_to_image(fig, height=60 * mm)
 
-    
-    def _severity_pie_chart(violations: list[dict]) -> Image:
-        """Pie chart of violation counts by severity"""
-    
+def _flow_rate_chart(flow_rate: list[dict]) -> Image:
+    """Line chart of agent flow rate over time."""
+    if not flow_rate:
+        fig, ax = plt.subplots(figsize=(6, 2.5))
+        ax.text(0.5, 0.5, "No data", ha="center", va="center")
+        ax.set_axis_off()
+        return _fig_to_image(fig, height=60 * mm)
+
+    try:
+        times = [float(p.get("time_sec", 0)) for p in flow_rate]
+        rates = [float(p.get("agents_per_minute", 0)) for p in flow_rate]
+
+        fig, ax = plt.subplots(figsize=(6, 2.5))
+        ax.plot(times, rates, color="#10b981", linewidth=1.5, marker="o", markersize=3)
+        avg_rate = sum(rates) / len(rates) if rates else 0
+        ax.axhline(y=avg_rate, color="#eab308", linestyle="--", linewidth=0.8, label="Average flow")
+        
+        ax.set_xlabel("Time (s)", fontsize=9)
+        ax.set_ylabel("Agents/min", fontsize=9)
+        ax.set_title("Agent Flow Rate Over Time", fontsize=11, fontweight="bold")
+        ax.legend(fontsize=7)
+        ax.tick_params(labelsize=8)
+        fig.tight_layout()
+        return _fig_to_image(fig, height=60 * mm)
+    except Exception as e:
+        print(f"[Report] _flow_rate_chart error: {e}")
+        fig, ax = plt.subplots(figsize=(6, 2.5))
+        ax.text(0.5, 0.5, "Error generating chart", ha="center", va="center")
+        ax.set_axis_off()
+        return _fig_to_image(fig, height=60 * mm)
+
+
+def _severity_pie_chart(violations: list[dict]) -> Image:
+    """Pie chart of violation counts by severity"""
     sev_counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for v in violations:
-        s = v.get("severity", "medium")
-        sev_counts[s] = sev_counts.get(s, 0) + 1
+        s = v.get("severity", "medium").lower()
+        if s in sev_counts:
+            sev_counts[s] += 1
 
     labels = [k.title() for k, c in sev_counts.items() if c > 0]
     counts = [c for c in sev_counts.values() if c > 0]
-    colors = ["#DC2626", "#F59E0B", "#EAB308", "#3B82F6"]
-    colors = [c for c, cnt in zip(colors, sev_counts.values()) if cnt > 0]
+    all_colors = ["#DC2626", "#F59E0B", "#EAB308", "#3B82F6"]
+    colors = [all_colors[i] for i, (k, v) in enumerate(sev_counts.items()) if v > 0]
 
     if not counts:
         fig, ax = plt.subplots(figsize=(5, 4))
@@ -174,13 +205,10 @@ def _velocity_chart(velocity_timeline: list[dict]) -> Image:
         return _fig_to_image(fig, width=120 * mm, height=100 * mm)
 
     fig, ax = plt.subplots(figsize=(5, 4))
-    wedges, texts, autotexts = ax.pie(
+    ax.pie(
         counts, labels=labels, colors=colors, autopct="%1.0f%%",
-        startangle=90, textprops={"fontsize": 9},
+        startangle=90, textprops={"fontsize": 9, "fontweight": "bold"}
     )
-    for t in autotexts:
-        t.set_fontweight("bold")
-        t.set_color("white")
     ax.set_title("Violations by Severity", fontsize=12, fontweight="bold")
     fig.tight_layout()
     return _fig_to_image(fig, width=120 * mm, height=100 * mm)
@@ -385,7 +413,11 @@ class ReportGenerator:
         eff = self._analytics.get("efficiency_score", {})
         summ = self._analytics.get("summary", {})
         flow = self._analytics.get("flow_rate", [])
-        avg_flow = sum(p["agents_per_minute"] for p in flow) / len(flow) if flow else 0
+        
+        try:
+            avg_flow = sum(float(p.get("agents_per_minute", 0) or 0) for p in flow) / len(flow) if flow else 0
+        except Exception:
+            avg_flow = 0.0
 
         data = [
             ["Metric", "Value"],
@@ -488,11 +520,11 @@ class ReportGenerator:
         for i, v in enumerate(violations[:15], 1):  # Cap at 15 rows
             rows.append([
                 str(i),
-                v.get("type", "").replace("_", " ").title(),
-                v.get("severity", "").upper(),
-                f"{v.get('measured_value', 0):.2f}",
-                f"{v.get('required_value', 0):.2f}",
-                v.get("regulation", "")[:40],
+                str(v.get("type", "") or "unknown").replace("_", " ").title(),
+                str(v.get("severity", "") or "medium").upper(),
+                f"{float(v.get('measured_value', 0) or 0):.2f}",
+                f"{float(v.get('required_value', 0) or 0):.2f}",
+                str(v.get("regulation", "") or "")[:40],
             ])
 
         col_widths = [10 * mm, 30 * mm, 20 * mm, 22 * mm, 22 * mm, 56 * mm]
@@ -576,10 +608,12 @@ class ReportGenerator:
             sev_color = SEVERITY_COLORS.get(v.get("severity", "medium"), GRAY)
 
             # Violation header
+            # Convert HexColor to HTML hex string (#RRGGBB)
+            html_color = f"#{sev_color.hexval()[2:]}" if hasattr(sev_color, 'hexval') else "#71717a"
             elements.append(Paragraph(
-                f'<font color="{sev_color.hexval()}">[{sev}]</font> {vtype} '
-                f'— Measured: {v.get("measured_value", 0):.2f}m '
-                f'(Required: {v.get("required_value", 0):.2f}m)',
+                f'<font color="{html_color}">[{sev}]</font> {vtype} '
+                f'— Measured: {float(v.get("measured_value", 0)):.2f}m '
+                f'(Required: {float(v.get("required_value", 0)):.2f}m)',
                 rec_title,
             ))
             elements.append(Spacer(1, 2 * mm))
@@ -706,7 +740,7 @@ class ReportGenerator:
 
         return elements
 
-    # Recoomendations Summary - Page 7
+    # Recommendations Summary - Page 7
     def _recommendations_summary(self) -> list:
         elements: list = []
         elements.append(Paragraph("Recommendations Summary", self._s["h1"]))
@@ -846,11 +880,11 @@ class ReportGenerator:
 
         data = [
             ["Metric", "Value"],
-            ["Average Velocity", f"{summ.get('avg_velocity_ms', 0):.2f} m/s"],
-            ["Peak Congestion", f"{summ.get('peak_congestion_pct', 0):.1f}%"],
-            ["Congestion Index", f"{cong.get('percentage', 0):.1f}%"],
-            ["Path Efficiency", f"{eff.get('average', 0) * 100:.1f}%"],
-            ["Total Distance (all agents)", f"{summ.get('total_distance_m', 0):.0f} m"],
+            ["Average Velocity", f"{float(summ.get('avg_velocity_ms', 0) or 0):.2f} m/s"],
+            ["Peak Congestion", f"{float(summ.get('peak_congestion_pct', 0) or 0):.1f}%"],
+            ["Congestion Index", f"{float(cong.get('percentage', 0) or 0):.1f}%"],
+            ["Path Efficiency", f"{float(eff.get('average', 0) or 0) * 100:.1f}%"],
+            ["Total Distance (all agents)", f"{float(summ.get('total_distance_m', 0) or 0):.0f} m"],
         ]
         t = Table(data, colWidths=[80 * mm, 80 * mm])
         t.setStyle(TableStyle([

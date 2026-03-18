@@ -166,14 +166,17 @@ export default function Home() {
       es.addEventListener("frame", (e: MessageEvent) => {
         const payload = JSON.parse(e.data) as { frame: number; agents: Record<string, AgentFrame> };
 
-        // ⚡ Only keep the LATEST frame — no accumulation, no spread, no GC pressure
-        // Store as key "0" so the viewer always reads from frame 0 (current live position)
-        setTrajectories({ "0": payload.agents });
-        scrubTo(0);
+        // ⚡ Accumulate frames for real-time visualization
+        setTrajectories((prev) => ({
+          ...(prev || {}),
+          [payload.frame.toString()]: payload.agents,
+        }));
+        
+        // Update current frame to the latest one received
+        scrubTo(payload.frame);
 
         if (!firstFrameReceived) {
           firstFrameReceived = true;
-          // Note: Keep phase as "simulating". We set "completed" only when it's done.
         }
       });
 
@@ -385,8 +388,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Building type selector — shown when ready to simulate */}
-          {phase === "processing" && (
+          {/* Building type selector — shown during configuration */}
+          {phase === "configuring" && (
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-card/90 backdrop-blur-md px-3 py-2">
               <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
                 Building Type
@@ -397,7 +400,7 @@ export default function Home() {
                 className="rounded bg-secondary border border-border text-xs text-secondary-foreground px-2 py-1 focus:outline-none focus:border-primary"
               >
                 <option value="residential">Residential</option>
-                <option value="public_buildings">Public Buildings</option>
+                <option value="office">Office</option>
                 <option value="hospital">Hospital</option>
                 <option value="educational">Educational</option>
                 <option value="commercial">Commercial</option>

@@ -126,8 +126,8 @@ class AnalyticsEngine:
                 "slow_threshold_ms": SLOW_THRESHOLD,
             }
 
-# Efficiency score
-def _compute_efficiency_score(self) -> dict:
+    # Efficiency score
+    def _compute_efficiency_score(self) -> dict:
         """Compare ideal path length vs actual path taken."""
         if self._n_frames < 2 or self._n_agents == 0:
             return {"average": 0.0, "per_agent": []}
@@ -155,9 +155,8 @@ def _compute_efficiency_score(self) -> dict:
             "per_agent": per_agent,
         }
 
-# Density heatmap
-
-def _compute_density_heatmap(self) -> dict:
+    # Density heatmap
+    def _compute_density_heatmap(self) -> dict:
         """Generate 2D density grid using histogram2d + gaussian blur."""
         if self._n_frames == 0 or self._n_agents == 0:
             return {"grid": [], "bounds": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
@@ -214,8 +213,8 @@ def _compute_density_heatmap(self) -> dict:
             "max_density": round(float(max_val), 1),
         }
 
-# Congestion timeline
-def _compute_congestion_timeline(self) -> list[dict]:
+    # Congestion timeline
+    def _compute_congestion_timeline(self) -> list[dict]:
         """Congestion percentage per 5-second window."""
         if self._velocities.size == 0:
             return []
@@ -238,8 +237,8 @@ def _compute_congestion_timeline(self) -> list[dict]:
 
         return results
 
-# Velocity timeline
-def _compute_velocity_timeline(self) -> list[dict]:
+    # Velocity timeline
+    def _compute_velocity_timeline(self) -> list[dict]:
         """Average velocity per 1-second bucket."""
         if self._velocities.size == 0:
             return []
@@ -261,8 +260,8 @@ def _compute_velocity_timeline(self) -> list[dict]:
 
         return results
 
-# summary
-def _compute_summary(self) -> dict:
+    # summary
+    def _compute_summary(self) -> dict:
         """Aggregate summary metrics."""
         sim_duration = self._n_frames / SIM_HZ if self._n_frames > 0 else 0
 
@@ -294,8 +293,8 @@ def _compute_summary(self) -> dict:
             "floor_area_sqm": round(self._floor_area, 2),
         }
 
-# Main Entry Point
-def compute_all(self) -> dict:
+    # Main Entry Point
+    def compute_all(self) -> dict:
         """Run all analytics and return the full result dict."""
         flow_rate = self._compute_flow_rate()
         congestion = self._compute_congestion_index()
