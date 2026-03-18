@@ -71,10 +71,13 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-md">
         {/* Logo & Branding */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
-            Archion<span className="text-neutral-500">Labs</span>
-          </h1>
+        <div className="text-center mb-10 flex flex-col items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/Assets/Logo.svg" 
+            alt="ArchionLabs" 
+            className="h-10 md:h-12 w-auto mb-4" 
+          />
           <p className="text-neutral-500 text-sm">
             AI-Powered Architecture & 3D Modeling
           </p>

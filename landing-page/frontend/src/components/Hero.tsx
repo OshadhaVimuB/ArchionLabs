@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ArrowRight } from "@phosphor-icons/react";
+import Link from "next/link";
 
 export default function Hero() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -52,9 +53,9 @@ export default function Hero() {
             <a href="#team-section" className="hover:opacity-70 transition-opacity whitespace-nowrap">Team</a>
           </div>
           <div className="nav-item shrink-0">
-            <button className="bg-white/90 backdrop-blur-md text-black px-4 py-2 md:px-5 lg:px-6 md:py-3 rounded-full text-[10px] lg:text-xs font-bold uppercase tracking-wider hover:bg-white transition-colors shadow-lg whitespace-nowrap">
+            <Link href="/login" className="bg-white/90 backdrop-blur-md text-black px-4 py-2 md:px-5 lg:px-6 md:py-3 rounded-full text-[10px] lg:text-xs font-bold uppercase tracking-wider hover:bg-white transition-colors shadow-lg whitespace-nowrap">
               Start Building
-            </button>
+            </Link>
           </div>
         </nav>
 
@@ -69,9 +70,9 @@ export default function Hero() {
             <p className="hero-title text-sm sm:text-base md:text-xl opacity-80 mb-8 md:mb-10 max-w-xl font-light leading-relaxed">
               Transform static floor plans into intelligent 3D spaces in seconds. Built specifically for boundary-pushing architects.
             </p>
-            <button className="hero-title bg-white text-black px-6 py-3 md:px-8 md:py-4 rounded-full text-xs md:text-sm font-bold hover:scale-105 transition-transform duration-300 flex items-center gap-2 w-max shadow-[0_0_40px_rgba(255,255,255,0.25)] group">
+            <Link href="/login" className="hero-title bg-white text-black px-6 py-3 md:px-8 md:py-4 rounded-full text-xs md:text-sm font-bold hover:scale-105 transition-transform duration-300 flex items-center gap-2 w-max shadow-[0_0_40px_rgba(255,255,255,0.25)] group">
               Get a demo <ArrowRight weight="bold" className="text-lg group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>
