@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "ArchionLabs | AI-Powered Architecture & 3D Modeling",
   description: "Transform static 2D floor plans into intelligent 3D spaces in seconds. ArchionLabs offers AI-driven architectural modeling, movement simulation, and real-time browser collaboration.",
   keywords: "AI architecture, 2D to 3D floor plans, architectural movement simulation, AI for architects, 3D modeling automation, BIM software alternative, ArchionLabs",
+  icons: {
+    icon: "/Assets/favicon.svg",
+  },
   openGraph: {
     title: "ArchionLabs | AI-Powered Architecture & 3D Modeling",
     description: "Transform static 2D floor plans into intelligent 3D spaces in seconds. Built specifically for boundary-pushing architects.",

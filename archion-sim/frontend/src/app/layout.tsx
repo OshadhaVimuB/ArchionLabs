@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Archion Sim — Building Compliance & Analytics",
+    title: "Archion Sim | ArchionLabs",
     description: "AI-powered building compliance simulation and analysis platform",
+    icons: {
+        icon: "/favicon.svg",
+    },
 };
 
 export default function RootLayout({
