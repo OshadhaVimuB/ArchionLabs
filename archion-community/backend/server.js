@@ -122,6 +122,24 @@ app.post("/upload-model", upload.fields([
     res.status(500).json({ error: "Upload failed" });
   }
 });
+
+app.post("/templates/:id/like", async (req, res) => {
+  try {
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    res.status(500).json({ error: "Like failed" });
+  }
+});
+
+
+
 app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
   try {
     const updateData = {};
