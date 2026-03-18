@@ -1,3 +1,4 @@
+require("./db");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
@@ -91,6 +92,7 @@ app.post("/upload-model", upload.fields([
   try {
 
     const modelFile = req.files["model"]?.[0];
+    
 
     if (!modelFile) {
       return res.status(400).json({ error: "Model required" });
