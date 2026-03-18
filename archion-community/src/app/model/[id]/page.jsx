@@ -25,6 +25,17 @@ export default function ModelPage() {
     method: "POST"
   });
 }, []);
+useEffect(() => {
+  if (!id) return;
+
+  fetch(`http://localhost:5000/templates/${id}/view`, {
+    method: "POST"
+  })
+  .then(res => res.json())
+  .then(data => console.log("View updated:", data))
+  .catch(err => console.error(err));
+
+}, [id]);
 
   if (!template) {
     return (
