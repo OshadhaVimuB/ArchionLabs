@@ -64,35 +64,39 @@ export default function Home() {
 
   // 📅 Date filter
   if (selectedDate) {
-    filteredTemplates = filteredTemplates.filter((t) =>
-      t.createdAt.startsWith(selectedDate)
-    );
+    filteredTemplates = filteredTemplates.filter((t) =>{
+       return new Date(t.createdAt).toDateString() === selectedDate.toDateString();
+    
+
+    });
+      
   }
 
   // ⭐ Sorting
   if (filter === "Top") {
-    filteredTemplates.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-  }
-
-  if (filter === "Recent") {
-    filteredTemplates.sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-  }
-
+  filteredTemplates = filteredTemplates
+    .filter(t => (t.likes || 0) > 0) // only liked
+    .sort((a, b) => (b.likes || 0) - (a.likes || 0));
+}
   if (filter === "Trending") {
-    filteredTemplates.sort((a, b) => {
-      const scoreA =
-        (a.likes || 0) -
-        (Date.now() - new Date(a.createdAt)) / 10000000;
+  filteredTemplates = filteredTemplates
+    .filter(t => (t.views || 0) > 0)
+    .sort((a, b) => (b.views || 0) - (a.views || 0));
+}
 
-      const scoreB =
-        (b.likes || 0) -
-        (Date.now() - new Date(b.createdAt)) / 10000000;
+  
+  
+  if (filter === "Recent") {
+  const now = new Date();
 
-      return scoreB - scoreA;
-    });
-  }
+  filteredTemplates = filteredTemplates
+    .filter(t => {
+      const diff = now - new Date(t.createdAt);
+      return diff < 7 * 24 * 60 * 60 * 1000; // last 7 days
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+ 
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
