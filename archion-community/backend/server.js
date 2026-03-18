@@ -47,28 +47,28 @@ let templates = [
 ];
 
 // GET templates
-app.get("/templates", (req, res) => {
+app.get("/templates", async (req, res) => {
 
   const page = parseInt(req.query.page) || 1;
   const limit = 9;
 
   const start = (page - 1) * limit;
-  const end = start + limit;
 
-  const paginatedTemplates = templates.slice(start, end);
+  const templates = await Template.find()
+    .sort({ createdAt: -1 })
+    .skip(start)
+    .limit(limit);
+
+  const total = await Template.countDocuments();
 
   res.json({
-    templates: paginatedTemplates,
-    total: templates.length
+    templates,
+    total
   });
- 
-
 });
-app.get("/templates/:id", (req, res) => {
+app.get("/templates/:id", async(req, res) => {
 
-  const id = parseInt(req.params.id);
-
-  const template = templates.find(t => t.id === id);
+  const template = await Template.findById(req.params.id);
 
   if (!template) {
     return res.status(404).json({ message: "Template not found" });
@@ -78,9 +78,9 @@ app.get("/templates/:id", (req, res) => {
 
 });
 // DELETE template
-app.delete("/templates/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  templates = templates.filter(t => t.id !== id);
+app.delete("/templates/:id", async(req, res) => {
+
+  await Template.findByIdAndDelete(req.params.id);
   res.json({ message: "Deleted successfully" });
 });
 app.post("/upload-model", upload.fields([
