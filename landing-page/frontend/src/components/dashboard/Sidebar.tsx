@@ -42,7 +42,7 @@ export function Sidebar({ user }: { user: any }) {
           {[
             { name: "All projects", icon: Files, href: "/dashboard" },
             { name: "Trash", icon: Trash2, href: "#" },
-            { name: "Settings", icon: Settings, href: "#" },
+            { name: "Settings", icon: Settings, href: "/dashboard/settings" },
           ].map((item) => {
             const isActive = pathname === item.href;
             return (

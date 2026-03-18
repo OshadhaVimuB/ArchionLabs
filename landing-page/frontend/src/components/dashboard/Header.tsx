@@ -87,7 +87,10 @@ export function Header({ user, title = "Portfolio" }: { user: any, title?: strin
               Signed in as<br/>
               <span className="font-medium text-zinc-900 dark:text-zinc-100">{user?.email}</span>
             </div>
-            <DropdownMenuItem className="cursor-pointer py-2 px-2 rounded">
+            <DropdownMenuItem 
+              onClick={() => router.push("/dashboard/settings")}
+              className="cursor-pointer py-2 px-2 rounded"
+            >
               Profile Settings
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer py-2 px-2 rounded">
