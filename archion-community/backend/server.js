@@ -122,30 +122,23 @@ app.post("/upload-model", upload.fields([
     res.status(500).json({ error: "Upload failed" });
   }
 });
-app.put("/templates/:id", upload.single("thumbnail"), (req, res) => {
+app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
+  const updateData = {};
 
-  const id = parseInt(req.params.id);
-  const template = templates.find(t => t.id === id);
+  if (req.body.title) updateData.title = req.body.title;
+  if (req.body.author) updateData.author = req.body.author;
 
-  if (!template) {
-    return res.status(404).json({ message: "Template not found" });
-  }
-
-  // update title
-  if (req.body.title) {
-    template.title = req.body.title;
-  }
-
-  if(req.body.author){
-    template.author = req.body.author;
-  }
-
-  // update thumbnail if new one uploaded
   if (req.file) {
-    template.thumbnailUrl = "/thumbnails/" + req.file.filename;
+    updateData.thumbnailUrl = "/thumbnails/" + req.file.filename;
   }
 
-  res.json(template);
+  const updated = await Template.findByIdAndUpdate(
+    req.params.id,
+    updateData,
+    { new: true }
+  );
+
+  res.json(updated);
 });
 
 
