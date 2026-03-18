@@ -43,9 +43,7 @@ const upload = multer({ storage: storage });
 
 
 
-let templates = [
- 
-];
+
 
 // GET templates
 app.get("/templates", async (req, res) => {
@@ -125,22 +123,29 @@ app.post("/upload-model", upload.fields([
   }
 });
 app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
-  const updateData = {};
+  try {
+    const updateData = {};
 
-  if (req.body.title) updateData.title = req.body.title;
-  if (req.body.author) updateData.author = req.body.author;
+    if (req.body.title) updateData.title = req.body.title;
+    if (req.body.author) updateData.author = req.body.author;
 
-  if (req.file) {
-    updateData.thumbnailUrl = "/thumbnails/" + req.file.filename;
+    if (req.file) {
+      updateData.thumbnailUrl = "/thumbnails/" + req.file.filename;
+    }
+
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Update failed" });
   }
 
-  const updated = await Template.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true }
-  );
-
-  res.json(updated);
 });
 
 
