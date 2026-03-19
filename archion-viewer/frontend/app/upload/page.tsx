@@ -4,7 +4,8 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import FloorPlanUploader from "@/components/FloorPlanUploader";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
-import { Eye, Upload, FileBox, Gauge, Orbit, AlertCircle } from "lucide-react";
+import { Upload, AlertCircle } from "lucide-react";
+import Image from "next/image";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function UploadPage() {
       <div className="max-w-3xl w-full z-10 space-y-10">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center p-3 bg-white text-black rounded-full border border-white/20 mb-2 shadow-sm">
-            <Eye className="w-8 h-8" />
+            <Image src="/favicon.svg" alt="Archion Viewer" width={32} height={32} className="w-8 h-8" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
             Archion Viewer 3D
@@ -60,8 +61,6 @@ export default function UploadPage() {
             </div>
           )}
         </div>
-
-
       </div>
     </div>
   );
