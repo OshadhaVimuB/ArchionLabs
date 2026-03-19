@@ -112,15 +112,15 @@ function SharedModelScene({ config }: { config: ShareConfig }) {
             {loading && (
                 <mesh position={[0, 1, 0]}>
                     <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color="#6366f1" wireframe />
+                    <meshStandardMaterial color="#ffffff" wireframe />
                 </mesh>
             )}
 
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
                 <planeGeometry args={[30, 30]} />
-                <meshStandardMaterial color="#18181b" side={THREE.DoubleSide} />
+                <meshStandardMaterial color="#000000" side={THREE.DoubleSide} />
             </mesh>
-            <gridHelper args={[30, 30, 0x52525b, 0x27272a]} position={[0, 0.01, 0]} />
+            <gridHelper args={[30, 30, 0x333333, 0x222222]} position={[0, 0.01, 0]} />
 
             <OrbitControls
                 makeDefault
@@ -157,27 +157,25 @@ function PasswordScreen({ onSubmit, isLoading, wrongPassword }: PasswordScreenPr
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "#09090b" }}>
+        <div className="min-h-screen flex items-center justify-center p-4 bg-black">
             {/* Background blobs */}
-            <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "40%", height: "40%", background: "rgba(99,102,241,0.08)", filter: "blur(100px)", borderRadius: "50%", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", bottom: "-10%", right: "-10%", width: "40%", height: "40%", background: "rgba(139,92,246,0.08)", filter: "blur(100px)", borderRadius: "50%", pointerEvents: "none" }} />
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-white/5 blur-[100px] rounded-full pointer-events-none" />
 
             <div
-                className="relative max-w-sm w-full rounded-2xl p-8"
-                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}
+                className="relative max-w-sm w-full rounded-2xl p-8 bg-black/80 border border-white/20 backdrop-blur-md shadow-2xl"
             >
-                {/* Top gradient line */}
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899)", borderRadius: "2px 2px 0 0" }} />
+                {/* Top line */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-white rounded-t-2xl" />
 
                 <div className="text-center mb-8">
                     <div
-                        className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                        style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.2)" }}
+                        className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-white/10 border border-white/20"
                     >
-                        <Lock className="w-7 h-7" style={{ color: "#818cf8" }} />
+                        <Lock className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-xl font-bold text-white mb-2">Password Required</h1>
-                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <p className="text-sm text-gray-400">
                         This shared 3D model is password protected. Enter the password provided by the sender.
                     </p>
                 </div>
@@ -190,25 +188,19 @@ function PasswordScreen({ onSubmit, isLoading, wrongPassword }: PasswordScreenPr
                             value={pw}
                             onChange={(e) => setPw(e.target.value)}
                             placeholder="Enter password..."
-                            className="w-full px-4 py-3 rounded-xl text-white text-sm pr-12"
-                            style={{
-                                background: "rgba(255,255,255,0.05)",
-                                border: `1px solid ${wrongPassword ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.12)"}`,
-                                outline: "none",
-                            }}
+                            className={`w-full px-4 py-3 rounded-xl text-white text-sm pr-12 bg-white/5 border ${wrongPassword ? "border-red-500" : "border-white/20"} outline-none focus:border-white focus:ring-1 focus:ring-white`}
                         />
                         <button
                             type="button"
                             onClick={() => setShow(!show)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2"
-                            style={{ color: "rgba(255,255,255,0.35)" }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                         >
                             {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                     </div>
 
                     {wrongPassword && (
-                        <div className="flex items-center gap-2" style={{ color: "#fca5a5" }}>
+                        <div className="flex items-center gap-2 text-red-400">
                             <AlertTriangle className="w-4 h-4 shrink-0" />
                             <p className="text-xs">Incorrect password. Please try again.</p>
                         </div>
@@ -217,14 +209,11 @@ function PasswordScreen({ onSubmit, isLoading, wrongPassword }: PasswordScreenPr
                     <button
                         type="submit"
                         disabled={isLoading || !pw.trim()}
-                        className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
-                        style={{
-                            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                            color: "#fff",
-                            opacity: (isLoading || !pw.trim()) ? 0.5 : 1,
-                            cursor: (isLoading || !pw.trim()) ? "not-allowed" : "pointer",
-                            boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
-                        }}
+                        className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all border border-white/20 ${
+                            (isLoading || !pw.trim()) 
+                                ? "bg-white/10 text-gray-400 cursor-not-allowed" 
+                                : "bg-white text-black hover:bg-gray-200"
+                        }`}
                     >
                         {isLoading ? (
                             <><RefreshCw className="w-4 h-4 animate-spin" /> Verifying...</>
@@ -234,7 +223,7 @@ function PasswordScreen({ onSubmit, isLoading, wrongPassword }: PasswordScreenPr
                     </button>
                 </form>
 
-                <div className="mt-6 flex items-center justify-center gap-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+                <div className="mt-6 flex items-center justify-center gap-2 text-gray-500">
                     <Shield className="w-3 h-3" />
                     <span className="text-xs">Protected by Archion Viewer</span>
                 </div>
@@ -249,30 +238,28 @@ function PasswordScreen({ onSubmit, isLoading, wrongPassword }: PasswordScreenPr
 
 function ExpiredScreen({ status }: { status: "expired" | "notFound" }) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "#09090b" }}>
+        <div className="min-h-screen flex items-center justify-center p-4 bg-black">
             <div
-                className="max-w-sm w-full rounded-2xl p-8 text-center"
-                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
+                className="max-w-sm w-full rounded-2xl p-8 text-center bg-black/80 border border-white/20 shadow-2xl backdrop-blur-md"
             >
                 <div
-                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-red-500/10 border border-red-500/20"
                 >
                     {status === "expired" ? (
-                        <Clock className="w-7 h-7" style={{ color: "#f87171" }} />
+                        <Clock className="w-7 h-7 text-red-500" />
                     ) : (
-                        <AlertTriangle className="w-7 h-7" style={{ color: "#f87171" }} />
+                        <AlertTriangle className="w-7 h-7 text-red-500" />
                     )}
                 </div>
                 <h1 className="text-xl font-bold text-white mb-2">
                     {status === "expired" ? "Link Expired" : "Link Not Found"}
                 </h1>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
+                <p className="text-sm text-gray-400">
                     {status === "expired"
                         ? "This shared model link has expired. Please ask the sender to generate a new share link."
                         : "This share link is invalid or has been revoked. Please check the URL and try again."}
                 </p>
-                <div className="mt-6 flex items-center justify-center gap-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+                <div className="mt-6 flex items-center justify-center gap-2 text-gray-500">
                     <Shield className="w-3 h-3" />
                     <span className="text-xs">Protected by Archion Viewer</span>
                 </div>
@@ -333,10 +320,10 @@ const SharedViewerGate: React.FC<SharedViewerGateProps> = ({ token }) => {
 
     if (phase === "loading") {
         return (
-            <div className="min-h-screen flex items-center justify-center" style={{ background: "#09090b" }}>
+            <div className="min-h-screen flex items-center justify-center bg-black">
                 <div className="text-center">
-                    <div className="inline-block w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>Validating share token…</p>
+                    <div className="inline-block w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin mb-4" />
+                    <p className="text-sm text-gray-400">Validating share token…</p>
                 </div>
             </div>
         );
@@ -358,13 +345,13 @@ const SharedViewerGate: React.FC<SharedViewerGateProps> = ({ token }) => {
 
     if (phase === "allowed" && allowedConfig) {
         return (
-            <div className="relative w-screen h-screen bg-[#09090b] overflow-hidden">
+            <div className="relative w-screen h-screen bg-black overflow-hidden">
                 {/* 3D Viewer */}
                 <Canvas
                     shadows
                     camera={{ position: [10, 10, 10], fov: 50, near: 0.1, far: 1000 }}
                     gl={{ antialias: true }}
-                    style={{ width: "100%", height: "100%", display: "block", background: "#09090b" }}
+                    style={{ width: "100%", height: "100%", display: "block", background: "#000000" }}
                 >
                     <SharedModelScene config={allowedConfig} />
                 </Canvas>
@@ -374,19 +361,17 @@ const SharedViewerGate: React.FC<SharedViewerGateProps> = ({ token }) => {
 
                 {/* Minimal top bar */}
                 <div
-                    className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-3 z-30"
-                    style={{ background: "linear-gradient(to bottom, rgba(9,9,11,0.85), transparent)", pointerEvents: "none" }}
+                    className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-3 z-30 bg-gradient-to-b from-black/85 to-transparent pointer-events-none"
                 >
                     <div className="flex items-center gap-2.5">
                         <div
-                            className="p-1.5 rounded-lg"
-                            style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.2)" }}
+                            className="p-1.5 rounded-lg bg-white/10 border border-white/20"
                         >
-                            <Shield className="w-4 h-4" style={{ color: "#818cf8" }} />
+                            <Shield className="w-4 h-4 text-white" />
                         </div>
                         <div>
                             <p className="text-sm font-bold text-white">{allowedConfig.modelName}</p>
-                            <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            <p className="text-xs text-gray-400">
                                 Shared via Archion Viewer · View only
                             </p>
                         </div>
@@ -395,13 +380,7 @@ const SharedViewerGate: React.FC<SharedViewerGateProps> = ({ token }) => {
 
                 {/* Navigation hint */}
                 <div
-                    className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs z-30 pointer-events-none"
-                    style={{
-                        background: "rgba(9,9,11,0.7)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.45)",
-                        backdropFilter: "blur(8px)",
-                    }}
+                    className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs z-30 pointer-events-none bg-black/70 border border-white/20 text-gray-400 backdrop-blur-md"
                 >
                     Drag to orbit · Scroll to zoom · Right-drag to pan
                 </div>

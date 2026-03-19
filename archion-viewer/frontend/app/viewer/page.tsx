@@ -23,16 +23,16 @@ export default function ViewerPage() {
 
   if (!modelUrl) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
         <div className="text-center space-y-6 max-w-md">
-          <div className="inline-flex items-center justify-center p-4 bg-muted rounded-full text-muted-foreground mb-2">
+          <div className="inline-flex items-center justify-center p-4 bg-white/10 rounded-full text-white mb-2">
             <AlertCircle className="w-12 h-12" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">No Model Loaded</h1>
-          <p className="text-muted-foreground">Please upload a 3D model first.</p>
+          <p className="text-gray-400">Please upload a 3D model first.</p>
           <button
             onClick={() => router.push("/upload")}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mx-auto"
+            className="bg-white text-black hover:bg-gray-200 font-semibold py-3 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mx-auto"
           >
             <Upload className="w-5 h-5" />
             Go to Upload
@@ -43,7 +43,7 @@ export default function ViewerPage() {
   }
 
   return (
-    <div className="relative w-screen h-screen bg-background overflow-hidden text-foreground">
+    <div className="relative w-screen h-screen bg-black overflow-hidden text-white">
       {/* Decorative background elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
@@ -54,29 +54,29 @@ export default function ViewerPage() {
       </div>
 
       {/* Top Control Bar */}
-      <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-background/80 to-transparent z-20 p-4 pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-black/80 to-transparent z-20 p-4 pointer-events-none">
         <div className="flex items-center justify-between max-w-full px-4 pointer-events-auto">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-card border border-border rounded-lg shadow-sm">
-              <Eye className="w-6 h-6 text-primary" />
+            <div className="p-2 bg-black border border-white/20 rounded-lg shadow-sm">
+              <Eye className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground tracking-tight">Archion-Viewer</h1>
-              <p className="text-xs text-muted-foreground font-medium">{modelName || "3D Model"}</p>
+              <h1 className="text-xl font-bold text-white tracking-tight">Archion-Viewer</h1>
+              <p className="text-xs text-gray-400 font-medium">{modelName || "3D Model"}</p>
             </div>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="bg-card/80 backdrop-blur-md border border-border hover:border-muted-foreground/50 text-foreground px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm"
+              className="bg-black/80 backdrop-blur-md border border-white/20 hover:border-white text-white px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm"
               title="Toggle info panel"
             >
               <Info className="w-4 h-4" /> <span className="hidden sm:inline">Info</span>
             </button>
             <button
               onClick={() => setShowControls(!showControls)}
-              className="bg-card/80 backdrop-blur-md border border-border hover:border-muted-foreground/50 text-foreground px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm"
+              className="bg-black/80 backdrop-blur-md border border-white/20 hover:border-white text-white px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm"
               title="Toggle controls guide"
             >
               <Move3d className="w-4 h-4" /> <span className="hidden sm:inline">Controls</span>
@@ -87,8 +87,8 @@ export default function ViewerPage() {
                 if (!annotationMode) setShowAnnotations(true);
               }}
               className={`backdrop-blur-md border px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm ${annotationMode
-                  ? "bg-indigo-500/90 border-indigo-400/50 text-white"
-                  : "bg-card/80 border-border hover:border-muted-foreground/50 text-foreground"
+                  ? "bg-white border-white text-black"
+                  : "bg-black/80 border-white/20 hover:border-white text-white"
                 }`}
               title={annotationMode ? "Exit annotation mode" : "Enter annotation mode"}
             >
@@ -97,14 +97,14 @@ export default function ViewerPage() {
             <button
               onClick={() => setShowAnnotations(!showAnnotations)}
               className={`backdrop-blur-md border px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm relative ${showAnnotations
-                  ? "bg-card border-primary/50 text-foreground"
-                  : "bg-card/80 border-border hover:border-muted-foreground/50 text-foreground"
+                  ? "bg-white/20 border-white text-white"
+                  : "bg-black/80 border-white/20 hover:border-white text-white"
                 }`}
               title="Toggle annotations list"
             >
               <ScanEye className="w-4 h-4" /> <span className="hidden sm:inline">Notes</span>
               {annotations.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-indigo-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 bg-white text-black text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                   {annotations.length}
                 </span>
               )}
@@ -113,7 +113,7 @@ export default function ViewerPage() {
             {/* ── Share Button ── */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="backdrop-blur-md border px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm bg-card/80 border-border hover:border-violet-400/60 hover:bg-violet-500/10 text-foreground hover:text-violet-300"
+              className="backdrop-blur-md border px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm bg-black/80 border-white/20 hover:border-white text-white"
               title="Share this model securely"
             >
               <Share2 className="w-4 h-4" />
@@ -122,7 +122,7 @@ export default function ViewerPage() {
 
             <button
               onClick={handleBackToUpload}
-              className="bg-primary/10 hover:bg-destructive/10 text-primary hover:text-destructive border border-primary/20 hover:border-destructive/30 px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm ml-2"
+              className="bg-white text-black border border-white hover:bg-gray-200 px-4 py-2 rounded-xl transition-all text-sm font-semibold flex items-center gap-2 shadow-sm ml-2"
             >
               <RotateCcw className="w-4 h-4" /> <span className="hidden sm:inline">Upload New</span>
             </button>
@@ -132,24 +132,24 @@ export default function ViewerPage() {
 
       {/* Right Info Panel */}
       {showInfo && (
-        <div className="absolute top-24 right-4 bg-card/85 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-6 z-20 max-w-xs max-h-[calc(100vh-120px)] overflow-y-auto w-full">
+        <div className="absolute top-24 right-4 bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl p-6 z-20 max-w-xs max-h-[calc(100vh-120px)] overflow-y-auto w-full">
           <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
                 <ScanEye className="w-4 h-4" /> Model Details
               </h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center border-b border-border/50 pb-2">
-                  <span className="text-muted-foreground">Name</span>
-                  <span className="text-foreground font-semibold truncate max-w-[120px]" title={modelName || "Unknown"}>{modelName || "Unknown"}</span>
+                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                  <span className="text-gray-400">Name</span>
+                  <span className="text-white font-semibold truncate max-w-[120px]" title={modelName || "Unknown"}>{modelName || "Unknown"}</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-border/50 pb-2">
-                  <span className="text-muted-foreground">Format</span>
-                  <span className="text-foreground font-semibold uppercase">{modelFormat || "Unknown"}</span>
+                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                  <span className="text-gray-400">Format</span>
+                  <span className="text-white font-semibold uppercase">{modelFormat || "Unknown"}</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-border/50 pb-2">
-                  <span className="text-muted-foreground">Renderer</span>
-                  <span className="text-foreground font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                  <span className="text-gray-400">Renderer</span>
+                  <span className="text-black font-semibold bg-white px-2 py-0.5 rounded text-xs flex items-center gap-1">
                     <Cpu className="w-3 h-3" /> WebGL
                   </span>
                 </div>
@@ -161,15 +161,15 @@ export default function ViewerPage() {
 
       {/* Annotations List Panel */}
       {showAnnotations && (
-        <div className="absolute top-24 right-4 bg-card/85 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-5 z-20 max-w-xs max-h-[calc(100vh-120px)] overflow-y-auto w-full" style={{ top: showInfo ? '340px' : '96px' }}>
+        <div className="absolute top-24 right-4 bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl p-5 z-20 max-w-xs max-h-[calc(100vh-120px)] overflow-y-auto w-full" style={{ top: showInfo ? '340px' : '96px' }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-400 flex items-center gap-2 uppercase tracking-wider">
               <MapPin className="w-4 h-4" /> Annotations ({annotations.length})
             </h3>
             {annotations.length > 0 && (
               <button
                 onClick={clearAnnotations}
-                className="text-xs text-destructive/70 hover:text-destructive font-semibold flex items-center gap-1 transition-colors"
+                className="text-xs text-red-500/70 hover:text-red-500 font-semibold flex items-center gap-1 transition-colors"
                 title="Clear all annotations"
               >
                 <Trash2 className="w-3 h-3" /> Clear
@@ -178,7 +178,7 @@ export default function ViewerPage() {
           </div>
 
           {annotations.length === 0 ? (
-            <p className="text-xs text-muted-foreground/60 py-4 text-center">
+            <p className="text-xs text-gray-400/60 py-4 text-center">
               No annotations yet. Click &quot;Annotate&quot; to start.
             </p>
           ) : (
@@ -186,21 +186,21 @@ export default function ViewerPage() {
               {annotations.map((ann, i) => (
                 <div
                   key={ann.id}
-                  className="flex items-start gap-2 bg-muted/30 rounded-lg p-2.5 group"
+                  className="flex items-start gap-2 bg-white/5 rounded-lg p-2.5 group hover:bg-white/10"
                 >
                   <div
                     className="w-3 h-3 rounded-full shrink-0 mt-0.5"
-                    style={{ backgroundColor: ann.color }}
+                    style={{ backgroundColor: ann.color || "white" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{ann.label}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-sm font-medium text-white truncate">{ann.label}</p>
+                    <p className="text-[10px] text-gray-400">
                       {new Date(ann.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
                   <button
                     onClick={() => removeAnnotation(ann.id)}
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 rounded"
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 rounded"
                     title="Remove annotation"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -214,21 +214,21 @@ export default function ViewerPage() {
 
       {/* Bottom Controls Guide */}
       {showControls && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-4 sm:bottom-4 bg-card/85 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-4 z-20 max-w-sm w-[90%] sm:w-auto">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Move3d className="w-4 h-4 text-primary" /> Camera Controls
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-4 sm:bottom-4 bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl p-4 z-20 max-w-sm w-[90%] sm:w-auto">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <Move3d className="w-4 h-4 text-white" /> Camera Controls
           </h3>
-          <div className="space-y-3 text-xs text-muted-foreground">
-            <div className="flex items-start gap-3 bg-muted/30 p-2 rounded-lg">
-              <span className="text-foreground font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-card border border-border">L</span>
+          <div className="space-y-3 text-xs text-gray-400">
+            <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+              <span className="text-black font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-white border border-white/20">L</span>
               <span className="pt-1"><strong>Left Drag</strong> to rotate view around the model</span>
             </div>
-            <div className="flex items-start gap-3 bg-muted/30 p-2 rounded-lg">
-              <span className="text-foreground font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-card border border-border">R</span>
+            <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+              <span className="text-black font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-white border border-white/20">R</span>
               <span className="pt-1"><strong>Right Drag</strong> to pan camera</span>
             </div>
-            <div className="flex items-start gap-3 bg-muted/30 p-2 rounded-lg">
-              <span className="text-foreground font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-card border border-border">S</span>
+            <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+              <span className="text-black font-semibold flex shrink-0 items-center justify-center w-6 h-6 rounded bg-white border border-white/20">S</span>
               <span className="pt-1"><strong>Scroll</strong> to zoom in and out</span>
             </div>
           </div>
@@ -237,22 +237,22 @@ export default function ViewerPage() {
 
       {/* Loading Indicator */}
       {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="text-center bg-card border border-border shadow-2xl rounded-2xl p-8 max-w-sm">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-            <p className="text-foreground font-semibold text-lg">Loading 3D Model...</p>
-            <p className="text-sm text-muted-foreground mt-2">Parsing geometry and materials</p>
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="text-center bg-black border border-white/20 shadow-2xl rounded-2xl p-8 max-w-sm">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+            <p className="text-white font-semibold text-lg">Loading 3D Model...</p>
+            <p className="text-sm text-gray-400 mt-2">Parsing geometry and materials</p>
           </div>
         </div>
       )}
 
       {/* Error Display */}
       {error && (
-        <div className="absolute bottom-6 right-6 bg-destructive/10 border border-destructive/20 text-destructive shadow-2xl backdrop-blur-md rounded-xl p-5 z-50 max-w-sm flex gap-3 items-start animate-in slide-in-from-bottom-5">
+        <div className="absolute bottom-6 right-6 bg-red-500/10 border border-red-500/20 text-red-500 shadow-2xl backdrop-blur-md rounded-xl p-5 z-50 max-w-sm flex gap-3 items-start animate-in slide-in-from-bottom-5">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-sm">Failed to load model</p>
-            <p className="text-xs text-destructive/80 mt-1">{error}</p>
+            <p className="text-xs text-red-500/80 mt-1">{error}</p>
           </div>
         </div>
       )}

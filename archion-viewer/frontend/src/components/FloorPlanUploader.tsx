@@ -91,22 +91,22 @@ export default function FloorPlanUploader({
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${isDragging
-          ? "border-primary bg-primary/5 scale-[1.02]"
-          : "border-border hover:border-primary/50 bg-muted/30 hover:bg-muted/50"
+          ? "border-white bg-white/10 scale-[1.02]"
+          : "border-white/20 hover:border-white bg-black hover:bg-white/5"
           }`}
       >
-        <div className="p-4 bg-background rounded-full border border-border mb-4 shadow-sm transition-transform group-hover:scale-110">
-          <UploadCloud className="w-8 h-8 text-muted-foreground" />
+        <div className="p-4 bg-white rounded-full mb-4 shadow-sm transition-transform group-hover:scale-110">
+          <UploadCloud className="w-8 h-8 text-black" />
         </div>
 
-        <p className="text-sm font-semibold mb-2 text-card-foreground">
+        <p className="text-sm font-semibold mb-2 text-white">
           Click to upload or drag and drop
         </p>
 
-        <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+        <p className="text-xs text-gray-400 max-w-xs mx-auto">
           Supported 3D formats: FBX, OBJ, STL, glTF (.gltf, .glb).
         </p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           For OBJ files, select .obj + .mtl + texture files together for correct colors.
         </p>
       </div>

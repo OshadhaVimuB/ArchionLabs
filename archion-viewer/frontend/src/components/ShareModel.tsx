@@ -115,55 +115,42 @@ const ShareModal: React.FC<ShareModalProps> = ({
     return (
         // Backdrop
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
             <div
-                className="relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
-                style={{
-                    background: "rgba(9,9,11,0.97)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    maxHeight: "90vh",
-                }}
+                className="relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-black border border-white/20 max-h-[90vh]"
             >
                 {/* Header gradient bar */}
                 <div
-                    style={{
-                        height: "3px",
-                        background: "linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899)",
-                    }}
+                    className="h-[3px] bg-white"
                 />
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-3">
                         <div
-                            className="p-2 rounded-xl"
-                            style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)" }}
+                            className="p-2 rounded-xl bg-white/10 border border-white/20"
                         >
-                            <Share2 className="w-5 h-5" style={{ color: "#818cf8" }} />
+                            <Share2 className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-white">Share Model</h2>
-                            <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            <p className="text-xs text-gray-400">
                                 Secure token-based sharing
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-lg transition-colors"
-                        style={{ color: "rgba(255,255,255,0.4)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+                        className="p-2 rounded-lg transition-colors text-gray-400 hover:text-white"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex px-6 gap-1 mb-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="flex px-6 gap-1 mb-1 border-b border-white/10">
                     {[
                         { key: "create", label: "Create Link", icon: Plus },
                         { key: "manage", label: `Manage (${shares.length})`, icon: Eye },
@@ -171,12 +158,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         <button
                             key={key}
                             onClick={() => setTab(key as "create" | "manage")}
-                            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative"
-                            style={{
-                                color: tab === key ? "#818cf8" : "rgba(255,255,255,0.4)",
-                                borderBottom: tab === key ? "2px solid #6366f1" : "2px solid transparent",
-                                marginBottom: "-1px",
-                            }}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative -mb-[1px] ${
+                                tab === key ? "text-white border-b-2 border-white" : "text-gray-400 border-b-2 border-transparent hover:text-gray-300"
+                            }`}
                         >
                             <Icon className="w-3.5 h-3.5" />
                             {label}
@@ -185,7 +169,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 </div>
 
                 {/* Body */}
-                <div className="px-6 pb-6 overflow-y-auto" style={{ maxHeight: "65vh" }}>
+                <div className="px-6 pb-6 overflow-y-auto max-h-[65vh]">
                     {/* ---- CREATE TAB ---- */}
                     {tab === "create" && (
                         <div className="pt-5 space-y-5">
@@ -193,13 +177,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                 /* Success state */
                                 <div className="space-y-4">
                                     <div
-                                        className="rounded-xl p-4 flex items-start gap-3"
-                                        style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}
+                                        className="rounded-xl p-4 flex items-start gap-3 bg-white/5 border border-white/20"
                                     >
-                                        <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "#10b981" }} />
+                                        <Check className="w-5 h-5 shrink-0 mt-0.5 text-white" />
                                         <div>
                                             <p className="text-sm font-semibold text-white">Share link created!</p>
-                                            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                            <p className="text-xs mt-0.5 text-gray-400">
                                                 Expires in {expiryDays} day{expiryDays !== 1 ? "s" : ""}
                                                 {passwordEnabled && " · Password protected"}
                                             </p>
@@ -207,28 +190,23 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-semibold mb-2 block" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                        <label className="text-xs font-semibold mb-2 block text-gray-400">
                                             Share URL
                                         </label>
                                         <div
-                                            className="flex items-center gap-2 rounded-xl p-3"
-                                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                                            className="flex items-center gap-2 rounded-xl p-3 bg-white/5 border border-white/10"
                                         >
-                                            <Link className="w-4 h-4 shrink-0" style={{ color: "#6366f1" }} />
+                                            <Link className="w-4 h-4 shrink-0 text-white" />
                                             <span
-                                                className="flex-1 text-xs truncate font-mono"
-                                                style={{ color: "rgba(255,255,255,0.7)" }}
+                                                className="flex-1 text-xs truncate font-mono text-gray-300"
                                             >
                                                 {generatedUrl}
                                             </span>
                                             <button
                                                 onClick={handleCopy}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                                                style={{
-                                                    background: copied ? "rgba(16,185,129,0.2)" : "rgba(99,102,241,0.2)",
-                                                    color: copied ? "#10b981" : "#818cf8",
-                                                    border: `1px solid ${copied ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.3)"}`,
-                                                }}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                                    copied ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"
+                                                }`}
                                             >
                                                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                                 {copied ? "Copied!" : "Copy"}
@@ -238,12 +216,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
                                     <button
                                         onClick={handleNewShare}
-                                        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                                        style={{
-                                            background: "rgba(255,255,255,0.04)",
-                                            border: "1px solid rgba(255,255,255,0.08)",
-                                            color: "rgba(255,255,255,0.6)",
-                                        }}
+                                        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
                                     >
                                         Create Another Link
                                     </button>
@@ -253,7 +226,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                 <>
                                     {/* Expiry */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-xs font-semibold mb-3" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                        <label className="flex items-center gap-2 text-xs font-semibold mb-3 text-gray-400">
                                             <Calendar className="w-3.5 h-3.5" />
                                             Link Expiry
                                         </label>
@@ -262,12 +235,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                                 <button
                                                     key={opt.value}
                                                     onClick={() => setExpiryDays(opt.value)}
-                                                    className="py-2 rounded-xl text-xs font-semibold transition-all"
-                                                    style={{
-                                                        background: expiryDays === opt.value ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.04)",
-                                                        border: `1px solid ${expiryDays === opt.value ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.07)"}`,
-                                                        color: expiryDays === opt.value ? "#818cf8" : "rgba(255,255,255,0.5)",
-                                                    }}
+                                                    className={`py-2 rounded-xl text-xs font-semibold transition-all border ${
+                                                        expiryDays === opt.value 
+                                                            ? "bg-white text-black border-white" 
+                                                            : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                                    }`}
                                                 >
                                                     {opt.label}
                                                 </button>
@@ -277,19 +249,17 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
                                     {/* Password Protection */}
                                     <div
-                                        className="rounded-xl p-4 space-y-3"
-                                        style={{
-                                            background: passwordEnabled ? "rgba(99,102,241,0.06)" : "rgba(255,255,255,0.03)",
-                                            border: `1px solid ${passwordEnabled ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.07)"}`,
-                                        }}
+                                        className={`rounded-xl p-4 space-y-3 border ${
+                                            passwordEnabled ? "bg-white/10 border-white/30" : "bg-white/5 border-white/10"
+                                        }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 {passwordEnabled
-                                                    ? <Lock className="w-4 h-4" style={{ color: "#818cf8" }} />
-                                                    : <Unlock className="w-4 h-4" style={{ color: "rgba(255,255,255,0.35)" }} />
+                                                    ? <Lock className="w-4 h-4 text-white" />
+                                                    : <Unlock className="w-4 h-4 text-gray-400" />
                                                 }
-                                                <span className="text-sm font-semibold" style={{ color: passwordEnabled ? "#c7d2fe" : "rgba(255,255,255,0.6)" }}>
+                                                <span className={`text-sm font-semibold ${passwordEnabled ? "text-white" : "text-gray-400"}`}>
                                                     Password Protection
                                                 </span>
                                             </div>
@@ -299,16 +269,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                                     setPasswordEnabled(!passwordEnabled);
                                                     if (passwordEnabled) setPassword("");
                                                 }}
-                                                className="relative w-11 h-6 rounded-full transition-all"
-                                                style={{
-                                                    background: passwordEnabled ? "#6366f1" : "rgba(255,255,255,0.1)",
-                                                    border: "none",
-                                                    cursor: "pointer",
-                                                }}
+                                                className={`relative w-11 h-6 rounded-full transition-all ${
+                                                    passwordEnabled ? "bg-white" : "bg-white/20"
+                                                }`}
                                             >
                                                 <span
-                                                    className="absolute top-1 left-1 w-4 h-4 rounded-full transition-transform bg-white"
-                                                    style={{ transform: passwordEnabled ? "translateX(20px)" : "translateX(0)" }}
+                                                    className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
+                                                        passwordEnabled ? "bg-black translate-x-[20px]" : "bg-white translate-x-0"
+                                                    }`}
                                                 />
                                             </button>
                                         </div>
@@ -319,19 +287,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
                                                     placeholder="Enter password for this link..."
-                                                    className="w-full px-3 py-2.5 rounded-lg text-sm pr-10"
-                                                    style={{
-                                                        background: "rgba(255,255,255,0.05)",
-                                                        border: "1px solid rgba(255,255,255,0.12)",
-                                                        color: "#fff",
-                                                        outline: "none",
-                                                    }}
+                                                    className="w-full px-3 py-2.5 rounded-lg text-sm pr-10 bg-black border border-white/20 text-white outline-none focus:border-white focus:ring-1 focus:ring-white"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                                                    style={{ color: "rgba(255,255,255,0.4)" }}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
@@ -341,7 +302,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
                                     {/* Watermark text */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-xs font-semibold mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                        <label className="flex items-center gap-2 text-xs font-semibold mb-2 text-gray-400">
                                             <Shield className="w-3.5 h-3.5" />
                                             Watermark Text
                                         </label>
@@ -349,29 +310,20 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                             type="text"
                                             value={watermarkText}
                                             onChange={(e) => setWatermarkText(e.target.value)}
-                                            className="w-full px-3 py-2.5 rounded-xl text-sm"
-                                            style={{
-                                                background: "rgba(255,255,255,0.04)",
-                                                border: "1px solid rgba(255,255,255,0.08)",
-                                                color: "rgba(255,255,255,0.7)",
-                                                outline: "none",
-                                                fontFamily: "monospace",
-                                                fontSize: "11px",
-                                            }}
+                                            className="w-full px-3 py-2.5 rounded-xl text-sm bg-black border border-white/20 text-gray-200 outline-none focus:border-white focus:ring-1 focus:ring-white font-mono text-[11px]"
                                         />
-                                        <p className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                        <p className="text-xs mt-1.5 text-gray-500">
                                             This text will repeat across the entire model view as an irreplaceable watermark.
                                         </p>
                                     </div>
 
                                     {/* Security summary */}
                                     <div
-                                        className="rounded-xl p-3 flex items-start gap-3"
-                                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+                                        className="rounded-xl p-3 flex items-start gap-3 bg-white/5 border border-white/10"
                                     >
-                                        <Shield className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#a5b4fc" }} />
-                                        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)", lineHeight: 1.7 }}>
-                                            Link expires after <strong style={{ color: "#c7d2fe" }}>{expiryDays} day{expiryDays !== 1 ? "s" : ""}</strong>.
+                                        <Shield className="w-4 h-4 shrink-0 mt-0.5 text-white" />
+                                        <p className="text-xs leading-relaxed text-gray-400">
+                                            Link expires after <strong className="text-white">{expiryDays} day{expiryDays !== 1 ? "s" : ""}</strong>.
                                             {passwordEnabled ? " Password is SHA-256 hashed." : " No password required."}{" "}
                                             The 3D model view will be stamped with a dual-layer watermark that cannot be removed by the viewer.
                                         </p>
@@ -379,11 +331,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
                                     {createError && (
                                         <div
-                                            className="flex items-center gap-2 rounded-xl p-3"
-                                            style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5" }}
+                                            className="flex items-center gap-2 rounded-xl p-3 bg-white border border-white text-black"
                                         >
                                             <AlertCircle className="w-4 h-4 shrink-0" />
-                                            <p className="text-xs">{createError}</p>
+                                            <p className="text-xs font-semibold">{createError}</p>
                                         </div>
                                     )}
 
@@ -391,14 +342,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     <button
                                         onClick={handleCreate}
                                         disabled={isCreating || (passwordEnabled && !password.trim())}
-                                        className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
-                                        style={{
-                                            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                                            color: "#fff",
-                                            opacity: (isCreating || (passwordEnabled && !password.trim())) ? 0.5 : 1,
-                                            cursor: (isCreating || (passwordEnabled && !password.trim())) ? "not-allowed" : "pointer",
-                                            boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
-                                        }}
+                                        className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-white/20 ${
+                                            (isCreating || (passwordEnabled && !password.trim())) 
+                                                ? "bg-white/10 text-gray-400 cursor-not-allowed" 
+                                                : "bg-white text-black hover:bg-gray-200"
+                                        }`}
                                     >
                                         {isCreating ? (
                                             <>
@@ -422,14 +370,13 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         <div className="pt-5 space-y-3">
                             {shares.length === 0 ? (
                                 <div className="text-center py-10">
-                                    <Link className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: "#fff" }} />
-                                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                    <Link className="w-10 h-10 mx-auto mb-3 opacity-20 text-white" />
+                                    <p className="text-sm text-gray-400">
                                         No active share links yet.
                                     </p>
                                     <button
                                         onClick={() => setTab("create")}
-                                        className="mt-4 text-xs underline"
-                                        style={{ color: "#818cf8" }}
+                                        className="mt-4 text-xs underline text-white hover:text-gray-300"
                                     >
                                         Create your first share link →
                                     </button>
@@ -440,31 +387,26 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     return (
                                         <div
                                             key={share.token}
-                                            className="rounded-xl p-4"
-                                            style={{
-                                                background: expired ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)",
-                                                border: `1px solid ${expired ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.08)"}`,
-                                                opacity: expired ? 0.6 : 1,
-                                            }}
+                                            className={`rounded-xl p-4 border ${
+                                                expired ? "bg-white/5 border-white/5 opacity-60" : "bg-white/10 border-white/20"
+                                            }`}
                                         >
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <div
-                                                        className="w-2 h-2 rounded-full"
-                                                        style={{ background: expired ? "#ef4444" : "#10b981" }}
+                                                        className={`w-2 h-2 rounded-full ${expired ? "bg-white/40" : "bg-white"}`}
                                                     />
                                                     <span className="text-sm font-semibold text-white truncate max-w-[180px]">
                                                         {share.modelName}
                                                     </span>
                                                     {share.passwordHash && (
-                                                        <Lock className="w-3 h-3" style={{ color: "#a5b4fc" }} />
+                                                        <Lock className="w-3 h-3 text-gray-300" />
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => handleRevoke(share.token)}
                                                     title="Revoke link"
-                                                    className="p-1.5 rounded-lg transition-colors"
-                                                    style={{ color: "#ef4444", background: "rgba(239,68,68,0.08)" }}
+                                                    className="p-1.5 rounded-lg transition-colors text-white/50 hover:text-white bg-white/10 hover:bg-white/20"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -472,18 +414,18 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center gap-2">
-                                                    <Clock className="w-3 h-3" style={{ color: expired ? "#ef4444" : "rgba(255,255,255,0.35)" }} />
-                                                    <span className="text-xs" style={{ color: expired ? "#fca5a5" : "rgba(255,255,255,0.45)" }}>
+                                                    <Clock className={`w-3 h-3 ${expired ? "text-gray-500" : "text-gray-400"}`} />
+                                                    <span className={`text-xs ${expired ? "text-gray-500" : "text-gray-400"}`}>
                                                         {expired ? "Expired" : getRemainingTime(share)}
                                                     </span>
-                                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)" }}>
+                                                    <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-gray-300">
                                                         {share.accessCount} view{share.accessCount !== 1 ? "s" : ""}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
-                                                    <Link className="w-3 h-3 shrink-0" style={{ color: "rgba(255,255,255,0.2)" }} />
-                                                    <span className="text-xs truncate font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                                    <Link className="w-3 h-3 shrink-0 text-white/40" />
+                                                    <span className="text-xs truncate font-mono text-gray-400">
                                                         ...{share.token.slice(-12)}
                                                     </span>
                                                     {!expired && (
@@ -491,8 +433,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                                             onClick={async () => {
                                                                 await navigator.clipboard.writeText(buildShareUrl(share.token));
                                                             }}
-                                                            className="ml-auto text-xs flex items-center gap-1 px-2 py-0.5 rounded"
-                                                            style={{ color: "#818cf8", background: "rgba(99,102,241,0.1)" }}
+                                                            className="ml-auto text-xs flex items-center gap-1 px-2 py-0.5 rounded text-black bg-white hover:bg-gray-200 transition-colors"
                                                         >
                                                             <Copy className="w-2.5 h-2.5" /> Copy
                                                         </button>
