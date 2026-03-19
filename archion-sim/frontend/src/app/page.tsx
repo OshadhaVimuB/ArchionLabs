@@ -27,7 +27,7 @@ const SimViewer = dynamic(() => import("@/components/SimViewer"), {
   ssr: false,
 });
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
 export default function Home() {
   // --- Connection ---
