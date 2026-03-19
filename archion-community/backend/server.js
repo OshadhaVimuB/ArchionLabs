@@ -106,6 +106,7 @@ app.post("/upload-model", upload.fields([
     const newTemplate = {
       title: req.body.title || "Untitled",
       author: req.body.author || "Unknown",
+      category: req.body.category || "Walls",
       modelUrl: "/models/" + modelFile.filename,
       thumbnailUrl,
       createdAt: new Date().toISOString(),
