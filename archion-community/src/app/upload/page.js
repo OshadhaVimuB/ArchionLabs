@@ -7,7 +7,7 @@ export default function UploadTemplate() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("Walls");
   const [designer, setDesigner] = useState("");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -42,30 +42,30 @@ export default function UploadTemplate() {
     setErrorMessage("");
     setFile(selected);
 
-    const url = URL.createObjectURL(selected) + ".glb";
+    const url = URL.createObjectURL(selected) ;
     setPreviewUrl(url);
   }
 
   // THUMBNAIL HANDLER
   function handleThumbnailChange(e) {
-    const selected = e.target.files[0];
-    if (selected.size > 5 * 1024 * 1024) {
-      alert("Thumbnail must be smaller than 5MB");
-      return;
-}
-    
-    if (!selected) return;
+  const selected = e.target.files[0];
+  if (!selected) return; // ✅ MUST FIRST
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
-
-    if (!allowedTypes.includes(selected.type)) {
-      alert("Please upload PNG or JPG image");
-      return;
-    }
-
-    setThumbnail(selected);
-    setThumbnailPreview(URL.createObjectURL(selected));
+  if (selected.size > 5 * 1024 * 1024) {
+    setFieldErrors(prev => ({ ...prev, thumbnail: "Max size is 5MB" }));
+    return;
   }
+
+  const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+
+  if (!allowedTypes.includes(selected.type)) {
+    setFieldErrors(prev => ({ ...prev, thumbnail: "Only PNG/JPG allowed" }));
+    return;
+  }
+
+  setThumbnail(selected);
+  setThumbnailPreview(URL.createObjectURL(selected));
+}
 
   function removeFile() {
     setFile(null);
@@ -119,8 +119,11 @@ try {
 
   try {
     data = await response.json(); // safer
-  } catch {
+  } catch(err) {
+    const text = await response.text();
+    console.error("Upload failed. Server response:", text);
     throw new Error("Server error (not JSON)");
+
   }
 
   if (!response.ok) {
