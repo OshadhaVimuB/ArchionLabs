@@ -135,7 +135,7 @@ try {
 
 } catch (error) {
   console.error("Upload error:", error);
-  alert(error.message);
+  setFormError(error.message);
 }
   };
 
