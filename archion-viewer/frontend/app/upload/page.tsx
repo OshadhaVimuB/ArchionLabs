@@ -61,35 +61,7 @@ export default function UploadPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="group bg-black border border-white/20 rounded-2xl p-6 hover:shadow-lg hover:border-white transition-all duration-300">
-            <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <FileBox className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold mb-2 text-white">Standard Formats</h3>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Native support for FBX, OBJ, STL, and glTF models directly in the browser.
-            </p>
-          </div>
-          <div className="group bg-black border border-white/20 rounded-2xl p-6 hover:shadow-lg hover:border-white transition-all duration-300">
-            <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Gauge className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold mb-2 text-white">High Performance</h3>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Optimized rendering pipeline to load and display complex architectures instantly.
-            </p>
-          </div>
-          <div className="group bg-black border border-white/20 rounded-2xl p-6 hover:shadow-lg hover:border-white transition-all duration-300">
-            <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Orbit className="w-6 h-6 text-black" />
-            </div>
-            <h3 className="font-semibold mb-2 text-white">Interactive Orbiting</h3>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Smooth camera controls to pan, zoom, and inspect every detail.
-            </p>
-          </div>
-        </div>
+
       </div>
     </div>
   );
