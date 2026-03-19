@@ -16,6 +16,7 @@ export default function UploadTemplate() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
 
+
   // NEW STATES
   const [thumbnail, setThumbnail] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
@@ -41,7 +42,7 @@ export default function UploadTemplate() {
     setErrorMessage("");
     setFile(selected);
 
-    const url = URL.createObjectURL(selected);
+    const url = URL.createObjectURL(selected) + ".glb";
     setPreviewUrl(url);
   }
 
@@ -101,6 +102,7 @@ export default function UploadTemplate() {
     formData.append("title", title);
     formData.append("author", designer);
     formData.append("model", file);
+    formData.append("category", category);
 
     // ADD THUMBNAIL
     if (thumbnail) {
@@ -113,17 +115,23 @@ try {
     body: formData
   });
 
+  let data;
+
+  try {
+    data = await response.json(); // safer
+  } catch {
+    throw new Error("Server error (not JSON)");
+  }
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Upload failed:", errorText);
-    throw new Error("Upload failed. Please try again.");
+    throw new Error(data.error || "Upload failed");
   }
 
   alert("Model uploaded successfully!");
   window.location.href = "/";
 
 } catch (error) {
-  console.error(error);
+  console.error("Upload error:", error);
   alert(error.message);
 }
   };
