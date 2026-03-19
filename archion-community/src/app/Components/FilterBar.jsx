@@ -48,6 +48,16 @@ export default function FilterBar({
 
               <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                 Category
+                <div onClick={() => setSelectedCategory("Walls")}>Walls</div>
+                <div onClick={() => setSelectedCategory("Stairs")}>Stairs</div>
+                <div onClick={() => setSelectedCategory("Doors")}>Doors</div>
+                <div onClick={() => setSelectedCategory("Windows")}>Windows</div>
+                <div onClick={() => setSelectedCategory("Furniture")}>Furniture</div>
+                <div onClick={() => setSelectedCategory("Lighting")}>Lighting</div>
+                <div onClick={() => setSelectedCategory("Flooring")}>Flooring</div>
+                <div onClick={() => setSelectedCategory("Roof")}>Roof</div>
+                <div onClick={() => setSelectedCategory("Exterior")}>Exterior</div>
+                <div onClick={() => setSelectedCategory("Decor")}>Decor</div>
               </div>
 
               {/* Date option */}
