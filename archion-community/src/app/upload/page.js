@@ -25,6 +25,12 @@ export default function UploadTemplate() {
     const selected = e.target.files[0];
     if (!selected) return;
 
+    if (selected.size > 20 * 1024 * 1024) {
+  setInvalidFile(true);
+  setErrorMessage("File must be under 20MB");
+  return;
+}
+
     const allowedExtensions = [".glb", ".gltf"];
     const isValid = allowedExtensions.some(ext =>
       selected.name.toLowerCase().endsWith(ext)
