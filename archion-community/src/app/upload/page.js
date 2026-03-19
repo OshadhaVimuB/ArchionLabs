@@ -99,9 +99,9 @@ export default function UploadTemplate() {
     setFormError("");
 
     if (!file) {
-      alert("Please select a 3D model file first");
-      return;
-    }
+  setFieldErrors(prev => ({ ...prev, file: "Model file is required" }));
+  return;
+}
 
     const formData = new FormData();
 
