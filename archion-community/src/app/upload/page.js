@@ -107,25 +107,25 @@ export default function UploadTemplate() {
       formData.append("thumbnail", thumbnail);
     }
 
-    try {
-      const response = await fetch("http://localhost:5000/upload-model", {
-        method: "POST",
-        body: formData
-      });
+try {
+  const response = await fetch("http://localhost:5000/upload-model", {
+    method: "POST",
+    body: formData
+  });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorData.error || "Upload failed: " + errorText);
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Upload failed:", errorText);
+    throw new Error("Upload failed. Please try again.");
+  }
 
-      alert("Model uploaded successfully!");
-      window.location.href = "/";
-    } catch (error) {
-      console.error(error);
-      const errorData = await response.json();
-      alert(errorData.error || "Upload failed");
-      
-    }
+  alert("Model uploaded successfully!");
+  window.location.href = "/";
+
+} catch (error) {
+  console.error(error);
+  alert(error.message);
+}
   };
 
   return (
@@ -181,10 +181,16 @@ export default function UploadTemplate() {
               className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700"
             >
               <option value="">Select Category</option>
-              <option>Interior</option>
-              <option>Industrial</option>
-              <option>Character</option>
-              <option>Architecture</option>
+              <option>Walls</option>
+              <option>Stairs</option>
+              <option>Doors</option>
+              <option>Windows</option>
+              <option>Furniture</option>
+              <option>Lighting</option>
+              <option>Flooring</option>
+              <option>Roof</option>
+              <option>Exterior</option>
+              <option>Decor</option>
             </select>
             {fieldErrors.category && (
               <p className="text-red-400 text-sm mt-1">{fieldErrors.category}</p>
