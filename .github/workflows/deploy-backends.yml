@@ -20,15 +20,19 @@ jobs:
           username: ${{ secrets.DO_SSH_USERNAME }}
           password: ${{ secrets.DO_PASSWORD }}
           script: |
-            # Navigate to the project directory on the Droplet
-            cd /opt/ArchionLabs
+            # Navigate to the project directory
+            cd /opt/ArchionLabs || { echo "Directory /opt/ArchionLabs not found"; exit 1; }
             
-            # Pull latest changes from git
-            git fetch
+            # Debug: show current files
+            ls -la
+            
+            # Pull latest changes (This will fail until Step 1 of my previous advice is done)
+            git fetch origin
             git reset --hard origin/main
             
-            # Rebuild and restart the containers silently
-            docker compose up -d --build
+            # Rebuild and restart the containers
+            # Using -f to be explicit about the file
+            docker compose -f docker-compose.yml up -d --build
             
-            # Clean up old dangling images to save space
+            # Clean up
             docker image prune -f
