@@ -1,6 +1,7 @@
 # Core API
 fastapi
 uvicorn[standard]
+python-multipart
 
 # 3D / Geometry
 trimesh

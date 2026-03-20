@@ -88,6 +88,7 @@ archion-build/prompt.md
 *.db
 prompt.md
 DEPLOYMENT.md
+FRONTEND_BACKEND_CONNECTION.md
 
 # ========================
 # Misc
