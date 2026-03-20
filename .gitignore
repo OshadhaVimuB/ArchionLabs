@@ -95,3 +95,5 @@ prompt.md
 .vercel
 .turbo
 .agent
+.tmp
+tmp/

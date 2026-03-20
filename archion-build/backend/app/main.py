@@ -41,9 +41,11 @@ app.include_router(generate.router, prefix=API_V1_PREFIX)
 @app.get("/")
 async def root():
     """Health check endpoint."""
+    from app.auth import ANONYMOUS_USER_ID
     return {
         "message": f"Welcome to {PROJECT_NAME}",
         "version": PROJECT_VERSION,
+        "debug_anon": ANONYMOUS_USER_ID
     }
 
 

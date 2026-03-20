@@ -9,6 +9,7 @@ import { create } from "zustand";
 
 import type { FloorPlan, ChatMessage } from "@/types/floorplan";
 import { generateFloorPlan } from "@/services/api";
+import { saveRecentProject } from "@/services/recentProjects";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,6 +107,13 @@ export const useFloorPlanStore = create<FloorPlanState & FloorPlanActions>()(
                     viewMode: "view2d",
                     isLoading: false,
                 }));
+
+                // Save to landing-page dashboard as a recent project
+                saveRecentProject(
+                    response.floorplan.name || `Plan — ${response.project_id.slice(0, 8)}`,
+                    prompt,
+                    response.project_id,
+                );
             } catch (err) {
                 const message =
                     err instanceof Error ? err.message : "An unknown error occurred";

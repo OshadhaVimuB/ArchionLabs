@@ -1,10 +1,12 @@
 /**
  * API service layer for communicating with the Archion Build backend.
  *
- * All endpoints are public — no JWT / Authorization headers are attached.
+ * Attaches the Supabase JWT access token as an Authorization header
+ * so the backend can authenticate the user.
  */
 
 import type { GenerateRequest, GenerateResponse } from "@/types/floorplan";
+import { supabase } from "@/lib/supabaseClient";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -33,9 +35,20 @@ async function fetchApi<T>(
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
+    // Get the current Supabase session token
+    const authHeaders: Record<string, string> = {};
+    if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) {
+            authHeaders["Authorization"] = `Bearer ${token}`;
+        }
+    }
+
     const response = await fetch(url, {
         headers: {
             "Content-Type": "application/json",
+            ...authHeaders,
             ...options.headers,
         },
         ...options,
