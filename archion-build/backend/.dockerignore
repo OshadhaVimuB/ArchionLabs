@@ -1,0 +1,21 @@
+# Python .dockerignore
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.env
+.env.*
+!.env.example
+*.db
+tests/
+.git/
+.gitignore
+.vscode/
+.idea/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+out.txt
+prompt.md

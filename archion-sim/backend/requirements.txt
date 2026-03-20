@@ -15,11 +15,15 @@ matplotlib
 # Environment
 python-dotenv
 
+# SSE Support
+sse-starlette
+
 # JWT auth
 python-jose[cryptography]
 
 # LLM (Anthropic Claude)
 anthropic
+requests
 
 # MARL training (optional — only needed if running marl/train.py)
 # Install separately to avoid large download when just running the server:

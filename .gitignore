@@ -87,6 +87,7 @@ archion-build/start.ps1
 archion-build/prompt.md
 *.db
 prompt.md
+DEPLOYMENT.md
 
 # ========================
 # Misc
