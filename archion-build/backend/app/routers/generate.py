@@ -22,6 +22,7 @@ from app.services.geometry import LayoutSolver
 from app.services.claude_intent import IntentParser
 from app.services.model3d import generate_threejs_json, generate_cadquery_script
 from app.models.floorplan import FloorPlan
+from app.services.dashboard_sync import sync_project_to_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,15 @@ async def generate_floorplan(
         db.add(assistant_message)
         db.commit()
 
+        # 5. Sync to landing-page dashboard
+        sync_project_to_dashboard(
+            db,
+            source_project_id=str(project.id),
+            name=f"Plan — {room_names[0] if room_names else 'Custom'}",
+            description=request.prompt,
+        )
+        db.commit()
+
         logger.info(f"Project {project.id} created successfully")
 
         return GenerateResponse(
@@ -325,6 +335,15 @@ async def extract_floorplan(
         )
         db.add(user_message)
         db.add(assistant_message)
+        db.commit()
+
+        # 5. Sync to landing-page dashboard
+        sync_project_to_dashboard(
+            db,
+            source_project_id=str(project.id),
+            name=f"Extracted Plan — {request.file_name}",
+            description=f"Extracted from {request.file_name}",
+        )
         db.commit()
 
         logger.info(f"Project {project.id} created successfully from extract")

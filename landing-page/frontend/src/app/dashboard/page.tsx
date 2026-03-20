@@ -1,6 +1,8 @@
 import { Header } from "@/components/dashboard/Header";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Hammer, Eye, FolderOpen, Clock } from "lucide-react";
+import { DeleteProjectButton } from "@/components/dashboard/DeleteProjectButton";
 
 /** Lucide icon component by source type */
 function SourceBadge({ source }: { source: string }) {
@@ -75,8 +77,14 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Use admin client (bypasses RLS) so we can see ALL projects,
+  // including anonymous ones with user_id = NULL.
+  // Falls back to the regular client if service role key is missing.
+  const adminClient = createAdminClient();
+  const queryClient = adminClient ?? supabase;
+
   // Fetch all projects from Supabase
-  const { data: projects, error } = await supabase
+  const { data: projects, error } = await queryClient
     .from("projects")
     .select("*")
     .order("updated_at", { ascending: false });
@@ -101,37 +109,39 @@ export default async function DashboardPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {recentProjects.map((project) => (
-                <a
-                  href={getProjectLink(project)}
-                  key={`recent-${project.id}`}
-                  target={isExternalLink(project.source) ? "_blank" : undefined}
-                  rel={isExternalLink(project.source) ? "noopener noreferrer" : undefined}
-                  className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full"
-                >
-                  <div className="aspect-[16/10] bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center p-6 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
-                      <div className="w-full h-full border border-zinc-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-950 flex overflow-hidden shadow-sm">
-                        <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#18181b]" />
-                        <div className="flex-1 flex flex-col">
-                          <div className="border-b border-zinc-200 dark:border-zinc-800 h-1/4" />
-                          <div className="flex-1" />
+                <div key={`recent-${project.id}`} className="relative group">
+                  <DeleteProjectButton projectId={project.id} projectName={project.name} />
+                  <a
+                    href={getProjectLink(project)}
+                    target={isExternalLink(project.source) ? "_blank" : undefined}
+                    rel={isExternalLink(project.source) ? "noopener noreferrer" : undefined}
+                    className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg transition-all cursor-pointer flex flex-col h-full"
+                  >
+                    <div className="aspect-[16/10] bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center p-6 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
+                        <div className="w-full h-full border border-zinc-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-950 flex overflow-hidden shadow-sm">
+                          <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#18181b]" />
+                          <div className="flex-1 flex flex-col">
+                            <div className="border-b border-zinc-200 dark:border-zinc-800 h-1/4" />
+                            <div className="flex-1" />
+                          </div>
                         </div>
                       </div>
+                      {/* Source badge overlay */}
+                      <div className="absolute top-2 right-2 z-10">
+                        <SourceBadge source={project.source || "manual"} />
+                      </div>
                     </div>
-                    {/* Source badge overlay */}
-                    <div className="absolute top-2 right-2 z-10">
-                      <SourceBadge source={project.source || "manual"} />
+                    <div className="p-3 flex-1 flex flex-col justify-center">
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mb-0.5">
+                        {project.name}
+                      </h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {timeAgo(project.updated_at)}
+                      </p>
                     </div>
-                  </div>
-                  <div className="p-3 flex-1 flex flex-col justify-center">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mb-0.5">
-                      {project.name}
-                    </h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {timeAgo(project.updated_at)}
-                    </p>
-                  </div>
-                </a>
+                  </a>
+                </div>
               ))}
             </div>
           </section>
@@ -178,35 +188,37 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allProjects.map((project) => (
-              <a
-                href={getProjectLink(project)}
-                key={project.id}
-                target={isExternalLink(project.source) ? "_blank" : undefined}
-                rel={isExternalLink(project.source) ? "noopener noreferrer" : undefined}
-                className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
-              >
-                <div className="aspect-[16/10] bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center p-8 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
-                    <div className="w-full h-full border border-zinc-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-950 flex overflow-hidden shadow-sm">
-                      <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#18181b]" />
-                      <div className="flex-1 flex flex-col">
-                        <div className="border-b border-zinc-200 dark:border-zinc-800 h-1/4" />
-                        <div className="flex-1" />
+              <div key={project.id} className="relative group">
+                <DeleteProjectButton projectId={project.id} projectName={project.name} />
+                <a
+                  href={getProjectLink(project)}
+                  target={isExternalLink(project.source) ? "_blank" : undefined}
+                  rel={isExternalLink(project.source) ? "noopener noreferrer" : undefined}
+                  className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all cursor-pointer flex flex-col h-full"
+                >
+                  <div className="aspect-[16/10] bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center p-8 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
+                      <div className="w-full h-full border border-zinc-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-950 flex overflow-hidden shadow-sm">
+                        <div className="w-1/3 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#18181b]" />
+                        <div className="flex-1 flex flex-col">
+                          <div className="border-b border-zinc-200 dark:border-zinc-800 h-1/4" />
+                          <div className="flex-1" />
+                        </div>
                       </div>
                     </div>
+                    {/* Source badge overlay */}
+                    <div className="absolute top-2 right-2 z-10">
+                      <SourceBadge source={project.source || "manual"} />
+                    </div>
                   </div>
-                  {/* Source badge overlay */}
-                  <div className="absolute top-2 right-2 z-10">
-                    <SourceBadge source={project.source || "manual"} />
+                  <div className="p-4 flex-1 flex flex-col justify-center">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mb-1">{project.name}</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {timeAgo(project.updated_at)}
+                    </p>
                   </div>
-                </div>
-                <div className="p-4 flex-1 flex flex-col justify-center">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mb-1">{project.name}</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {timeAgo(project.updated_at)}
-                  </p>
-                </div>
-              </a>
+                </a>
+              </div>
             ))}
           </div>
         )}
