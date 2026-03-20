@@ -13,6 +13,10 @@ vi.mock("@/services/api", () => ({
     generateFloorPlan: vi.fn(),
 }));
 
+vi.mock("@/services/recentProjects", () => ({
+    saveRecentProject: vi.fn(),
+}));
+
 import { generateFloorPlan } from "@/services/api";
 const mockedGenerate = vi.mocked(generateFloorPlan);
 
@@ -148,7 +152,7 @@ describe("useFloorPlanStore", () => {
 
         it("calls the API with the prompt", async () => {
             await getState().generatePlan("2 bedrooms");
-            expect(mockedGenerate).toHaveBeenCalledWith("2 bedrooms");
+            expect(mockedGenerate).toHaveBeenCalledWith("2 bedrooms", undefined, undefined);
         });
 
         it("sets floorPlan from response", async () => {

@@ -230,7 +230,7 @@ class IntentParser:
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key
-        self.model = model or "claude-3-haiku-20240307"
+        self.model = model or "claude-3-5-haiku-20241022"
         self._anthropic_client = None
 
     def _get_anthropic_client(self):

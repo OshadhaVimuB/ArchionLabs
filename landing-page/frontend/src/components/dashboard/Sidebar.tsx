@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Search,
   Files,
+  Clock,
   Trash2,
   Settings,
   Hexagon
@@ -41,6 +42,7 @@ export function Sidebar({ user }: { user: any }) {
         <ul className="space-y-1 px-3">
           {[
             { name: "All projects", icon: Files, href: "/dashboard" },
+            { name: "Recent", icon: Clock, href: "/dashboard" },
             { name: "Trash", icon: Trash2, href: "#" },
             { name: "Settings", icon: Settings, href: "/dashboard/settings" },
           ].map((item) => {

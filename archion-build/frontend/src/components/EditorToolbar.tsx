@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
 import { useEditorStore } from "@/store/useEditorStore";
 import { extractFloorPlan } from "@/services/api";
+import { saveRecentProject } from "@/services/recentProjects";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -213,10 +214,16 @@ export default function EditorToolbar() {
                         file.name,
                         file.type || (isDxf ? 'application/dxf' : 'application/octet-stream'),
                         base64Data,
-                        "claude-sonnet-4-6"
                     );
 
                     setFloorPlan(response.floorplan);
+
+                    // Save to landing-page dashboard as a recent project
+                    saveRecentProject(
+                        response.floorplan.name || `Extracted — ${file.name}`,
+                        `Extracted from ${file.name}`,
+                        response.project_id,
+                    );
                 } catch (error: any) {
                     console.error("Extraction error:", error);
                     alert(`Failed to extract floor plan: ${error.message}`);

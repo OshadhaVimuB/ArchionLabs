@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useFloorPlanStore } from "@/store/useFloorPlanStore";
 import { processModelFiles } from "@/lib/floorPlanProcessor";
+import { saveRecentProject } from "@/services/recentProjects";
 import { UploadCloud } from "lucide-react";
 
 interface ModelUploaderProps {
@@ -29,6 +30,15 @@ export default function FloorPlanUploader({
       const fileArray = Array.from(files);
       const { url, format, name, mtlText, textureMap } = await processModelFiles(fileArray);
       setModel(url, format, name, mtlText, textureMap);
+
+      // Save to landing-page dashboard as a recent project
+      const projectToken = `viewer_${Date.now()}_${name}`;
+      saveRecentProject(
+        name,
+        `3D model (${format.toUpperCase()})`,
+        projectToken,
+      );
+
       onUploadComplete?.();
     } catch (err) {
       const errorMessage =
