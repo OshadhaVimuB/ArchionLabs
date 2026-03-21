@@ -85,13 +85,24 @@ async function handleLike(e) {
 
         <Link href={`/model/${template._id}`} className="block">
 
-  <div
-    className="h-48 bg-zinc-700 overflow-hidden"
-    
-  >
-    <img src={`http://localhost:5000${template.thumbnailUrl || "/thumbnails/default.png"}`}></img>
-  </div>
+  <div className="h-48 bg-zinc-700 overflow-hidden flex items-center justify-center">
 
+  {template.thumbnailUrl && template.thumbnailUrl !== "/thumbnails/images.png" ? (
+    <img
+      src={`http://localhost:5000${template.thumbnailUrl}`}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        e.target.style.display = "none";
+      }}
+    />
+  ) : (
+    <div className="flex flex-col items-center justify-center text-zinc-400">
+      <span className="text-2xl">🖼️</span>
+      <span className="text-xs mt-1">No Preview</span>
+    </div>
+  )}
+
+</div>
 
           <div className="p-3">
             <h3 className="font-semibold text-white text-sm">
@@ -136,7 +147,7 @@ async function handleLike(e) {
     e.stopPropagation();
     window.location.href = `/edit/${template._id}`;
   }}
-  className="text-xs bg-yellow-500 px-2 py-1 rounded"
+  className="text-xs bg-green-600 hover:bg-green-500  px-3 py-1 rounded text-white transition"
 >
   Edit
 </button>
