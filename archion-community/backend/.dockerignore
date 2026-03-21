@@ -1,0 +1,9 @@
+# Node.js .dockerignore
+node_modules/
+.env
+.env.*
+.git/
+.gitignore
+.vscode/
+.idea/
+test.js

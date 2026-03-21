@@ -1,0 +1,193 @@
+# CI/CD Workflow — ArchionLabs Monorepo
+# Runs lint, test, and build validation on push/PR to main/develop.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ───────────────────────────────────────────────────────────────
+  # Python Backend Tests — archion-build
+  # ───────────────────────────────────────────────────────────────
+  test-archion-build:
+    name: "Test: archion-build backend"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archion-build/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          # Stop build on syntax errors or undefined names
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings only (non-blocking)
+          flake8 app/ --count --exit-zero --max-line-length=120 --statistics
+
+      - name: Run tests
+        env:
+          DATABASE_URL: "sqlite:///./test_archion.db"
+          SUPABASE_JWT_SECRET: "test-secret"
+        run: python -m pytest tests/ -v --tb=short
+
+  # ───────────────────────────────────────────────────────────────
+  # Python Backend Tests — archion-viewer
+  # ───────────────────────────────────────────────────────────────
+  test-archion-viewer:
+    name: "Test: archion-viewer backend"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archion-viewer/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-line-length=120 --statistics
+
+      - name: Run tests
+        env:
+          DATABASE_URL: "sqlite:///./test_archion_viewer.db"
+          SUPABASE_JWT_SECRET: "test-secret"
+        run: python -m pytest tests/ -v --tb=short
+
+  # ───────────────────────────────────────────────────────────────
+  # Python Backend Tests — archion-sim
+  # ───────────────────────────────────────────────────────────────
+  test-archion-sim:
+    name: "Test: archion-sim backend"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archion-sim/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest httpx
+
+      - name: Lint with flake8
+        run: |
+          flake8 main.py schemas.py auth.py core/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 main.py schemas.py auth.py core/ --count --exit-zero --max-line-length=120 --statistics
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
+  # ───────────────────────────────────────────────────────────────
+  # Node.js Backend Lint — archion-community
+  # ───────────────────────────────────────────────────────────────
+  lint-archion-community:
+    name: "Lint: archion-community backend"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archion-community/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: node --check server.js
+
+  # ───────────────────────────────────────────────────────────────
+  # Frontend Build Validation
+  # ───────────────────────────────────────────────────────────────
+  build-frontends:
+    name: "Build: frontends"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - archion-build/frontend
+          - archion-sim/frontend
+          - archion-viewer/frontend
+          - archion-community
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Lint
+        working-directory: ${{ matrix.project }}
+        run: npm run lint || true  # Non-blocking lint
+
+      - name: Build
+        working-directory: ${{ matrix.project }}
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-key"
+
+  # ───────────────────────────────────────────────────────────────
+  # Docker Build Validation
+  # ───────────────────────────────────────────────────────────────
+  docker-build:
+    name: "Docker: build validation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build archion-build-backend
+        run: docker build -t archion-build-backend ./archion-build/backend
+
+      - name: Build archion-community-backend
+        run: docker build -t archion-community-backend ./archion-community/backend
+
+      - name: Build archion-sim-backend
+        run: docker build -t archion-sim-backend ./archion-sim/backend
+
+      - name: Build archion-viewer-backend
+        run: docker build -t archion-viewer-backend ./archion-viewer/backend

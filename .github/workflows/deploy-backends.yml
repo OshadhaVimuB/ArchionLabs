@@ -1,0 +1,55 @@
+name: Deploy Backends to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/backend/**'
+      - 'docker-compose.yml'
+      - 'nginx/**'
+
+# Ensure CI passes before deploying
+jobs:
+  # Run CI first
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DO_DROPLET_IP }}
+          username: ${{ secrets.DO_SSH_USERNAME }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            # Navigate to the project directory
+            cd /opt/ArchionLabs || { echo "Directory /opt/ArchionLabs not found"; exit 1; }
+
+            # Pull latest changes
+            git fetch origin
+            git reset --hard origin/main
+
+            # Rebuild and restart the containers
+            docker compose -f docker-compose.yml up -d --build
+
+            # Clean up dangling images
+            docker image prune -f
+
+            # Verify backends are healthy
+            echo "Waiting for services to start..."
+            sleep 10
+
+            echo "Checking backend health..."
+            curl -sf http://localhost/build/ || echo "⚠ archion-build not responding"
+            curl -sf http://localhost/sim/api/health || echo "⚠ archion-sim not responding"
+            curl -sf http://localhost/viewer/ || echo "⚠ archion-viewer not responding"
+            curl -sf http://localhost/community/templates || echo "⚠ archion-community not responding"
+
+            echo "✅ Deployment complete"

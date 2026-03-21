@@ -1,0 +1,171 @@
+{
+  "metadata": {
+    "standard_name": "Sri Lankan Planning and Development Regulations",
+    "version": "2025",
+    "last_updated": "2026-03-17",
+    "source": "Urban Development Authority Sri Lanka",
+    "reference_standards": [
+      "ISO 21542:2011 - Building Construction - Accessibility",
+      "Sri Lankan Building Code",
+      "UDA Planning Guidelines"
+    ]
+  },
+  
+  "hospital_rules": {
+    "description": "Hospitals, clinics, medical facilities",
+    "min_corridor_width_m": 2.0,
+    "min_corridor_width_critical_m": 2.4,
+    "min_door_width_m": 1.1,
+    "min_door_width_patient_room_m": 1.2,
+    "min_emergency_exit_width_m": 1.5,
+    "min_staircase_width_m": 1.5,
+    "min_turning_space_m": 2.0,
+    "max_ramp_gradient": 0.05,
+    "max_ramp_gradient_percent": 5.0,
+    "max_ramp_gradient_ratio": "1:20",
+    "occupancy_density_sqm_per_person": 8.0,
+    "max_safe_density_persons_per_sqm": 1.0,
+    "bottleneck_duration_threshold_sec": 3.0,
+    "ceiling_height_min_m": 3.0,
+    "corridor_handrail_required": true,
+    "emergency_lighting_required": true,
+    "backup_power_required": true
+  },
+
+  "residential_rules": {
+    "description": "Single-family homes, apartments, condominiums",
+    "min_corridor_width_m": 1.2,
+    "min_door_width_m": 0.75,
+    "min_staircase_width_m": 1.0,
+    "min_turning_space_m": 1.5,
+    "max_ramp_gradient": 0.083,
+    "max_ramp_gradient_percent": 8.3,
+    "max_ramp_gradient_ratio": "1:12",
+    "occupancy_density_sqm_per_person": 10.0,
+    "max_safe_density_persons_per_sqm": 1.5,
+    "bottleneck_duration_threshold_sec": 5.0,
+    "ceiling_height_min_m": 2.7,
+    "window_to_floor_ratio_min": 0.1
+  },
+
+  "office_rules": {
+    "description": "Corporate offices, administrative buildings",
+    "min_corridor_width_m": 1.2,
+    "min_door_width_m": 0.9,
+    "min_emergency_exit_width_m": 1.2,
+    "min_staircase_width_m": 1.2,
+    "min_turning_space_m": 1.5,
+    "max_ramp_gradient": 0.083,
+    "max_ramp_gradient_percent": 8.3,
+    "max_ramp_gradient_ratio": "1:12",
+    "occupancy_density_sqm_per_person": 6.0,
+    "max_safe_density_persons_per_sqm": 2.5,
+    "bottleneck_duration_threshold_sec": 8.0,
+    "ceiling_height_min_m": 3.0,
+    "corridor_handrail_required": false,
+    "emergency_lighting_required": true
+  },
+  
+  "educational_rules": {
+    "description": "Schools, universities, training centers",
+    "min_corridor_width_m": 1.8,
+    "min_corridor_width_main_m": 2.4,
+    "min_door_width_m": 1.0,
+    "min_classroom_door_width_m": 1.2,
+    "min_staircase_width_m": 1.5,
+    "min_turning_space_m": 1.5,
+    "max_ramp_gradient": 0.083,
+    "max_ramp_gradient_percent": 8.3,
+    "max_ramp_gradient_ratio": "1:12",
+    "occupancy_density_sqm_per_person": 2.0,
+    "max_safe_density_persons_per_sqm": 2.5,
+    "bottleneck_duration_threshold_sec": 5.0,
+    "ceiling_height_min_m": 3.0,
+    "classroom_min_area_per_student_sqm": 1.2,
+    "corridor_handrail_required": true
+  },
+  
+  "commercial_rules": {
+    "description": "Shopping centers, retail stores, malls",
+    "min_corridor_width_m": 1.5,
+    "min_corridor_width_mall_m": 3.0,
+    "min_door_width_m": 0.9,
+    "min_store_entrance_width_m": 1.2,
+    "min_staircase_width_m": 1.2,
+    "min_turning_space_m": 1.5,
+    "max_ramp_gradient": 0.083,
+    "max_ramp_gradient_percent": 8.3,
+    "max_ramp_gradient_ratio": "1:12",
+    "occupancy_density_sqm_per_person": 3.0,
+    "max_safe_density_persons_per_sqm": 3.0,
+    "bottleneck_duration_threshold_sec": 8.0,
+    "ceiling_height_min_m": 3.0,
+    "emergency_exit_signage_required": true
+  },
+  
+  "industrial_rules": {
+    "description": "Factories, warehouses, manufacturing facilities",
+    "min_corridor_width_m": 1.5,
+    "min_main_aisle_width_m": 2.4,
+    "min_door_width_m": 1.0,
+    "min_loading_bay_width_m": 3.0,
+    "min_staircase_width_m": 1.2,
+    "min_turning_space_m": 1.5,
+    "max_ramp_gradient": 0.083,
+    "max_ramp_gradient_percent": 8.3,
+    "max_ramp_gradient_ratio": "1:12",
+    "occupancy_density_sqm_per_person": 9.0,
+    "max_safe_density_persons_per_sqm": 1.0,
+    "bottleneck_duration_threshold_sec": 5.0,
+    "ceiling_height_min_m": 4.0,
+    "ventilation_required": true,
+    "fire_suppression_required": true
+  },
+
+  "general_rules": {
+    "accessibility_standards": {
+      "iso_21542": {
+        "wheelchair_width_m": 0.8,
+        "wheelchair_length_m": 1.2,
+        "wheelchair_turning_diameter_m": 1.5,
+        "wheelchair_turning_diameter_comfort_m": 1.8,
+        "door_threshold_max_height_m": 0.02,
+        "handrail_height_m": 0.9,
+        "accessible_parking_space_width_m": 3.6
+      }
+    },
+    "emergency_egress": {
+      "exit_width_min_per_person_m": 0.006,
+      "exit_capacity_persons_per_m_width": 60,
+      "max_travel_distance_to_exit_m": 45.0,
+      "max_travel_distance_sprinklered_m": 60.0,
+      "exit_door_swing_direction": "outward",
+      "emergency_lighting_duration_min": 90
+    },
+    "fire_safety": {
+      "fire_door_rating_min_minutes": 60,
+      "fire_corridor_rating_min_minutes": 60,
+      "smoke_detector_spacing_max_m": 9.0,
+      "fire_extinguisher_spacing_max_m": 23.0,
+      "sprinkler_coverage_sqm": 12.0
+    },
+    "simulation_parameters": {
+      "agent_properties": {
+        "average_walking_speed_m_s": 1.4,
+        "elderly_walking_speed_m_s": 1.0,
+        "child_walking_speed_m_s": 1.2,
+        "wheelchair_speed_m_s": 1.0,
+        "average_agent_width_m": 0.5,
+        "wheelchair_width_m": 0.8,
+        "personal_space_radius_m": 0.3
+      }
+    },
+    "compliance_scoring": {
+      "critical_violations": { "weight": 10 },
+      "high_violations": { "weight": 5 },
+      "medium_violations": { "weight": 2 },
+      "low_violations": { "weight": 1 },
+      "pass_threshold_percent": 80.0
+    }
+  }
+}
