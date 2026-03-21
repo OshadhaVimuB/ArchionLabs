@@ -1,11 +1,12 @@
 "use client";
 import { useEffect } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Cube } from "@phosphor-icons/react";
 
 export default function About() {
-  useEffect(() => {
+  useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     gsap.utils.toArray('.about-elem').forEach((elem: any) => {

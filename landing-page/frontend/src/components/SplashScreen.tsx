@@ -1,14 +1,27 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
 export default function SplashScreen() {
   const screenRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
+    // Prevent splash screen from running multiple times per session
+    const hasPlayed = sessionStorage.getItem("archionSplashPlayed");
+    
+    if (hasPlayed) {
+      if (screenRef.current) screenRef.current.style.display = "none";
+      document.body.classList.remove("overflow-hidden");
+      // Dispatch immediately for Hero to play
+      setTimeout(() => window.dispatchEvent(new Event("splashAnimComplete")), 100);
+      return;
+    }
+
     const splashTl = gsap.timeline({
       onComplete: () => {
+        sessionStorage.setItem("archionSplashPlayed", "true");
         if (screenRef.current) screenRef.current.style.display = "none";
         document.body.classList.remove("overflow-hidden");
       },

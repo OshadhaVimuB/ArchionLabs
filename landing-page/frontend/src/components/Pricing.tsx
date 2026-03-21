@@ -1,11 +1,12 @@
 "use client";
 import { useEffect } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { CheckCircle, StarFour } from "@phosphor-icons/react";
 
 export default function Pricing() {
-  useEffect(() => {
+  useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
     gsap.from(".pricing-elem", {
       scrollTrigger: {

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -49,7 +50,7 @@ const teamMembers = [
 ];
 
 export default function Team() {
-  useEffect(() => {
+  useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
     gsap.from(".team-elem", {
       scrollTrigger: {

@@ -1,11 +1,13 @@
 "use client";
 import { useEffect } from "react";
+import { useGSAP } from "@gsap/react";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { LinkedinLogo, InstagramLogo, TiktokLogo, FacebookLogo } from "@phosphor-icons/react";
 
 export default function Footer() {
-  useEffect(() => {
+  useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
     gsap.from(".footer-elem", {
       scrollTrigger: {
@@ -47,19 +49,24 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="md:col-span-2 lg:col-span-5 grid grid-cols-2 gap-8 pt-4">
+          <div className="md:col-span-2 lg:col-span-5 grid grid-cols-2 md:grid-cols-3 gap-8 pt-4">
             <div className="flex flex-col gap-4 footer-elem">
               <h4 className="text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mb-2 font-semibold">Platform</h4>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Archion Build</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Archion Sim</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Viewer & Share</a>
-              <a href="#pricing-section" className="text-gray-300 hover:text-white transition-colors text-sm">Pricing</a>
+              <Link href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Archion Build</Link>
+              <Link href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Archion Sim</Link>
+              <Link href="#" className="text-gray-300 hover:text-white transition-colors text-sm">Viewer & Share</Link>
+              <Link href="#pricing-section" className="text-gray-300 hover:text-white transition-colors text-sm">Pricing</Link>
             </div>
             <div className="flex flex-col gap-4 footer-elem">
               <h4 className="text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mb-2 font-semibold">Contact</h4>
               <a href="mailto:support@archionlabs.com" className="text-gray-300 hover:text-white transition-colors text-sm">support@archionlabs.com</a>
               <p className="text-gray-300 text-sm">+94 78 671 4988</p>
               <p className="text-gray-300 text-sm leading-relaxed mt-2">IIT, 435 Galle Rd,<br />Colombo 03, Sri Lanka.</p>
+            </div>
+            <div className="flex flex-col gap-4 footer-elem">
+              <h4 className="text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mb-2 font-semibold">Legal</h4>
+              <Link href="/privacy-policy" className="text-gray-300 hover:text-white transition-colors text-sm">Privacy Policy</Link>
+              <Link href="/terms-and-conditions" className="text-gray-300 hover:text-white transition-colors text-sm">Terms & Conditions</Link>
             </div>
           </div>
         </div>

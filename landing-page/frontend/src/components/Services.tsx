@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ArrowUpRight } from "@phosphor-icons/react";
 
@@ -8,7 +9,7 @@ export default function Services() {
   const cursorBoxRef = useRef<HTMLDivElement>(null);
   const [hoveredData, setHoveredData] = useState({ title: "", desc: "" });
 
-  useEffect(() => {
+  useGSAP(() => {
     let cursorX = 0, cursorY = 0;
     let mouseX = 0, mouseY = 0;
 
