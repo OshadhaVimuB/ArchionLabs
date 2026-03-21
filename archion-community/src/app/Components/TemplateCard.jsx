@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-
+import ModelViewer from "./ModelViewer";
 
 export default function TemplateCard({ template, deleteMode, selectedIds, setSelectedIds }) {
 
   const [timeAgo, setTimeAgo] = useState("");
 
   // ❤️ Like system
-  const [likes, setLikes] = useState(template.likes || 42);
+  const [likes, setLikes] = useState(template.likes || 0);
   const [liked, setLiked] = useState(false);
 
   // correct download URL
@@ -48,28 +48,34 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
     return () => clearInterval(interval);
   }, [template.createdAt]);
 
-  function handleLike(e){
-    e.stopPropagation();
-    if(liked){
-      setLikes(likes - 1);
-    }else{
-      setLikes(likes + 1);
-    }
-    setLiked(!liked);
+async function handleLike(e) {
+  e.stopPropagation();
+
+  try {
+    const res = await fetch(`http://localhost:5000/templates/${template._id}/like`, {
+      method: "POST"
+    });
+
+    const data = await res.json();
+    setLikes(data.likes);
+
+  } catch (err) {
+    console.error(err);
   }
+}
 
   return (
-    <div className="relative">
+    <div className="w-full">
 
       {deleteMode && (
         <input
           type="checkbox"
-          checked={selectedIds.includes(template.id)}
+          checked={selectedIds.includes(template._id)}
           onChange={(e) => {
             if (e.target.checked) {
-              setSelectedIds([...selectedIds, template.id]);
+              setSelectedIds([...selectedIds, template._id]);
             } else {
-              setSelectedIds(selectedIds.filter(id => id !== template.id));
+              setSelectedIds(selectedIds.filter(id => id !== template._id));
             }
           }}
         />
@@ -77,19 +83,26 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
 
       <div className="relative bg-zinc-800 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 cursor-pointer">
 
-        <Link href={`/model/${template.id}`} className="block">
+        <Link href={`/model/${template._id}`} className="block">
 
-  <div
-    className="h-48 bg-zinc-700 overflow-hidden"
-    
-  >
+  <div className="h-48 bg-zinc-700 overflow-hidden flex items-center justify-center">
+
+  {template.thumbnailUrl && template.thumbnailUrl !== "/thumbnails/images.png" ? (
     <img
       src={`http://localhost:5000${template.thumbnailUrl}`}
-      alt={template.title}
-      className="w-full h-full object-cover"
+      className="h-56 sm:h-48"
+      onError={(e) => {
+        e.target.style.display = "none";
+      }}
     />
-  </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center text-zinc-400">
+      <span className="text-2xl">🖼️</span>
+      <span className="text-xs mt-1">No Preview</span>
+    </div>
+  )}
 
+</div>
 
           <div className="p-3">
             <h3 className="font-semibold text-white text-sm">
@@ -113,7 +126,7 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
             href={modelUrl}
             download
             onClick={(e) => e.stopPropagation()}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-white text-sm"
+            className="px-3 py-1 bg-white text-black rounded hover:bg-zinc-200 text-sm transition"
           >
             Download
           </a>
@@ -129,7 +142,21 @@ export default function TemplateCard({ template, deleteMode, selectedIds, setSel
               ❤️ {likes}
             </button>
 
-            <span>👁 120</span>
+            <button
+  onClick={(e) => {
+    e.stopPropagation();
+    window.location.href = `/edit/${template._id}`;
+  }}
+  className="text-xs bg-white text-black px-2 py-1 rounded hover:bg-zinc-200 transition"
+>
+  Edit
+</button>
+
+
+
+            
+
+            <span>👁 {template.views||0}</span>
 
           </div>
 

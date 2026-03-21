@@ -20,6 +20,23 @@ export default function ModelPage() {
     }
     loadTemplate();
   }, [id]);
+  useEffect(() => {
+  fetch(`http://localhost:5000/templates/${id}/view`, {
+    method: "POST"
+  });
+}, []);
+useEffect(() => {
+  if (!id) return;
+
+  fetch(`http://localhost:5000/templates/${id}/view`, {
+    method: "POST"
+  })
+  .then(res => res.json())
+  .then(data => console.log("View updated:", data))
+  .catch(err => console.error(err));
+
+}, [id]);
+
   if (!template) {
     return (
       <div className="flex items-center justify-center h-screen text-zinc-400">
