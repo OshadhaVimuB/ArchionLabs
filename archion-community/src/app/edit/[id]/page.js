@@ -41,33 +41,61 @@ export default function EditTemplate() {
   };
 
   return (
-    <div className="p-10 text-white bg-zinc-900 min-h-screen">
+  <div className="min-h-screen bg-zinc-900 text-white flex justify-s
+   items-start p-10">
 
-      <h1 className="text-xl mb-4">Edit Template</h1>
+    <div className="w-full max-w-lg bg-zinc-800 p-8 rounded-lg shadow-lg">
 
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="block mb-4 p-2 bg-zinc-800"
-      />
- 
-      <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Author"/>
+      <h1 className="text-2xl font-semibold mb-6">Edit Template</h1>
 
+      {/* TITLE */}
+      <div className="mb-4">
+        <label className="block text-sm text-zinc-400 mb-1">
+          Title
+        </label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full px-4 py-2 rounded bg-zinc-700 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter template title"
+        />
+      </div>
 
+      {/* DESIGNER NAME */}
+      <div className="mb-4">
+        <label className="block text-sm text-zinc-400 mb-1">
+          Designer Name
+        </label>
+        <input
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          className="w-full px-4 py-2 rounded bg-zinc-700 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter designer name"
+        />
+      </div>
 
-      <input
-        type="file"
-        onChange={(e) => setThumbnail(e.target.files[0])}
-        className="mb-4"
-      />
+      {/* THUMBNAIL */}
+      <div className="mb-6">
+        <label className="block text-sm text-zinc-400 mb-1">
+          Update Thumbnail (optional)
+        </label>
+        <input
+          type="file"
+          onChange={(e) => setThumbnail(e.target.files[0])}
+          className="w-full text-sm text-zinc-300"
+        />
+      </div>
 
+      {/* BUTTON */}
       <button
         onClick={handleUpdate}
-        className="bg-green-600 px-4 py-2 rounded"
+        className="w-full py-2 bg-green-600 hover:bg-green-500 rounded text-white font-medium transition"
       >
         Save Changes
       </button>
 
     </div>
-  );
+
+  </div>
+);
 }
