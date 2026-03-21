@@ -88,17 +88,17 @@ app.post("/upload-model", upload.fields([
 ]), async (req, res) => {
 
   try {
-
-    const modelFile = req.files["model"]?.[0];
+    console.log("FILES:", req.files);
+    const modelFile = req.files?.model?.[0];
     
 
     if (!modelFile) {
       return res.status(400).json({ error: "Model required" });
     }
 
-    let thumbnailUrl = "/thumbnails/default.png";
+    let thumbnailUrl = "/thumbnails/images.png";
 
-    if (req.files["thumbnail"]) {
+    if (req.files?.thumbnail) {
       const thumbnailFile = req.files["thumbnail"][0];
       thumbnailUrl = "/thumbnails/" + thumbnailFile.filename;
     }
@@ -106,7 +106,7 @@ app.post("/upload-model", upload.fields([
     const newTemplate = {
       title: req.body.title || "Untitled",
       author: req.body.author || "Unknown",
-      category: req.body.category || "Walls",
+      category: req.body.category || "Uncategorized",
       modelUrl: "/models/" + modelFile.filename,
       thumbnailUrl,
       createdAt: new Date().toISOString(),
@@ -119,8 +119,8 @@ app.post("/upload-model", upload.fields([
     res.json(saved);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Upload failed" });
+    console.error("Upload error:", err);
+    res.status(500).json({ error: err.message || "Upload failed" });
   }
 });
 

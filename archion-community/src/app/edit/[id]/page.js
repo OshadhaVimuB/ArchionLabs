@@ -41,8 +41,7 @@ export default function EditTemplate() {
   };
 
   return (
-  <div className="min-h-screen bg-zinc-900 text-white flex justify-s
-   items-start p-10">
+  <div className="min-h-screen bg-zinc-900 text-white flex justify-start items-start p-10">
 
     <div className="w-full max-w-lg bg-zinc-800 p-8 rounded-lg shadow-lg">
 

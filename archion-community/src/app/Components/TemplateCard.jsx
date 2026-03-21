@@ -65,7 +65,7 @@ async function handleLike(e) {
 }
 
   return (
-    <div className="relative">
+    <div className="w-full">
 
       {deleteMode && (
         <input
@@ -90,7 +90,7 @@ async function handleLike(e) {
   {template.thumbnailUrl && template.thumbnailUrl !== "/thumbnails/images.png" ? (
     <img
       src={`http://localhost:5000${template.thumbnailUrl}`}
-      className="w-full h-full object-cover"
+      className="h-56 sm:h-48"
       onError={(e) => {
         e.target.style.display = "none";
       }}
@@ -126,7 +126,7 @@ async function handleLike(e) {
             href={modelUrl}
             download
             onClick={(e) => e.stopPropagation()}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-white text-sm"
+            className="px-3 py-1 bg-white text-black rounded hover:bg-zinc-200 text-sm transition"
           >
             Download
           </a>
@@ -147,7 +147,7 @@ async function handleLike(e) {
     e.stopPropagation();
     window.location.href = `/edit/${template._id}`;
   }}
-  className="text-xs bg-green-600 hover:bg-green-500  px-3 py-1 rounded text-white transition"
+  className="text-xs bg-white text-black px-2 py-1 rounded hover:bg-zinc-200 transition"
 >
   Edit
 </button>

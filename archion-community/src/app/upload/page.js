@@ -25,12 +25,6 @@ export default function UploadTemplate() {
     const selected = e.target.files[0];
     if (!selected) return;
 
-    if (selected.size > 20 * 1024 * 1024) {
-  setInvalidFile(true);
-  setErrorMessage("File must be under 20MB");
-  return;
-}
-
     const allowedExtensions = [".glb", ".gltf"];
     const isValid = allowedExtensions.some(ext =>
       selected.name.toLowerCase().endsWith(ext)
@@ -54,24 +48,24 @@ export default function UploadTemplate() {
 
   // THUMBNAIL HANDLER
   function handleThumbnailChange(e) {
-  const selected = e.target.files[0];
-  if (!selected) return; // ✅ MUST FIRST
-
-  if (selected.size > 5 * 1024 * 1024) {
-    setFieldErrors(prev => ({ ...prev, thumbnail: "Max size is 5MB" }));
-    return;
-  }
-
-  const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
-
-  if (!allowedTypes.includes(selected.type)) {
-    setFieldErrors(prev => ({ ...prev, thumbnail: "Only PNG/JPG allowed" }));
-    return;
-  }
-
-  setThumbnail(selected);
-  setThumbnailPreview(URL.createObjectURL(selected));
+    const selected = e.target.files[0];
+    if (selected.size > 5 * 1024 * 1024) {
+      alert("Thumbnail must be smaller than 5MB");
+      return;
 }
+    
+    if (!selected) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+
+    if (!allowedTypes.includes(selected.type)) {
+      alert("Please upload PNG or JPG image");
+      return;
+    }
+
+    setThumbnail(selected);
+    setThumbnailPreview(URL.createObjectURL(selected));
+  }
 
   function removeFile() {
     setFile(null);
@@ -99,9 +93,9 @@ export default function UploadTemplate() {
     setFormError("");
 
     if (!file) {
-  setFieldErrors(prev => ({ ...prev, file: "Model file is required" }));
-  return;
-}
+      alert("Please select a 3D model file first");
+      return;
+    }
 
     const formData = new FormData();
 
@@ -141,14 +135,14 @@ try {
 
 } catch (error) {
   console.error("Upload error:", error);
-  setFormError(error.message);
+  alert(error.message);
 }
   };
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white px-10 py-12">
 
-      <div className="max-w-6xl mx-auto grid grid-cols-2 gap-16">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
 
         {/* LEFT SIDE FORM */}
         <div className="space-y-6">
@@ -233,15 +227,15 @@ try {
         <div className="space-y-8">
 
           {/* MODEL UPLOAD */}
-          <div className="bg-zinc-800 rounded-lg p-8 border border-zinc-700 text-center">
+          <div className="bg-zinc-800 rounded-lg p-6 w-full">
 
-            <p className="text-sm mb-4 text-zinc-400">
+            <p className="text-sm mb-4 text-zinc-400 text-center">
               Upload 3D Model (.glb/.gltf)
             </p>
 
             <div className="flex justify-center gap-4">
 
-              <label className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded cursor-pointer">
+              <label className="px-4 py-2 bg-white text-black rounded hover:bg-zinc-200 transition">
                 Choose File
                 <input
                   id="fileInput"
@@ -254,7 +248,7 @@ try {
 
               <button
                 onClick={removeFile}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded"
+                className="px-4 py-2 bg-white text-black rounded hover:bg-zinc-200 transition"
               >
                 Remove File
               </button>
@@ -262,7 +256,7 @@ try {
             </div>
 
             {file && (
-              <p className="mt-4 text-sm text-zinc-400">
+              <p className="mt-4 text-sm text-zinc-400 text-center">
                 Selected: {file.name}
               </p>
             )}
@@ -276,7 +270,7 @@ try {
               Upload Thumbnail Image (PNG/JPG)
             </p>
 
-            <label className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded cursor-pointer">
+            <label className="px-4 py-2 bg-white text-black rounded hover:bg-zinc-200 transition">
               Choose Thumbnail
               <input
                 type="file"
@@ -321,7 +315,7 @@ try {
 
             <button
               onClick={handleUpload}
-              className="px-6 py-2 bg-green-600 rounded hover:bg-green-500"
+              className="px-6 py-2 bg-white text-black rounded hover:bg-zinc-200 transition"
             >
               Upload Template
             </button>
