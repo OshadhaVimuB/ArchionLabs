@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, PlayCircle } from "@phosphor-icons/react";
@@ -8,7 +9,7 @@ export default function Portfolio() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
     gsap.registerPlugin(ScrollTrigger);
 
     if (sectionRef.current && trackRef.current) {

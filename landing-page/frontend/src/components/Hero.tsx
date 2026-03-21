@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ArrowRight } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import Link from "next/link";
 export default function Hero() {
   const heroRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
     const heroTl = gsap.timeline({ paused: true });
 
     gsap.set(".nav-item", { y: -20, opacity: 0 });
@@ -25,7 +26,12 @@ export default function Hero() {
       heroTl.play();
     };
 
-    window.addEventListener("splashAnimComplete", onSplashComplete);
+    if (sessionStorage.getItem("archionSplashPlayed")) {
+      heroTl.play();
+    } else {
+      window.addEventListener("splashAnimComplete", onSplashComplete);
+    }
+
     return () => {
       window.removeEventListener("splashAnimComplete", onSplashComplete);
     };

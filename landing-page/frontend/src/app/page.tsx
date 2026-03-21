@@ -48,6 +48,8 @@ export default function Home() {
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
         anchor.removeEventListener("click", handleAnchorClick as EventListener);
       });
+      // Cleanup all GSAP ScrollTriggers created by child components
+      ScrollTrigger.getAll().forEach(t => t.kill());
     };
   }, []);
 
