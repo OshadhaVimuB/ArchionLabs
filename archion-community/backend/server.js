@@ -1,7 +1,9 @@
+require("./db");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const Template = require("./models/Template");
 const jwt = require("jsonwebtoken");
 
 const app = express();
@@ -11,6 +13,8 @@ app.use(express.json());
 const modelsPath = path.resolve(__dirname, "../public/models");
 app.use("/models", express.static(modelsPath));
 console.log("Serving models from:", modelsPath);
+app.use("/thumbnails", express.static(path.join(__dirname, "../public/thumbnails")));
+
 
 let generateThumbnail;
 try {
@@ -52,25 +56,34 @@ function authMiddleware(req, res, next) {
 // ------------------------------------------------------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../public/models"));
+
+    if (file.fieldname === "model") {
+      cb(null, path.join(__dirname, "../public/models"));
+    }
+
+    if (file.fieldname === "thumbnail") {
+      cb(null, path.join(__dirname, "../public/thumbnails"));
+    }
+
   },
+
   filename: function (req, file, cb) {
 
-  const cleanName = file.originalname
-    .replace(/\s+/g, "-")      // replace spaces
-    .replace(/[()]/g, "");     // remove brackets
+    const cleanName = file.originalname
+      .replace(/\s+/g, "-")
+      .replace(/[()]/g, "");
 
-  cb(null, Date.now() + "-" + cleanName);
-}
+    cb(null, Date.now() + "-" + cleanName);
+  }
 });
 const upload = multer({ storage: storage });
 
 
 
-let templates = [
- 
-];
 
+
+// GET templates
+app.get("/templates", async (req, res) => {
 // GET templates (public)
 app.get("/templates", (req, res) => {
 
@@ -78,24 +91,27 @@ app.get("/templates", (req, res) => {
   const limit = 9;
 
   const start = (page - 1) * limit;
-  const end = start + limit;
 
-  const paginatedTemplates = templates.slice(start, end);
+  const templates = await Template.find()
+    .sort({ createdAt: -1 })
+    .skip(start)
+    .limit(limit);
+
+  const total = await Template.countDocuments();
 
   res.json({
-    templates: paginatedTemplates,
-    total: templates.length
+    templates,
+    total
   });
- 
-
 });
+app.get("/templates/:id", async(req, res) => {
 
 // GET single template (public)
 app.get("/templates/:id", (req, res) => {
 
   const id = parseInt(req.params.id);
 
-  const template = templates.find(t => t.id === id);
+  const template = await Template.findById(req.params.id);
 
   if (!template) {
     return res.status(404).json({ message: "Template not found" });
@@ -104,6 +120,10 @@ app.get("/templates/:id", (req, res) => {
   res.json(template);
 
 });
+// DELETE template
+app.delete("/templates/:id", async(req, res) => {
+
+  await Template.findByIdAndDelete(req.params.id);
 
 // DELETE template (protected)
 app.delete("/templates/:id", authMiddleware, (req, res) => {
@@ -111,20 +131,87 @@ app.delete("/templates/:id", authMiddleware, (req, res) => {
   templates = templates.filter(t => t.id !== id);
   res.json({ message: "Deleted successfully" });
 });
+app.post("/upload-model", upload.fields([
+  { name: "model", maxCount: 1 },
+  { name: "thumbnail", maxCount: 1 }
+]), async (req, res) => {
+
+  try {
+    console.log("FILES:", req.files);
+    const modelFile = req.files?.model?.[0];
+    
+
+    if (!modelFile) {
+      return res.status(400).json({ error: "Model required" });
+    }
+
+    let thumbnailUrl = "/thumbnails/images.png";
+
+    if (req.files?.thumbnail) {
+      const thumbnailFile = req.files["thumbnail"][0];
+      thumbnailUrl = "/thumbnails/" + thumbnailFile.filename;
+    }
+
+    const newTemplate = {
+      title: req.body.title || "Untitled",
+      author: req.body.author || "Unknown",
+      category: req.body.category || "Uncategorized",
+      modelUrl: "/models/" + modelFile.filename,
+      thumbnailUrl,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      views: 0
+    };
+
+    const saved = await Template.create(newTemplate);
+
+    res.json(saved);
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: err.message || "Upload failed" });
+  }
+});
+
+app.post("/templates/:id/like", async (req, res) => {
+  try {
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    res.status(500).json({ error: "Like failed" });
+  }
+});
+app.post("/templates/:id/view", async (req, res) => {
+  try {
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    res.status(500).json({ error: "View update failed" });
+  }
+});
 
 // POST new template (protected)
 app.post("/upload-model", authMiddleware, upload.single("model"), async(req, res) => {
   const modelPath = "/models/" + req.file.filename;
 
-  const thumbnailFile = req.file.filename.replace(".glb", ".png");
 
-  const thumbnailPath = path.resolve(__dirname, "../public/thumbnails/" + thumbnailFile);
 
-  await generateThumbnail(
-    `http://localhost:5000${modelPath}`,
-    thumbnailPath
-  );
 
+app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
+  try {
+    const updateData = {};
   const newTemplate = {
     id: Date.now(),
     title: req.body.title,
@@ -134,10 +221,28 @@ app.post("/upload-model", authMiddleware, upload.single("model"), async(req, res
     createdAt: new Date().toISOString()
   };
 
-  templates.push(newTemplate);
+    if (req.body.title) updateData.title = req.body.title;
+    if (req.body.author) updateData.author = req.body.author;
 
-  res.json(newTemplate);
+    if (req.file) {
+      updateData.thumbnailUrl = "/thumbnails/" + req.file.filename;
+    }
+
+    const updated = await Template.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    res.json(updated);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Update failed" });
+  }
+
 });
+
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");

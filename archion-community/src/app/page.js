@@ -13,32 +13,35 @@ export default function Home() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState("Recent");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
+  const itemsPerPage = 8;
+
+  // 🔄 LOAD ALL TEMPLATES (NO PAGINATION HERE)
   useEffect(() => {
-
-  async function loadTemplates() {
-    try{
-      const res = await fetch(`http://localhost:5000/templates?page=${page}&limit=8`);
-      const data = await res.json();
-      console.log("Loaded templates:", data);
-      setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to load templates:", error);
-      setTemplates([]);
+    async function loadTemplates() {
+      try {
+        const res = await fetch(`http://localhost:5000/templates`);
+        const data = await res.json();
+        setTemplates(data.templates || []);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+        setTemplates([]);
+      }
     }
 
+    loadTemplates();
+  }, []);
 
-  }
+  // 🔁 RESET PAGE WHEN FILTER CHANGES
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedCategory, selectedDate, filter]);
 
-  loadTemplates();
-
-}, [page]);
-
+  // 🗑 DELETE FUNCTION
   const handleDelete = async () => {
-
     if (deleteMode) {
-
       for (let id of selectedIds) {
         await fetch(`http://localhost:5000/templates/${id}`, {
           method: "DELETE"
@@ -50,84 +53,129 @@ export default function Home() {
 
       const res = await fetch("http://localhost:5000/templates");
       const data = await res.json();
-      setTemplates(data);
+      setTemplates(data.templates);
 
     } else {
       setDeleteMode(true);
     }
-
   };
+
+  // 🔥 FILTERING
+  let filteredTemplates = [...templates];
+
+  // 🔍 Search
+  if (searchTerm) {
+    filteredTemplates = filteredTemplates.filter((t) =>
+      t.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  // 📂 Category
+  if (selectedCategory) {
+    filteredTemplates = filteredTemplates.filter(t =>
+      t.category?.toLowerCase().trim() === selectedCategory.toLowerCase().trim()
+    );
+  }
+
+  // 📅 Date
+  if (selectedDate) {
+    filteredTemplates = filteredTemplates.filter(t =>
+      new Date(t.createdAt).toDateString() === selectedDate.toDateString()
+    );
+  }
+
+  // ⭐ Sorting
+  if (filter === "Top") {
+    filteredTemplates = filteredTemplates.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+  }
+
+  if (filter === "Trending") {
+    filteredTemplates = filteredTemplates.sort((a, b) => (b.views || 0) - (a.views || 0));
+  }
+
+  if (filter === "Recent") {
+    filteredTemplates = filteredTemplates.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }
+
+  // 🔥 PAGINATION (AFTER FILTERING)
+  const start = (page - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+
+  const currentTemplates = filteredTemplates.slice(start, end);
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
 
-      {/* PAGE TITLE */}
       <div className="px-8 mt-6">
         <h1 className="text-2xl font-semibold">Community Library</h1>
       </div>
 
-      {/* FILTER BAR */}
       <FilterBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filter={filter}
         setFilter={setFilter}
         setSelectedDate={setSelectedDate}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
       />
 
-      {/* BUTTON SECTION */}
-      <div className="flex justify-between items-center px-8 mt-6 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center px-4 sm:px-8 mt-6 mb-6">
 
-        {/* LEFT SIDE */}
         <Link href="/upload">
-          <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-white">
+          <button className="px-4 py-2 bg-white text-black rounded hover:bg-zinc-200 transition">
             + Upload Template
           </button>
         </Link>
 
-        {/* RIGHT SIDE */}
         <button
           onClick={handleDelete}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+          className="px-4 py-2 bg-white text-black rounded hover:bg-zinc-200 transition"
         >
           {deleteMode ? "Confirm Delete" : "Delete Template"}
         </button>
 
       </div>
 
-      {/* TEMPLATE GRID */}
       <div className="px-8">
 
+        {/* ✅ USE PAGINATED DATA */}
         <TemplateGrid
-          templates={templates}
-          searchTerm={searchTerm}
+          templates={currentTemplates}
           deleteMode={deleteMode}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
-          filter={filter}
         />
 
+        {/* PAGINATION */}
         <div className="flex justify-center gap-4 mt-10">
-<button onClick={() => setPage(page-1)}disabled={page === 1}
-  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
->
-  Previous
-</button>
 
-<span className="px-4 py-2 text-zinc-300">
-  Page {page}
-</span>
-Next
+          <button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            className="px-4 py-2 bg-zinc-700 rounded"
+          >
+            Previous
+          </button>
 
-<button onClick={() => setPage(page+1)}
-  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
->
-  Next
-</button>
+          <span className="px-4 py-2 text-zinc-300">
+            Page {page}
+          </span>
 
-</div>
-        
+          <button
+            onClick={() => {
+              if (end < filteredTemplates.length) {
+                setPage(page + 1);
+              }
+            }}
+            className="px-4 py-2 bg-zinc-700 rounded"
+          >
+            Next
+          </button>
 
+        </div>
 
       </div>
 

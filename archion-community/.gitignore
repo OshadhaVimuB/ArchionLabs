@@ -45,6 +45,15 @@ node_modules/
 .next
 *.zip
 
-models/
 
 
+*.zip/
+
+thumbnails/
+
+TemplateCard.jsx/
+
+page.js/
+
+public/models/
+public/thumbnails/
