@@ -82,64 +82,71 @@ const upload = multer({ storage: storage });
 
 
 
-// GET templates
-app.get("/templates", async (req, res) => {
 // GET templates (public)
-app.get("/templates", (req, res) => {
+app.get("/templates", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 9;
+    const start = (page - 1) * limit;
 
-  const page = parseInt(req.query.page) || 1;
-  const limit = 9;
+    const templates = await Template.find()
+      .sort({ createdAt: -1 })
+      .skip(start)
+      .limit(limit);
 
-  const start = (page - 1) * limit;
+    const total = await Template.countDocuments();
 
-  const templates = await Template.find()
-    .sort({ createdAt: -1 })
-    .skip(start)
-    .limit(limit);
-
-  const total = await Template.countDocuments();
-
-  res.json({
-    templates,
-    total
-  });
+    res.json({
+      templates,
+      total
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch templates" });
+  }
 });
-app.get("/templates/:id", async(req, res) => {
 
 // GET single template (public)
-app.get("/templates/:id", (req, res) => {
+app.get("/templates/:id", async (req, res) => {
+  try {
+    const template = await Template.findById(req.params.id);
 
-  const id = parseInt(req.params.id);
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
 
-  const template = await Template.findById(req.params.id);
-
-  if (!template) {
-    return res.status(404).json({ message: "Template not found" });
+    res.json(template);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch template" });
   }
-
-  res.json(template);
-
 });
-// DELETE template
-app.delete("/templates/:id", async(req, res) => {
-
-  await Template.findByIdAndDelete(req.params.id);
 
 // DELETE template (protected)
-app.delete("/templates/:id", authMiddleware, (req, res) => {
-  const id = parseInt(req.params.id);
-  templates = templates.filter(t => t.id !== id);
-  res.json({ message: "Deleted successfully" });
+app.delete("/templates/:id", authMiddleware, async (req, res) => {
+  try {
+    const template = await Template.findById(req.params.id);
+    
+    if (!template) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    
+    // Optional: Add authorization check here if templates have an author/userId field
+    // if (template.userId !== req.user.sub) return res.status(403).json({ error: "Unauthorized" });
+
+    await Template.findByIdAndDelete(req.params.id);
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete template" });
+  }
 });
-app.post("/upload-model", upload.fields([
+
+// POST new template (protected)
+app.post("/upload-model", authMiddleware, upload.fields([
   { name: "model", maxCount: 1 },
   { name: "thumbnail", maxCount: 1 }
 ]), async (req, res) => {
-
   try {
     console.log("FILES:", req.files);
     const modelFile = req.files?.model?.[0];
-    
 
     if (!modelFile) {
       return res.status(400).json({ error: "Model required" });
@@ -156,6 +163,7 @@ app.post("/upload-model", upload.fields([
       title: req.body.title || "Untitled",
       author: req.body.author || "Unknown",
       category: req.body.category || "Uncategorized",
+      userId: req.user.sub,  // Linking to Supabase user ID
       modelUrl: "/models/" + modelFile.filename,
       thumbnailUrl,
       createdAt: new Date().toISOString(),
@@ -164,7 +172,6 @@ app.post("/upload-model", upload.fields([
     };
 
     const saved = await Template.create(newTemplate);
-
     res.json(saved);
 
   } catch (err) {
@@ -173,6 +180,7 @@ app.post("/upload-model", upload.fields([
   }
 });
 
+// POST like a template
 app.post("/templates/:id/like", async (req, res) => {
   try {
     const updated = await Template.findByIdAndUpdate(
@@ -180,13 +188,13 @@ app.post("/templates/:id/like", async (req, res) => {
       { $inc: { likes: 1 } },
       { new: true }
     );
-
     res.json(updated);
-
   } catch (err) {
     res.status(500).json({ error: "Like failed" });
   }
 });
+
+// POST mark template as viewed
 app.post("/templates/:id/view", async (req, res) => {
   try {
     const updated = await Template.findByIdAndUpdate(
@@ -194,32 +202,16 @@ app.post("/templates/:id/view", async (req, res) => {
       { $inc: { views: 1 } },
       { new: true }
     );
-
     res.json(updated);
-
   } catch (err) {
     res.status(500).json({ error: "View update failed" });
   }
 });
 
-// POST new template (protected)
-app.post("/upload-model", authMiddleware, upload.single("model"), async(req, res) => {
-  const modelPath = "/models/" + req.file.filename;
-
-
-
-
-app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
+// PUT update existing template
+app.put("/templates/:id", authMiddleware, upload.single("thumbnail"), async (req, res) => {
   try {
     const updateData = {};
-  const newTemplate = {
-    id: Date.now(),
-    title: req.body.title,
-    author: req.body.author,
-    userId: req.user.sub,  // Supabase user ID
-    modelUrl: "/models/" + req.file.filename,
-    createdAt: new Date().toISOString()
-  };
 
     if (req.body.title) updateData.title = req.body.title;
     if (req.body.author) updateData.author = req.body.author;
@@ -237,12 +229,10 @@ app.put("/templates/:id", upload.single("thumbnail"), async(req, res) => {
     res.json(updated);
 
   } catch (err) {
-    console.error(err);
+    console.error("Update error:", err);
     res.status(500).json({ error: "Update failed" });
   }
-
 });
-
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
