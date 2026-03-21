@@ -420,8 +420,6 @@ async def stream_simulation_endpoint(
     n_specialist: int = 0,
     seed: int = 42,
 ):
-    global _cached_geometry
-
     boundaries = None
     obstacles = []
 
@@ -447,7 +445,7 @@ async def stream_simulation_endpoint(
     )
 
     def event_generator():
-        global _sim_status, _sim_error, _sim_trajectories
+        global _sim_status, _sim_error
         global _analytics_data, _compliance_status, _compliance_report, _compliance_error
         
         with _sim_lock:
