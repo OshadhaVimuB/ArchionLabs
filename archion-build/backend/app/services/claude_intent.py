@@ -230,7 +230,7 @@ class IntentParser:
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key
-        self.model = model or "claude-3-5-haiku-20241022"
+        self.model = model or "claude-3-haiku-20240307"
         self._anthropic_client = None
 
     def _get_anthropic_client(self):
@@ -284,7 +284,7 @@ class IntentParser:
             logger.info("Generating full floor plan directly with Claude LLM...")
             response = client.messages.create(
                 model=self.model,
-                max_tokens=8192,
+                max_tokens=4096,
                 temperature=0.2,
                 system=FULL_GENERATION_PROMPT,
                 messages=[
@@ -349,7 +349,7 @@ CRITICAL RULES:
             logger.info("Calling Claude LLM to modify floorplan...")
             response = client.messages.create(
                 model=self.model,
-                max_tokens=8192,
+                max_tokens=4096,
                 temperature=0.2,
                 system=system_prompt,
                 messages=[
@@ -471,7 +471,7 @@ CRITICAL RULES:
             logger.info("Calling Claude Vision to extract floorplan...")
             response = client.messages.create(
                 model=self.model,
-                max_tokens=8192,
+                max_tokens=4096,
                 temperature=0.1,
                 system=system_prompt,
                 messages=[
