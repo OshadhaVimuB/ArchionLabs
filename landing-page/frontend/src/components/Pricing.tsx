@@ -18,6 +18,7 @@ export default function Pricing() {
       duration: 1,
       stagger: 0.15,
       ease: "power3.out",
+      clearProps: "all"
     });
   }, []);
 
