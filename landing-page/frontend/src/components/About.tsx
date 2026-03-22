@@ -18,7 +18,7 @@ export default function About() {
   }, []);
 
   return (
-    <section id="about-section" className="pt-40 md:pt-48 lg:pt-40 pb-32 px-6 md:px-10 lg:px-20 max-w-[1400px] mx-auto">
+    <section id="about-section" className="pt-24 md:pt-48 lg:pt-40 pb-32 px-6 md:px-10 lg:px-20 max-w-[1400px] mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* 1. Text Block */}
         <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-black/10 about-elem">
@@ -40,7 +40,7 @@ export default function About() {
           <div className="pt-2">
             <h4 className="text-[10px] uppercase tracking-widest text-gray-400 mb-4 md:mb-6 font-bold">The Workflow</h4>
             <p className="text-2xl sm:text-3xl lg:text-5xl font-medium leading-[1.15] tracking-tighter text-black">
-              From 2D plans to instant 3D models and real-time movement simulation—all in one upload.
+              From 2D plans to instant 3D models and inteligent pedestrian simulation-all in one upload.
             </p>
           </div>
 
