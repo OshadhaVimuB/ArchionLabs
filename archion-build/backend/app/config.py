@@ -33,4 +33,4 @@ PROJECT_DESCRIPTION = "AI-powered architectural floor plan generator"
 
 # Anthropic Claude (optional — regex fallback is used when not set)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", None)
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307")
