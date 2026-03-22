@@ -39,9 +39,9 @@ export default function About() {
         <div className="md:col-span-1 lg:col-span-4 flex flex-col gap-8 md:gap-10 about-elem h-full">
           <div className="pt-2">
             <h4 className="text-[10px] uppercase tracking-widest text-gray-400 mb-4 md:mb-6 font-bold">The Workflow</h4>
-            <p className="text-2xl sm:text-3xl lg:text-5xl font-medium leading-[1.15] tracking-tighter text-black">
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-medium leading-[1.15] tracking-tighter text-black">
               From 2D plans to instant 3D models and inteligent pedestrian simulation-all in one upload.
-            </p>
+            </h2>
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:gap-4 mt-auto">
