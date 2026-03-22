@@ -61,7 +61,7 @@ export default function Services() {
       className="bg-[#161616] text-white py-24 md:py-32 rounded-[2rem] md:rounded-[3rem] mx-4 md:mx-6 mb-20 relative overflow-hidden px-6 md:px-12 lg:px-16"
       id="services-section"
     >
-      <h4 className="text-[10px] md:text-xs uppercase tracking-widest text-gray-400 mb-12 md:mb-16 font-semibold">Our Intelligent Product Suite</h4>
+      <h2 className="text-[10px] md:text-xs uppercase tracking-widest text-gray-400 mb-12 md:mb-16 font-semibold">Our Intelligent Product Suite</h2>
 
       <div className="flex flex-wrap gap-x-4 gap-y-4 md:gap-y-6 text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-medium leading-tight tracking-tight">
         <span
