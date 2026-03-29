@@ -51,7 +51,7 @@ const COMPLEXITY_COLORS: Record<string, string> = {
     low: "bg-green-500/20 text-green-400 border-green-500/30",
     medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
     high: "bg-red-500/20 text-red-400 border-red-500/30",
-    unknown: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+    unknown: "bg-muted text-muted-foreground border-border",
 };
 
 // Type icons
@@ -107,7 +107,7 @@ interface AIRecommendation {
 function ConfidenceBadge({ confidence, isFallback }: { confidence?: number; isFallback?: boolean }) {
     if (isFallback) {
         return (
-            <span className="inline-flex items-center gap-1 rounded-md border border-zinc-600/40 bg-zinc-700/20 px-2 py-0.5 text-[9px] font-medium text-zinc-500">
+            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-[9px] font-medium text-muted-foreground">
                 Fallback · No AI
             </span>
         );
@@ -154,27 +154,27 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
 
             {/* Analysis */}
             <div>
-                <p className="text-[10px] font-semibold text-zinc-400 mb-0.5">Analysis</p>
-                <p className="text-[11px] text-zinc-300 leading-relaxed">{rec.analysis}</p>
+                <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Analysis</p>
+                <p className="text-[11px] text-foreground/80 leading-relaxed">{rec.analysis}</p>
             </div>
 
             {/* Solution */}
             <div>
-                <p className="text-[10px] font-semibold text-zinc-400 mb-0.5">Solution</p>
-                <p className="text-[11px] text-zinc-300 leading-relaxed">{rec.solution}</p>
+                <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Solution</p>
+                <p className="text-[11px] text-foreground/80 leading-relaxed">{rec.solution}</p>
             </div>
 
             {/* Steps */}
             {(rec.implementation_steps ?? []).length > 0 && (
                 <div>
-                    <p className="text-[10px] font-semibold text-zinc-400 mb-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">
                         Implementation Steps
                     </p>
                     <ul className="space-y-1">
                         {(rec.implementation_steps ?? []).map((step, i) => (
                             <li key={i} className="flex items-start gap-1.5">
-                                <CheckCircle2 className="h-3 w-3 text-zinc-600 mt-0.5 shrink-0" />
-                                <span className="text-[10px] text-zinc-400 leading-relaxed">
+                                <CheckCircle2 className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                                <span className="text-[10px] text-muted-foreground leading-relaxed">
                                     {step}
                                 </span>
                             </li>
@@ -191,15 +191,15 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
                     {rec.complexity}
                 </span>
                 {rec.estimated_cost_lkr && rec.estimated_cost_lkr !== "N/A" && (
-                    <span className="text-[9px] font-mono text-zinc-500">
+                    <span className="text-[9px] font-mono text-muted-foreground">
                         LKR {rec.estimated_cost_lkr}
                         {rec._cost_overridden && (
-                            <span className="ml-1 text-zinc-600 not-italic">(kb estimate)</span>
+                            <span className="ml-1 text-muted-foreground/60 not-italic">(kb estimate)</span>
                         )}
                     </span>
                 )}
                 {rec.regulation_reference && rec.regulation_reference !== "N/A" && (
-                    <span className="text-[9px] text-zinc-600 italic truncate max-w-[160px]" title={rec.regulation_reference}>
+                    <span className="text-[9px] text-muted-foreground/60 italic truncate max-w-[160px]" title={rec.regulation_reference}>
                         {rec.regulation_reference}
                     </span>
                 )}
@@ -208,11 +208,11 @@ function AIRecommendationCard({ rec }: { rec: AIRecommendation }) {
             {/* Alternatives */}
             {(rec.alternative_solutions ?? []).length > 0 && (
                 <div>
-                    <p className="text-[9px] font-semibold text-zinc-500 mb-0.5">
+                    <p className="text-[9px] font-semibold text-muted-foreground mb-0.5">
                         Alternatives
                     </p>
                     {(rec.alternative_solutions ?? []).map((alt, i) => (
-                        <p key={i} className="text-[9px] text-zinc-600 leading-relaxed">
+                        <p key={i} className="text-[9px] text-muted-foreground/60 leading-relaxed">
                             {i + 1}. {alt}
                         </p>
                     ))}
@@ -285,7 +285,7 @@ function ViolationCard({
                         <ViolationIcon type={violation.type} />
                     </span>
                     <div>
-                        <p className="text-xs font-semibold text-zinc-200">
+                        <p className="text-xs font-semibold text-foreground">
                             {formatType(violation.type)}
                         </p>
                         <span
@@ -297,34 +297,34 @@ function ViolationCard({
                 </div>
                 <button
                     onClick={() => onFocusViolation(violation)}
-                    className="flex items-center gap-1 rounded-md bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 transition hover:bg-zinc-700"
+                    className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[10px] font-medium text-secondary-foreground transition hover:bg-accent"
                 >
                     <Focus className="h-3 w-3" />
                     Focus
                 </button>
             </div>
 
-            <p className="mt-2 text-[11px] text-zinc-400 leading-relaxed">
+            <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
                 {violation.description}
             </p>
 
             <div className="mt-2 flex items-center gap-3 text-[10px] font-mono">
-                <span className="text-zinc-400">
+                <span className="text-muted-foreground">
                     Measured:{" "}
                     <span className={SEVERITY_TEXT[violation.severity]}>
                         {formatValue(violation.type, violation.measured_value)}
                     </span>
                 </span>
-                <span className="text-zinc-500">|</span>
-                <span className="text-zinc-400">
+                <span className="text-border">|</span>
+                <span className="text-muted-foreground">
                     Required:{" "}
-                    <span className="text-zinc-300">
+                    <span className="text-foreground">
                         {formatValue(violation.type, violation.required_value)}
                     </span>
                 </span>
             </div>
 
-            <p className="mt-1.5 text-[9px] text-zinc-600 italic">
+            <p className="mt-1.5 text-[9px] text-muted-foreground/60 italic">
                 {violation.regulation}
             </p>
 
@@ -392,16 +392,16 @@ export function ViolationPanel({
             {/* Floating button */}
             <button
                 onClick={() => setPanelOpen((p) => !p)}
-                className="absolute bottom-24 right-4 z-20 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/90 backdrop-blur-md px-4 py-3 shadow-2xl transition hover:bg-zinc-800"
+                className="absolute bottom-24 right-4 z-20 flex items-center gap-2 rounded-xl border border-border bg-card/90 backdrop-blur-md px-4 py-3 shadow-2xl transition hover:bg-secondary"
             >
                 {loading ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-500 border-t-cyan-400" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
                 ) : passed ? (
                     <ShieldCheck className="h-5 w-5 text-green-400" />
                 ) : (
                     <ShieldAlert className="h-5 w-5 text-red-400" />
                 )}
-                <span className="text-xs font-medium text-zinc-300">
+                <span className="text-xs font-medium text-foreground">
                     {loading
                         ? "Auditing…"
                         : report
@@ -423,19 +423,19 @@ export function ViolationPanel({
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 400, opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="absolute right-0 top-0 bottom-0 w-[380px] z-30 border-l border-zinc-700 bg-zinc-950/95 backdrop-blur-xl overflow-hidden flex flex-col"
+                        className="absolute right-0 top-0 bottom-0 w-[380px] z-30 border-l border-border bg-background/95 backdrop-blur-xl overflow-hidden flex flex-col"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                             <div className="flex items-center gap-2">
-                                <ShieldAlert className="h-4 w-4 text-zinc-400" />
-                                <span className="text-sm font-semibold text-zinc-200">
+                                <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-semibold text-foreground">
                                     Compliance Report
                                 </span>
                             </div>
                             <button
                                 onClick={() => setPanelOpen(false)}
-                                className="rounded-lg p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                                className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -443,13 +443,13 @@ export function ViolationPanel({
 
                         {/* Score badge */}
                         {report && (
-                            <div className="px-4 py-3 border-b border-zinc-800">
+                            <div className="px-4 py-3 border-b border-border">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                                             {report.standard}
                                         </p>
-                                        <p className="text-xs text-zinc-400 mt-0.5">
+                                        <p className="text-xs text-muted-foreground mt-0.5">
                                             {formatType(report.building_type)}
                                         </p>
                                     </div>
@@ -502,14 +502,14 @@ export function ViolationPanel({
                         {/* Violation cards */}
                         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                             {!report && !loading && (
-                                <p className="text-xs text-zinc-500 text-center py-8">
+                                <p className="text-xs text-muted-foreground text-center py-8">
                                     Run a simulation to generate compliance report
                                 </p>
                             )}
                             {loading && (
                                 <div className="flex flex-col items-center gap-2 py-8">
-                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-cyan-400" />
-                                    <p className="text-xs text-zinc-500">Running audit…</p>
+                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+                                    <p className="text-xs text-muted-foreground">Running audit…</p>
                                 </div>
                             )}
                             {report?.violations.map((v) => (
