@@ -63,12 +63,12 @@ export default function Controls({
 
   return (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
-      <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-5 py-3 shadow-2xl">
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/90 backdrop-blur-md px-5 py-3 shadow-2xl">
         {/* Upload */}
         <button
           onClick={onUploadClick}
           disabled={isWorking}
-          className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
+          className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition hover:bg-accent disabled:opacity-40"
         >
           {phase === "uploading" ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -79,7 +79,7 @@ export default function Controls({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-zinc-700" />
+        <div className="h-6 w-px bg-border" />
 
         {/* Run Simulation */}
         <button
@@ -87,8 +87,8 @@ export default function Controls({
           disabled={!canRun}
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
             canRun
-              ? "bg-cyan-600 text-white hover:bg-cyan-500"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-secondary text-muted-foreground cursor-not-allowed"
           }`}
         >
           {phase === "simulating" ? (
@@ -100,13 +100,13 @@ export default function Controls({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-zinc-700" />
+        <div className="h-6 w-px bg-border" />
 
         {/* Play / Pause */}
         <button
           onClick={onTogglePlay}
           disabled={!canPlay}
-          className="flex items-center justify-center rounded-lg bg-zinc-800 p-2 text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
+          className="flex items-center justify-center rounded-lg bg-secondary p-2 text-secondary-foreground transition hover:bg-accent disabled:opacity-40"
         >
           {playing ? (
             <Pause className="h-4 w-4" />
@@ -119,14 +119,14 @@ export default function Controls({
         <button
           onClick={onCycleSpeed}
           disabled={!canPlay}
-          className="flex items-center justify-center rounded-lg bg-zinc-800 px-2.5 py-2 text-xs font-mono font-bold text-cyan-400 transition hover:bg-zinc-700 disabled:opacity-40 min-w-[40px]"
+          className="flex items-center justify-center rounded-lg bg-secondary px-2.5 py-2 text-xs font-mono font-bold text-foreground transition hover:bg-accent disabled:opacity-40 min-w-[40px]"
         >
           {speed}x
         </button>
 
         {/* Timeline Scrubber */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">
+          <span className="text-[10px] font-mono text-muted-foreground w-10 text-right">
             {formatTime(frame)}
           </span>
           <input
@@ -136,9 +136,9 @@ export default function Controls({
             value={frame}
             onChange={(e) => onSeek(Number(e.target.value))}
             disabled={!canPlay}
-            className="w-40 accent-cyan-500 disabled:opacity-40"
+            className="w-40 accent-ring disabled:opacity-40"
           />
-          <span className="text-[10px] font-mono text-zinc-500 w-10">
+          <span className="text-[10px] font-mono text-muted-foreground w-10">
             {formatTime(totalFrames > 0 ? totalFrames - 1 : 0)}
           </span>
         </div>
@@ -146,14 +146,14 @@ export default function Controls({
         {/* Stats */}
         {canPlay && (
           <>
-            <div className="h-6 w-px bg-zinc-700" />
-            <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+            <div className="h-6 w-px bg-border" />
+            <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
               <span>F:{Math.floor(frame)}/{totalFrames - 1}</span>
-              <span className="text-zinc-700">|</span>
-              <span className="text-cyan-500">{agentCount} agents</span>
+              <span className="text-border">|</span>
+              <span className="text-foreground">{agentCount} agents</span>
               {violationCount > 0 && (
                 <>
-                  <span className="text-zinc-700">|</span>
+                  <span className="text-border">|</span>
                   <span className="text-red-400">{violationCount} violations</span>
                 </>
               )}
@@ -162,13 +162,13 @@ export default function Controls({
         )}
 
         {/* Divider */}
-        <div className="h-6 w-px bg-zinc-700" />
+        <div className="h-6 w-px bg-border" />
 
         {/* 2D/3D toggle */}
         <button
           onClick={onToggleViewMode}
           disabled={!canPlay && phase !== "processing"}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-2.5 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-lg bg-secondary px-2.5 py-2 text-xs font-medium text-secondary-foreground transition hover:bg-accent disabled:opacity-40"
         >
           {viewMode === "3d" ? (
             <Eye className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function Controls({
         {/* Reset */}
         <button
           onClick={onReset}
-          className="flex items-center justify-center rounded-lg bg-zinc-800 p-2 text-zinc-300 transition hover:bg-zinc-700"
+          className="flex items-center justify-center rounded-lg bg-secondary p-2 text-secondary-foreground transition hover:bg-accent"
         >
           <RotateCcw className="h-4 w-4" />
         </button>
@@ -195,7 +195,7 @@ export default function Controls({
               ? "text-amber-400"
               : phase === "completed"
                 ? "text-green-400"
-                : "text-zinc-600"
+                : "text-muted-foreground"
           }`}
         >
           {phase}
