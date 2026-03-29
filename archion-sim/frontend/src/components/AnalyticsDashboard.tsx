@@ -44,7 +44,7 @@ function MetricCard({
     label,
     value,
     unit,
-    color = "text-cyan-400",
+    color = "text-foreground",
     status,
 }: {
     icon: React.ReactNode;
@@ -56,10 +56,10 @@ function MetricCard({
 }) {
     const statusDot = status === "good" ? "bg-green-400" : status === "warning" ? "bg-yellow-400" : status === "critical" ? "bg-red-400" : null;
     return (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
             <div className="mb-1 flex items-center gap-1.5">
                 {icon}
-                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                     {label}
                 </span>
                 {statusDot && (
@@ -68,7 +68,7 @@ function MetricCard({
             </div>
             <p className={`text-lg font-bold ${color}`}>
                 {value}
-                <span className="ml-1 text-xs text-zinc-500">{unit}</span>
+                <span className="ml-1 text-xs text-muted-foreground">{unit}</span>
             </p>
         </div>
     );
@@ -100,10 +100,10 @@ function EfficiencyGauge({ score }: { score: number }) {
             <svg viewBox="0 0 120 65" className="h-16 w-full">
                 <path d={bgPath} fill="none" stroke="#27272a" strokeWidth="8" strokeLinecap="round" />
                 <path d={fillPath} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" />
-                <text x={cx} y={50} textAnchor="middle" fill="#e4e4e7" fontSize="16" fontWeight="bold">
+                <text x={cx} y={50} textAnchor="middle" fill="#fafafa" fontSize="16" fontWeight="bold">
                     {(pct * 100).toFixed(0)}%
                 </text>
-                <text x={cx} y={62} textAnchor="middle" fill="#71717a" fontSize="7">
+                <text x={cx} y={62} textAnchor="middle" fill="#a1a1aa" fontSize="7">
                     Efficiency
                 </text>
             </svg>
@@ -124,13 +124,13 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 
 const chartTooltipStyle = {
     contentStyle: {
-        background: "#18181b",
-        border: "1px solid #3f3f46",
+        background: "#09090b",
+        border: "1px solid #27272a",
         borderRadius: "6px",
         fontSize: 11,
-        color: "#e4e4e7",
+        color: "#fafafa",
     },
-    itemStyle: { color: "#e4e4e7" },
+    itemStyle: { color: "#fafafa" },
 };
 
 // Violation bar data
@@ -189,7 +189,7 @@ function buildRadarData(report: ComplianceReport | null, efficiency: number) {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
     return (
-        <h4 className="mb-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+        <h4 className="mb-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             {children}
         </h4>
     );
@@ -266,10 +266,10 @@ export function AnalyticsDashboard({
             {/* Floating button — bottom-left */}
             <button
                 onClick={handleToggle}
-                className="absolute bottom-24 left-4 z-20 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/90 px-4 py-3 shadow-2xl backdrop-blur-md transition hover:bg-zinc-800"
+                className="absolute bottom-24 left-4 z-20 flex items-center gap-2 rounded-xl border border-border bg-card/90 px-4 py-3 shadow-2xl backdrop-blur-md transition hover:bg-secondary"
             >
-                <BarChart3 className="h-5 w-5 text-cyan-400" />
-                <span className="text-xs font-medium text-zinc-300">Analytics</span>
+                <BarChart3 className="h-5 w-5 text-foreground" />
+                <span className="text-xs font-medium text-foreground">Analytics</span>
             </button>
 
             {/* Sliding panel from left */}
@@ -280,19 +280,19 @@ export function AnalyticsDashboard({
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: -400, opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="absolute bottom-0 left-0 top-0 z-30 flex w-[380px] flex-col overflow-hidden border-r border-zinc-700 bg-zinc-950/95 backdrop-blur-xl"
+                        className="absolute bottom-0 left-0 top-0 z-30 flex w-[380px] flex-col overflow-hidden border-r border-border bg-background/95 backdrop-blur-xl"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+                        <div className="flex items-center justify-between border-b border-border px-4 py-3">
                             <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-cyan-400" />
-                                <h3 className="text-sm font-semibold text-zinc-200">
+                                <BarChart3 className="h-4 w-4 text-foreground" />
+                                <h3 className="text-sm font-semibold text-foreground">
                                     Analytics Dashboard
                                 </h3>
                             </div>
                             <button
                                 onClick={() => setPanelOpen(false)}
-                                className="rounded-md p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-300"
+                                className="rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -302,16 +302,16 @@ export function AnalyticsDashboard({
                         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3 pb-24">
                             {loading && !analyticsData ? (
                                 <div className="flex flex-col items-center gap-3 py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-                                    <p className="text-xs text-zinc-400">Computing analytics...</p>
+                                    <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+                                    <p className="text-xs text-muted-foreground">Computing analytics...</p>
                                 </div>
                             ) : !analyticsData ? (
                                 <div className="flex flex-col items-center gap-3 py-12">
-                                    <Activity className="h-8 w-8 text-zinc-600" />
-                                    <p className="text-xs text-zinc-500">No analytics data yet</p>
+                                    <Activity className="h-8 w-8 text-muted-foreground" />
+                                    <p className="text-xs text-muted-foreground">No analytics data yet</p>
                                     <button
                                         onClick={onRequestAnalytics}
-                                        className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs text-white hover:bg-cyan-500"
+                                        className="rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
                                     >
                                         Compute Analytics
                                     </button>
@@ -378,7 +378,7 @@ export function AnalyticsDashboard({
                                     {complianceReport && (
                                         <div>
                                             <SectionHeader>Compliance Categories</SectionHeader>
-                                            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2">
+                                            <div className="rounded-lg border border-border bg-card p-2">
                                                 <ResponsiveContainer width="100%" height={200}>
                                                     <RadarChart
                                                         data={buildRadarData(
@@ -399,9 +399,9 @@ export function AnalyticsDashboard({
                                                         <Radar
                                                             name="Score"
                                                             dataKey="score"
-                                                            stroke="#06b6d4"
-                                                            fill="#06b6d4"
-                                                            fillOpacity={0.3}
+                                                            stroke="#fafafa"
+                                                            fill="#fafafa"
+                                                            fillOpacity={0.15}
                                                             strokeWidth={2}
                                                         />
                                                     </RadarChart>
@@ -413,23 +413,23 @@ export function AnalyticsDashboard({
                                     {/* Velocity Timeline*/}
                                     <div>
                                         <SectionHeader>Velocity Over Time</SectionHeader>
-                                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2">
+                                        <div className="rounded-lg border border-border bg-card p-2">
                                             <ResponsiveContainer width="100%" height={120}>
                                                 <LineChart data={analyticsData.velocity_timeline}>
                                                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                                     <XAxis
                                                         dataKey="time_sec"
-                                                        tick={{ fontSize: 8, fill: "#71717a" }}
+                                                        tick={{ fontSize: 8, fill: "#a1a1aa" }}
                                                         stroke="#3f3f46"
-                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#71717a" }}
+                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#a1a1aa" }}
                                                     />
-                                                    <YAxis tick={{ fontSize: 8, fill: "#71717a" }} stroke="#3f3f46" />
+                                                    <YAxis tick={{ fontSize: 8, fill: "#a1a1aa" }} stroke="#3f3f46" />
                                                     <Tooltip {...chartTooltipStyle} />
                                                     <ReferenceLine y={0.2} stroke="#DC2626" strokeDasharray="4 4" strokeWidth={0.8} />
                                                     <Line
                                                         type="monotone"
                                                         dataKey="avg_velocity_ms"
-                                                        stroke="#06b6d4"
+                                                        stroke="#fafafa"
                                                         strokeWidth={1.5}
                                                         dot={false}
                                                         name="Avg Velocity (m/s)"
@@ -443,11 +443,11 @@ export function AnalyticsDashboard({
                                     {violationBarData.length > 0 && (
                                         <div>
                                             <SectionHeader>Violation Distribution</SectionHeader>
-                                            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2">
+                                            <div className="rounded-lg border border-border bg-card p-2">
                                                 <ResponsiveContainer width="100%" height={120}>
                                                     <BarChart data={violationBarData} layout="vertical">
                                                         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
-                                                        <XAxis type="number" tick={{ fontSize: 8, fill: "#71717a" }} stroke="#3f3f46" allowDecimals={false} />
+                                                        <XAxis type="number" tick={{ fontSize: 8, fill: "#a1a1aa" }} stroke="#3f3f46" allowDecimals={false} />
                                                         <YAxis
                                                             type="category"
                                                             dataKey="name"
@@ -470,7 +470,7 @@ export function AnalyticsDashboard({
                                     {/* Congestion Timeline */}
                                     <div>
                                         <SectionHeader>Congestion Over Time</SectionHeader>
-                                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2">
+                                        <div className="rounded-lg border border-border bg-card p-2">
                                             <ResponsiveContainer width="100%" height={120}>
                                                 <AreaChart data={analyticsData.congestion_timeline}>
                                                     <defs>
@@ -482,11 +482,11 @@ export function AnalyticsDashboard({
                                                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                                     <XAxis
                                                         dataKey="time_sec"
-                                                        tick={{ fontSize: 8, fill: "#71717a" }}
+                                                        tick={{ fontSize: 8, fill: "#a1a1aa" }}
                                                         stroke="#3f3f46"
-                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#71717a" }}
+                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#a1a1aa" }}
                                                     />
-                                                    <YAxis tick={{ fontSize: 8, fill: "#71717a" }} stroke="#3f3f46" />
+                                                    <YAxis tick={{ fontSize: 8, fill: "#a1a1aa" }} stroke="#3f3f46" />
                                                     <Tooltip {...chartTooltipStyle} />
                                                     <Area
                                                         type="monotone"
@@ -504,7 +504,7 @@ export function AnalyticsDashboard({
                                     {/*Efficiency Gauge*/}
                                     <div>
                                         <SectionHeader>Path Efficiency</SectionHeader>
-                                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
+                                        <div className="rounded-lg border border-border bg-card p-3">
                                             <EfficiencyGauge score={analyticsData.efficiency_score.average} />
                                         </div>
                                     </div>
@@ -512,17 +512,17 @@ export function AnalyticsDashboard({
                                     {/* Flow Rate */}
                                     <div>
                                         <SectionHeader>Flow Rate Over Time</SectionHeader>
-                                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2">
+                                        <div className="rounded-lg border border-border bg-card p-2">
                                             <ResponsiveContainer width="100%" height={120}>
                                                 <LineChart data={analyticsData.flow_rate}>
                                                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                                     <XAxis
                                                         dataKey="time_sec"
-                                                        tick={{ fontSize: 8, fill: "#71717a" }}
+                                                        tick={{ fontSize: 8, fill: "#a1a1aa" }}
                                                         stroke="#3f3f46"
-                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#71717a" }}
+                                                        label={{ value: "Time (s)", position: "insideBottom", offset: -2, fontSize: 8, fill: "#a1a1aa" }}
                                                     />
-                                                    <YAxis tick={{ fontSize: 8, fill: "#71717a" }} stroke="#3f3f46" />
+                                                    <YAxis tick={{ fontSize: 8, fill: "#a1a1aa" }} stroke="#3f3f46" />
                                                     <Tooltip {...chartTooltipStyle} />
                                                     <ReferenceLine
                                                         y={avgFlowRate}
@@ -548,11 +548,11 @@ export function AnalyticsDashboard({
 
                         {/* Action buttons — pinned at bottom */}
                         {analyticsData && (
-                            <div className="space-y-2 border-t border-zinc-800 px-4 py-3">
+                            <div className="space-y-2 border-t border-border px-4 py-3">
                                 <button
                                     onClick={handleGenerateReport}
                                     disabled={reportLoading}
-                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
                                 >
                                     {reportLoading ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -566,7 +566,7 @@ export function AnalyticsDashboard({
                                         href={`${API_URL}${downloadUrl}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
+                                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition hover:bg-accent"
                                     >
                                         <Download className="h-4 w-4" />
                                         Download PDF

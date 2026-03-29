@@ -998,8 +998,8 @@ export default function SimViewer({
           onClick={onToggleHeatmap}
           className={`absolute top-4 right-4 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${
             showHeatmap
-              ? "border-cyan-500 bg-cyan-500/20 text-cyan-300"
-              : "border-zinc-700 bg-zinc-900/90 text-zinc-400 hover:bg-zinc-800"
+              ? "border-foreground bg-foreground/10 text-foreground"
+              : "border-border bg-card/90 text-muted-foreground hover:bg-secondary"
           }`}
         >
           <Flame className="h-4 w-4" />
@@ -1009,8 +1009,8 @@ export default function SimViewer({
 
       {/* Heatmap legend */}
       {showHeatmap && heatmapData && (
-        <div className="absolute bottom-32 right-4 z-10 rounded-lg border border-zinc-700 bg-zinc-900/90 px-3 py-2 backdrop-blur-md">
-          <p className="mb-1 text-[10px] font-mono text-zinc-400">
+        <div className="absolute bottom-32 right-4 z-10 rounded-lg border border-border bg-card/90 px-3 py-2 backdrop-blur-md">
+          <p className="mb-1 text-[10px] font-mono text-muted-foreground">
             Pedestrian Density
           </p>
           <div
@@ -1020,7 +1020,7 @@ export default function SimViewer({
                 "linear-gradient(to right, #0000ff, #ffff00, #ff0000)",
             }}
           />
-          <div className="mt-0.5 flex justify-between text-[8px] text-zinc-500">
+          <div className="mt-0.5 flex justify-between text-[8px] text-muted-foreground">
             <span>Low</span>
             <span>High</span>
           </div>
@@ -1030,9 +1030,9 @@ export default function SimViewer({
       {/* Loading overlay */}
       {isProcessing && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10">
-          <div className="flex flex-col items-center gap-3 rounded-xl bg-zinc-900/80 px-8 py-6 border border-zinc-700">
-            <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-            <p className="text-sm font-medium text-zinc-300">
+          <div className="flex flex-col items-center gap-3 rounded-xl bg-card/80 px-8 py-6 border border-border">
+            <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+            <p className="text-sm font-medium text-foreground">
               Processing Model…
             </p>
           </div>

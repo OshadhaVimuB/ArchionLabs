@@ -128,12 +128,12 @@ export default function ModelUpload({
           cursor-pointer transition-all duration-200
           ${
             dragOver
-              ? "border-cyan-400 bg-cyan-400/10"
+              ? "border-ring bg-ring/10"
               : status === "error"
                 ? "border-red-500/50 bg-red-500/5"
                 : status === "success"
                   ? "border-green-500/50 bg-green-500/5"
-                  : "border-zinc-700 bg-zinc-900 hover:border-zinc-500 hover:bg-zinc-800/50"
+                  : "border-border bg-card hover:border-muted-foreground hover:bg-secondary/50"
           }
         `}
       >
@@ -143,23 +143,23 @@ export default function ModelUpload({
           <FileWarning className="h-10 w-10 text-red-400" />
         ) : (
           <CloudUpload
-            className={`h-10 w-10 ${dragOver ? "text-cyan-400" : "text-zinc-500"}`}
+            className={`h-10 w-10 ${dragOver ? "text-ring" : "text-muted-foreground"}`}
           />
         )}
 
         <div className="text-center">
           {status === "uploading" ? (
-            <p className="text-sm text-zinc-400">Processing model…</p>
+            <p className="text-sm text-muted-foreground">Processing model…</p>
           ) : status === "success" ? (
             <p className="text-sm text-green-400">
               Model processed — drop another to replace
             </p>
           ) : (
             <>
-              <p className="text-sm font-medium text-zinc-300">
+              <p className="text-sm font-medium text-foreground">
                 Drag & drop a 3D model here
               </p>
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 or click to browse — .obj, .glb, .gltf
               </p>
             </>
@@ -177,9 +177,9 @@ export default function ModelUpload({
 
       {/* Progress bar */}
       {status === "uploading" && (
-        <div className="mt-3 w-full rounded-full bg-zinc-800 h-2 overflow-hidden">
+        <div className="mt-3 w-full rounded-full bg-secondary h-2 overflow-hidden">
           <div
-            className="h-full bg-cyan-500 transition-all duration-300 ease-out"
+            className="h-full bg-primary transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
